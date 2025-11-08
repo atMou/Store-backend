@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Inventory\Inventory.csproj" />
+    <ProjectReference Include="..\..\Modules\Basket\Cart.csproj" />
+    <ProjectReference Include="..\..\Modules\Delivery\Delivery.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\Identity.csproj" />
+    <ProjectReference Include="..\..\Modules\Order\Order.csproj" />
+    <ProjectReference Include="..\..\Modules\Payment\Payment.csproj" />
+    <ProjectReference Include="..\..\Modules\Product\Product.csproj" />
+  </ItemGroup>
+
+</Project>
