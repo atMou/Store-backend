@@ -1,43 +1,48 @@
-﻿using System.Reflection;
+﻿using MassTransit;
 
-using MediatR;
+using Product.Persistence.Repositories;
 
-using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-using Product.Persistence.Data;
-using Product.Persistence.Data.Seeder;
-
-using Serilog;
-
-using Shared.Application.Behaviour;
-using Shared.Infrastructure.Authentication;
-using Shared.Infrastructure.Clock;
-using Shared.Persistence;
-using Shared.Persistence.Interceptors;
+using Shared.Infrastructure.Images.Options;
 
 namespace Product;
 public static class ProductModule
 {
     public static IServiceCollection AddProductModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMediatR(conf =>
-        {
-            conf.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-            conf.AddOpenBehavior(typeof(LoggingBehaviour<,>));
-        });
+        //services.AddMediatR(conf =>
+        //{
+        //    conf.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+        //    conf.AddOpenBehavior(typeof(LoggingBehaviour<,>));
+        //});
+        //services.AddModuleMassTransit<ProductDBContext>(typeof(ProductModule).Assembly);
+        //services.AddMassTransit(cfg =>
+        //{
+        //    cfg.AddConsumers(Assembly.GetExecutingAssembly());
+
+        //    cfg.AddEntityFrameworkOutbox<ProductDBContext>(o =>
+        //    {
+        //        o.UseBusOutbox();
+        //    });
+
+        //    cfg.UsingRabbitMq((context, rabbit) =>
+        //    {
+        //        rabbit.ConfigureEndpoints(context);
+        //    });
+        //});
+
+        services.ConfigureOptions<CloudinarySettingsSetup>();
+
+        services.AddScoped<IProductRepository, ProductRepository>();
         services.AddProductModuleServices(configuration);
-        services.AddScoped<IDataSeeder, ProductDataSeeder>();
         return services;
     }
 
     public static IApplicationBuilder UseProductModule(this IApplicationBuilder app)
     {
-        app.UseMigration<ProductDBContext>();
+
         return app;
     }
+
 
 
     private static IServiceCollection AddProductModuleServices(this IServiceCollection services, IConfiguration configuration)
@@ -68,8 +73,5 @@ public static class ProductModule
 
 
 
-
-
-
-
 }
+

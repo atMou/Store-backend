@@ -1,16 +1,14 @@
-namespace Identity.ValueObjects;
-
 using System.Numerics;
 
-using LanguageExt.Common;
+namespace Identity.Domain.ValueObjects;
 
-public record Age :
+public record Age : DomainType<Age, byte>,
     IComparisonOperators<Age, Age, bool>,
-    IComparisonOperators<Age, int, bool>
+    IComparisonOperators<Age, byte, bool>
 {
-    public readonly int Value;
+    public readonly byte Value;
 
-    private Age(int repr)
+    private Age(byte repr)
     {
         Value = repr;
 
@@ -39,9 +37,10 @@ public record Age :
             age--;
         }
 
-        return age < 18 ?
-            FinFail<Age>(Error.New($"Age value '{dob.ToShortDateString()}' is invalid, please enter a proper age over 18 Yo."))
-            : new Age(age);
+        return age < 18 || age > 120 ?
+            FinFail<Age>(Error.New($"Age value '{dob.ToShortDateString()}' is invalid, please enter a proper age over 18 Yo, and less than 120 Yo."))
+
+            : new Age((byte)age);
     }
 
 
@@ -65,14 +64,19 @@ public record Age :
             ? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a age over 18 YO value."))
             : unit;
     }
-    public static Age FromUnsafe(int repr)
+    public static Age FromUnsafe(byte repr)
     {
         return new Age(repr);
     }
 
+    public static Age? FromNullable(byte? repr)
+    {
+        return repr is null ? null : new Age(repr.Value);
+    }
 
 
-    public int To()
+
+    public byte To()
     {
         return Value;
     }
@@ -98,33 +102,43 @@ public record Age :
         return left.To() <= right.To();
     }
 
-    public static bool operator ==(Age left, int right)
+    public static bool operator ==(Age? left, byte right)
     {
-        return left.To() == right;
+        return left is { } l && l.To() == right;
     }
 
-    public static bool operator !=(Age left, int right)
+    public static bool operator !=(Age? left, byte right)
     {
         return !(left == right);
     }
 
-    public static bool operator >(Age left, int right)
+    public static bool operator >(Age left, byte right)
     {
         return left.To() > right;
     }
 
-    public static bool operator >=(Age left, int right)
+    public static bool operator >=(Age left, byte right)
     {
         return left.To() >= right;
     }
 
-    public static bool operator <(Age left, int right)
+    public static bool operator <(Age left, byte right)
     {
         return left.To() < right;
     }
 
-    public static bool operator <=(Age left, int right)
+    public static bool operator <=(Age left, byte right)
     {
         return left.To() <= right;
+    }
+
+    public virtual bool Equals(Age? other)
+    {
+        return other is { } && Value == other.Value;
+    }
+
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
     }
 }

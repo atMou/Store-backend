@@ -2,39 +2,40 @@ namespace Shared.Persistence.Interceptors;
 
 public class DispatchDomainEventInterceptor(IMediator mediator) : SaveChangesInterceptor
 {
-    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
-    {
-        DispatchDomainEvents(eventData);
-        return base.SavedChanges(eventData, result);
-    }
 
 
-    public override ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result,
+    //public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
+    //{
+    //    DispatchDomainEvents(eventData);
+    //    return base.SavingChanges(eventData, result);
+    //}
+
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result,
         CancellationToken cancellationToken = new CancellationToken())
     {
-        DispatchDomainEvents(eventData);
-        return base.SavedChangesAsync(eventData, result, cancellationToken);
+        await DispatchDomainEvents(eventData);
+        return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
-    private Unit DispatchDomainEvents(DbContextEventData eventData)
+
+
+    private async Task DispatchDomainEvents(DbContextEventData eventData)
     {
-        var option = Optional(eventData.Context).Map(async ctx =>
 
+        var entries = eventData.Context?.ChangeTracker.Entries<IAggregate>() ?? [];
+        foreach (var entry in entries)
         {
-            var entries = ctx.ChangeTracker.Entries<IAggregate>();
-            foreach (var entry in entries)
-            {
-                var aggregate = entry.Entity;
-                var domainEvents = aggregate.DomainEvents.ToList();
-                aggregate.ClearDomainEvents();
+            var aggregate = entry.Entity;
+            var domainEvents = aggregate.DomainEvents.ToList();
+            aggregate.ClearDomainEvents();
 
-                foreach (var domainEvent in domainEvents)
-                {
-                    await mediator.Publish(domainEvent);
-                }
+            foreach (var domainEvent in domainEvents)
+            {
+                await mediator.Publish(domainEvent);
             }
-        });
-        return unit;
+        }
+
+
     }
 
 }

@@ -1,5 +1,3 @@
-using System.Reflection;
-
 using Product.Domain.Models;
 
 namespace Product.Persistence.Data;
@@ -11,11 +9,14 @@ public class ProductDBContext(DbContextOptions<ProductDBContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        //modelBuilder.AddOutboxMessageEntity();
+        //modelBuilder.AddOutboxStateEntity();
+        //modelBuilder.AddInboxStateEntity();
         modelBuilder.Ignore<Size>();
         modelBuilder.Ignore<Brand>();
         modelBuilder.Ignore<Color>();
         modelBuilder.Ignore<Category>();
-        modelBuilder.HasDefaultSchema("catalog");
+        modelBuilder.HasDefaultSchema("products");
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);
     }

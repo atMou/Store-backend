@@ -12,7 +12,8 @@
 
   <ItemGroup>
     <Folder Include="Infrastructure\" />
-    <Folder Include="Presentation\Controllers\" />
+    <Folder Include="Persistence\Extensions\" />
   </ItemGroup>
+
 
 </Project>

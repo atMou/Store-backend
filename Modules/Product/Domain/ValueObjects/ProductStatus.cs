@@ -1,13 +1,13 @@
 namespace Product.Domain.ValueObjects;
 
 
-public record ProductStatus
+public record Status
 {
     public bool IsFeatured { get; private init; }
     public bool IsTrending { get; private init; }
     public bool IsBestSeller { get; private init; }
     public bool IsNew { get; private init; }
-    private ProductStatus(bool isFeatured, bool isTrending, bool isBestSeller, bool isNew)
+    private Status(bool isFeatured, bool isTrending, bool isBestSeller, bool isNew)
     {
         IsFeatured = isFeatured;
         IsTrending = isTrending;
@@ -15,15 +15,15 @@ public record ProductStatus
         IsNew = isNew;
     }
 
-    public static readonly ProductStatus New =
-    new ProductStatus(
+    public static readonly Status New =
+    new Status(
             isFeatured: false,
             isTrending: false,
             isBestSeller: false,
             true
         );
 
-    public ProductStatus Update(bool? isFeatured, bool? isTrending, bool? isBestSeller, bool? isNew) =>
+    public Status Update(bool? isFeatured, bool? isTrending, bool? isBestSeller, bool? isNew) =>
         new(isFeatured: isFeatured ?? IsFeatured,
             isTrending: isTrending ?? IsTrending,
             isBestSeller: isBestSeller ?? IsBestSeller,

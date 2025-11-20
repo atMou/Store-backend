@@ -1,6 +1,14 @@
-﻿global using Basket.Application.Events;
-global using Basket.Domain.Repositories;
+﻿global using System.Reflection;
+
+global using Basket.Application.Events;
+global using Basket.Application.Features.Cart.CreateCart;
+global using Basket.Domain.Contracts;
+global using Basket.Domain.IRepositories;
+global using Basket.Domain.Models;
+global using Basket.Domain.ValueObjects;
 global using Basket.Persistence;
+global using Basket.Persistence.Repositories;
+global using Basket.Presentation.Requests;
 
 global using LanguageExt;
 global using LanguageExt.Common;
@@ -8,11 +16,31 @@ global using LanguageExt.Traits.Domain;
 
 global using MassTransit;
 
+global using MediatR;
+
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Diagnostics;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+
+global using Serilog;
+
 global using Shared.Application.Abstractions;
+global using Shared.Application.Contracts.Product.Queries;
+global using Shared.Domain.Abstractions;
+global using Shared.Domain.Contracts.Cart;
+global using Shared.Domain.Errors;
+global using Shared.Domain.Validations;
 global using Shared.Domain.ValueObjects;
 global using Shared.Infrastructure.Authentication;
+global using Shared.Infrastructure.Clock;
 global using Shared.Infrastructure.Errors;
-global using Shared.Infrastructure.ValueObjects;
 global using Shared.Persistence.Db.Monad;
+global using Shared.Persistence.Interceptors;
+global using Shared.Presentation.Extensions;
 
 global using static LanguageExt.Prelude;
+
+global using Unit = LanguageExt.Unit;

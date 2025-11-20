@@ -1,8 +1,9 @@
 ﻿namespace Product.Persistence.Data;
-public record PaginatedResult<T>(
-    IEnumerable<T> Items,
-    int TotalCount,
-    int Page,
-    int PageSize
-);
+public record PaginatedResult<T>
+{
+    public IEnumerable<T> Items { get; init; }
+    public int TotalCount { get; init; }
+    public int PageNumber { get; init; }
+    public int PageSize { get; init; }
+}
 

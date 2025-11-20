@@ -100,9 +100,7 @@ public sealed class HttpStatusCodeInfo
 
     public static HttpStatusCodeInfo FromCode(int code)
     {
-        return _byCode.TryGetValue(code, out var status)
-            ? status
-            : throw new InvalidOperationException("Unknown status code");
+        return _byCode.GetValueOrDefault(code, InternalServerError);
     }
 
     public override string ToString()

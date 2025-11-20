@@ -6,6 +6,12 @@ public record Brand
 {
     private static readonly List<Brand> _all = new();
 
+    public BrandCode Code { get; }
+    public string Name { get; }
+    public string? Country { get; }
+    public string? Website { get; }
+    public static IReadOnlyList<Brand> All => _all;
+
     private Brand()
     {
     }
@@ -18,12 +24,28 @@ public record Brand
         Website = website;
         _all.Add(this);
     }
-
-    public BrandCode Code { get; }
-    public string Name { get; }
-    public string? Country { get; }
-    public string? Website { get; }
-    public static IReadOnlyList<Brand> All => _all;
+    static Brand()
+    {
+        _ = Nike;
+        _ = Adidas;
+        _ = Hm;
+        _ = Zara;
+        _ = LouisVuitton;
+        _ = Gucci;
+        _ = Uniqlo;
+        _ = Prada;
+        _ = Chanel;
+        _ = Levis;
+        _ = Puma;
+        _ = UnderArmour;
+        _ = NewBalance;
+        _ = Asics;
+        _ = Reebok;
+        _ = Converse;
+        _ = Timberland;
+        _ = NorthFace;
+        _ = UnKnown;
+    }
 
     // Define brands
     public static Brand Nike => new(BrandCode.NK, "Nike", "USA", "https://www.nike.com");

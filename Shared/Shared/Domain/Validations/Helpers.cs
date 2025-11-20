@@ -1,9 +1,19 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Shared.Domain.Validations;
 public static class Helpers
 {
     public static Fin<Option<A>> ValidateNullable<A, B>(B? repr) where A : DomainType<A, B> where B : struct =>
         repr.HasValue
             ? A.From(repr.Value).Map(Some)
+            : FinSucc(Option<A>.None);
+
+
+
+    public static Fin<Option<A>> ValidateNullable<A, B>(B? repr) where A : DomainType<A, B> where B : class =>
+        repr is not null
+            ? A.From(repr).Map(Some)
             : FinSucc(Option<A>.None);
     public static Option<A> FromUnsafe<A, B>(B? repr) where A : DomainType<A, B> where B : struct =>
         Optional(repr)
@@ -16,8 +26,9 @@ public static class Helpers
     public static B? NullIfNone<A, B>(Option<A> repr) where A : DomainType<A, B> where B : struct =>
         repr.Match(a => a.To(), () => (B?)null);
 
-    public static A? NullIfNone<A>(Option<A> repr) =>
+    public static A? NullIfNone<A>(this Option<A?> repr) =>
         repr.ValueUnsafe();
+
 
 
     public static Option<A> NoneIfNull<A>(A? repr) =>
@@ -63,4 +74,34 @@ public static class Helpers
     public static Validation<Error, Unit> MinLength8(string repr, string identifier) => MinLength(8, identifier)(repr);
     public static Validation<Error, Unit> MinLength50(string repr, string identifier) => MinLength(50, identifier)(repr);
 
+    public static bool IsNotNull<A>(this A a)
+    {
+        return !a.IsNull();
+    }
+
+    public static string GenerateRefreshToken()
+    {
+        var bytes = new byte[64];
+        RandomNumberGenerator.Fill(bytes);
+
+        return Convert.ToBase64String(bytes)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .Replace("=", "");
+    }
+
+    public static string Hash(string input, string salt)
+    {
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input + salt));
+        return Convert.ToHexString(bytes);
+    }
+
+
+    public static string Generate6DigitCode()
+    {
+        return RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+    }
+
 }
+

@@ -1,8 +1,7 @@
-﻿namespace Basket.Enums;
+﻿namespace Basket.Domain.Enums;
 
 public enum DiscountType
 {
-    None,
-    Percentage,
-    Amount
+    Percentage = 1,
+    Amount = 2
 }

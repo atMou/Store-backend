@@ -1,27 +1,33 @@
-﻿using Basket.Domain.Models;
-using Basket.Persistence.Extensions;
-
-using Microsoft.EntityFrameworkCore;
-
-using Shared.Domain.Errors;
+﻿using Shared.Persistence.Extensions;
 
 namespace Basket.Persistence.Repositories;
 
 public class CartRepository : ICartRepository
 {
-    public IO<Cart> GetCartById(CartId id, BasketDbContext ctx, Action<QueryableOptions<Cart>>? options)
+    public IO<Cart> GetCartById(CartId id, BasketDbContext ctx, Action<QueryOptions<Cart>>? options)
     {
         return from c in IO<Cart?>.LiftAsync(async e => await
-                ctx.Carts.WithOptions(options)
-                    .FirstOrDefaultAsync(cart => cart.Id.Value == id.Value, e.Token))
+                ctx.Carts.WithQueryOptions(options)
+                    .FirstOrDefaultAsync(cart => cart.Id == id, e.Token))
                from a in when(c is null, IO.fail<Unit>(NotFoundError.New($"Cart with id '{id}' was not found.")))
                select c;
     }
 
-    public IO<Cart> GetCartByUserId(UserId id, BasketDbContext ctx, Action<QueryableOptions<Cart>>? options)
+    public IO<Unit> ProductIncludedInAnyCart(ProductId productId, BasketDbContext ctx,
+        Action<QueryOptions<Cart>>? options = null)
+    {
+        return from exists in IO.liftAsync(e => ctx.Carts
+                .Where(c => c.LineItems.Any(ci => ci.ProductId == productId))
+                .AnyAsync(e.Token))
+               from a in when(exists,
+                   IO.fail<Unit>(NotFoundError.New($"Product with id '{productId}' is included some carts.")))
+               select unit;
+    }
+
+    public IO<Cart> GetCartByUserId(UserId id, BasketDbContext ctx, Action<QueryOptions<Cart>>? options)
     {
         return from c in IO<Cart?>.LiftAsync(async e =>
-                await ctx.Carts.WithOptions(options)
+                await ctx.Carts.WithQueryOptions(options)
                     .FirstOrDefaultAsync(cart => cart.UserId.Value == id.Value, e.Token))
                select c;
     }
@@ -39,23 +45,23 @@ public class CartRepository : ICartRepository
                select c;
     }
 
-    public IO<Cart> AddCartItemCart(CartItem item, CartId cartId, BasketDbContext ctx)
+    public IO<Cart> AddCartItemCart(LineItem item, CartId cartId, BasketDbContext ctx)
     {
-        return from cart in GetCartById(cartId, ctx, options => { options.AddInclude(cart => cart.CartItems); })
-               from x in IO.lift(_ => cart.AddCartItem(item))
+        return from cart in GetCartById(cartId, ctx, options => { options.AddInclude(cart => cart.LineItems); })
+               from x in IO.lift(_ => cart.AddLineItems(item))
                select x;
     }
 
-    public IO<Cart> DeleteCartItem(CartItemId cartItemId, CartId cartId, BasketDbContext ctx)
+    public IO<Cart> DeleteLineItem(ProductId productId, CartId cartId, BasketDbContext ctx)
     {
-        return from cart in GetCartById(cartId, ctx, options => { options.AddInclude(cart => cart.CartItems); })
-               from x in IO.lift(_ => cart.DeleteCartItem(cartItemId))
+        return from cart in GetCartById(cartId, ctx, options => { options.AddInclude(cart => cart.LineItems); })
+               from x in IO.lift(_ => cart.DeleteLineItem(productId))
                select cart;
     }
 
     public IO<Cart> DeleteCart(CartId cartId, BasketDbContext ctx)
     {
-        return from cart in GetCartById(cartId, ctx, options => { options.AddInclude(cart => cart.CartItems); })
+        return from cart in GetCartById(cartId, ctx, options => { options.AddInclude(cart => cart.LineItems); })
                from x in IO.lift(_ => ctx.Carts.Remove(cart))
                select cart;
     }
@@ -71,7 +77,6 @@ public class CartRepository : ICartRepository
 
     public IO<Coupon> GetCouponById(CouponId? couponId, BasketDbContext ctx)
     {
-
         return from c in IO<Coupon?>.LiftAsync(async e =>
                 await ctx.Coupons.FirstOrDefaultAsync(c => c.Id == couponId, e.Token))
                from a in when(c is null, IO.fail<Unit>(NotFoundError.New($"Coupon with id '{couponId}' was not found.")))

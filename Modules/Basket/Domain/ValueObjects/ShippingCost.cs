@@ -1,6 +1,4 @@
-using Shared.Domain.ValueObjects;
-
-namespace Basket.Basket.Domain.ValueObjects;
+namespace Basket.Domain.ValueObjects;
 
 public record Shipping
 {

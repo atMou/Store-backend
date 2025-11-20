@@ -1,29 +1,32 @@
-﻿using Shared.Domain.Contracts.Product;
+﻿using Shared.Domain.Errors;
 
 namespace Order.Domain.Models;
-public record OrderItem
+public record OrderItem : Entity<OrderItemId>
 {
-    public ProductId ProductId { get; init; } = default!;
-    public string Slug { get; init; } = default!;
-    public string Sku { get; init; } = default!;
-    public string ImageUrl { get; init; } = default!;
+    private OrderItem(ProductId productId, string slug, string sku, string imageUrl, int quantity, Money unitPrice) : base(OrderItemId.New)
+    {
+        ProductId = productId;
+        Slug = slug;
+        Sku = sku;
+        ImageUrl = imageUrl;
+        Quantity = quantity;
+        UnitPrice = unitPrice;
+    }
+    public ProductId ProductId { get; init; }
+    public string Slug { get; init; }
+    public string Sku { get; init; }
+    public string ImageUrl { get; init; }
     public int Quantity { get; init; }
     public Money UnitPrice { get; init; }
+    //public Attributes Attributes { get; init; } = new();
     public Money LineTotal => Money.FromDecimal(UnitPrice.Value * Quantity);
 
-    public static Fin<OrderItem> Create(ProductDto product, int quantity)
+    public static Fin<OrderItem> Create(ProductId productId, string slug, string sku, string imageUrl, int quantity, Money unitPrice)
     {
         if (quantity <= 0)
-            return FinFail<OrderItem>(Error.New("Quantity must be greater than zero."));
+            return FinFail<OrderItem>(InvalidOperationError.New("Quantity must be greater than zero."));
 
-        return new OrderItem
-        {
-            ProductId = ProductId.From(product.Id),
-            Slug = product.Slug,
-            Sku = product.Sku,
-            ImageUrl = product.ImageUrls[0],
-            Quantity = quantity,
-            UnitPrice = product.NewPrice
-        };
+        return new OrderItem(productId, slug, sku, imageUrl, quantity, unitPrice);
     }
 }
+

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Inter", Arial, sans-serif;
+            background: #f9f9f9;
+            color: #111;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 40px 30px;
+            border-radius: 16px;
+            border: 1px solid #ddd;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        p {
+            font-size: 15px;
+            line-height: 22px;
+            color: #424040;
+            text-align: center;
+            margin: 16px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #0057ff;
+            color: #fff !important;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 15px;
+            margin: 25px auto;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .footer-box {
+            background: #f2eff3;
+            padding: 18px;
+            font-size: 12px;
+            color: #84828e;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        
+        <img class="logo" src="https://placehold.co/60x60" alt="Logo" />
+
+        <h1>Please verify your email 😄</h1>
+
+        <p>
+            To use X, click the verification button below.
+            This helps keep your account secure.
+        </p>
+
+        <div style="text-align:center;">
+            <a class="btn" href="{{VerificationLink}}" target="_blank">
+                Verify my account
+            </a>
+        </div>
+
+        <p>
+            You’re receiving this email because you created an account for
+            <strong>{{UserEmail}}</strong>.
+            If this wasn’t you, simply ignore the message.
+        </p>
+
+        <div class="footer-box">
+            EmailService specialists use X's tools to design emails easily
+            and send high-quality HTML to all inbox providers.
+        </div>
+
+    </div>
+</body>
+</html>

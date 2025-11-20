@@ -22,8 +22,23 @@ public record Color
         Hex = hex;
         _all.Add(this);
     }
+    static Color()
+    {
+        _ = None;
+        _ = Red;
+        _ = Blue;
+        _ = Green;
+        _ = Black;
+        _ = White;
+        _ = Yellow;
+        _ = Orange;
+        _ = Purple;
+        _ = Pink;
+        _ = Brown;
+        _ = Gray;
+        _ = Navy;
+    }
 
-    // Define colors
     public static Color None => new(ColorCode.None, "", "");
     public static Color Red => new(ColorCode.RD, "Red", "#FF0000");
     public static Color Blue => new(ColorCode.BL, "Blue", "#0000FF");

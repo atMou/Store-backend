@@ -18,7 +18,31 @@ public record Category
         _allowedSubcategories = allowedSubcategories ?? [];
         _all.Add(this);
     }
+    static Category()
+    {
+        _ = None;
+        _ = Men;
+        _ = Women;
+        _ = Kids;
+        _ = Footwear;
+        _ = Accessories;
+        _ = Sale;
 
+        _ = MenTops;
+        _ = MenBottoms;
+        _ = MenActivewear;
+        _ = MenAccessories;
+
+        _ = WomenTops;
+        _ = WomenBottoms;
+        _ = WomenDresses;
+        _ = WomenOuterwear;
+        _ = WomenAccessories;
+
+        _ = KidsBoys;
+        _ = KidsGirls;
+        _ = KidsInfants;
+    }
     public CategoryCode Code { get; }
     public string Name { get; }
     public static IReadOnlyList<Category> All => _all;
@@ -61,7 +85,7 @@ public record Category
     public static Fin<Category> FromCode(string code)
     {
         return Enum.TryParse<CategoryCode>(code, out var categoryCode)
-            ? Optional(_all.FirstOrDefault(c => c.Code == categoryCode))
+            ? Optional(_all.FirstOrDefault(c => c.Code.ToString() == categoryCode.ToString()))
                 .ToFin((Error)$"Invalid category code '{code}'")
             : FinFail<Category>((Error)$"Invalid category code '{code}'");
     }

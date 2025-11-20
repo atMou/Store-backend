@@ -48,12 +48,16 @@ public record Gender : DomainType<Gender, string>
     {
         return Optional(_all.FirstOrDefault(g => g.Value == repr)).IfNone(() => None);
 
-
+    }
+    public static Gender FromNullable(string? repr)
+    {
+        return repr is null ? None : Optional(_all.FirstOrDefault(g => g.Value == repr)).IfNone(() => None);
     }
 
     public static Gender FromUnsafe(byte code)
     {
-        return _all.First(g => g.Code == code);
+        return Optional(_all.FirstOrDefault(g => g.Code == code)).IfNone(() => None);
 
     }
+
 }

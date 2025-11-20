@@ -20,6 +20,17 @@ public record Size
         Order = order;
         _all.Add(this);
     }
+    static Size()
+    {
+        _ = None;
+        _ = ExtraSmall;
+        _ = Small;
+        _ = Medium;
+        _ = Large;
+        _ = ExtraLarge;
+        _ = XXL;
+        _ = XXXL;
+    }
 
     // Define sizes
     public static Size None => new(SizeCode.None, "None", 0);

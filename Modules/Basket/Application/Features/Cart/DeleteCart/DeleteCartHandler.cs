@@ -1,23 +1,22 @@
 namespace Basket.Application.Features.Cart.DeleteCart;
 
-public record DeleteCartCommand(CartId CartId) : ICommand<Fin<DeleteCartCommandResult>>;
+public record DeleteCartCommand(CartId CartId) : ICommand<Fin<Unit>>;
 
-public record DeleteCartCommandResult(bool isSuccessful);
 
-internal class GetCartByIdCommandHandler(
+internal class DeleteCartByIdCommandHandler(
     BasketDbContext dbContext,
     ICartRepository cartRepository,
     IUserContext userContext)
-    : ICommandHandler<DeleteCartCommand, Fin<DeleteCartCommandResult>>
+    : ICommandHandler<DeleteCartCommand, Fin<Unit>>
 {
-    public Task<Fin<DeleteCartCommandResult>> Handle(DeleteCartCommand command, CancellationToken cancellationToken)
+    public Task<Fin<Unit>> Handle(DeleteCartCommand command, CancellationToken cancellationToken)
     {
         var db = from c in Db<BasketDbContext>.liftIO(ctx =>
                 cartRepository.DeleteCart(command.CartId, ctx))
                  from x in userContext.IsSameUser<IO>(c.UserId,
-                                                               Error.New("You are not authorized to delete this cart item."))
-                                                           | userContext.IsInRole<IO>(Role.Admin).As()
-                 select new DeleteCartCommandResult(true);
-        return db.RunSave(dbContext, EnvIO.New(null, cancellationToken));
+                                                               UnAuthorizedError.New("You are not authorized to delete this cart item."))
+                                                           | userContext.IsInRole<IO>(Role.Admin, UnAuthorizedError.New("You are not authorized to delete this cart item.")).As()
+                 select unit;
+        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

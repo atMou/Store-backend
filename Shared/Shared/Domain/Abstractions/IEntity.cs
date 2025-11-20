@@ -2,7 +2,7 @@ namespace Shared.Domain.Abstractions;
 
 public interface IEntity<TId>
 {
-    public TId Id { get; set; }
+    public TId Id { get; }
 }
 
 public interface IEntity

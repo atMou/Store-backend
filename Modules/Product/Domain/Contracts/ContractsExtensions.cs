@@ -1,7 +1,5 @@
 ﻿using Product.Domain.Models;
 
-using Shared.Domain.Contracts.Product;
-
 namespace Product.Domain.Contracts;
 public static class ContractsExtensions
 {
@@ -12,33 +10,31 @@ public static class ContractsExtensions
             Id = p.Id.Value,
             Slug = p.Slug.Value,
             Sku = p.Sku.Value,
-            IsNew = p.ProductStatus.IsNew,
-            IsFeatured = p.ProductStatus.IsFeatured,
-            IsBestSeller = p.ProductStatus.IsBestSeller,
-            IsTrending = p.ProductStatus.IsTrending,
-            ImageUrls = p.ImageUrls.Select(url => url.Value).ToArray(),
-            Stock = p.Stock,
-            LowStockThreshold = p.LowStockThreshold,
+            IsNew = p.Status.IsNew,
+            IsFeatured = p.Status.IsFeatured,
+            IsBestSeller = p.Status.IsBestSeller,
+            IsTrending = p.Status.IsTrending,
+            Stock = p.Stock.Value,
             Price = p.Price.Value,
-            Currency = p.Currency.Code,
             Brand = p.Brand.Name,
             Size = p.Size.Name,
             Color = p.Color.Name,
             ColorHex = p.Color.Hex,
             Category = p.Category.Name,
             Description = p.Description.Value,
-            NewPrice = p.NewPrice.ValueUnsafe()?.Value,
-            Discount = p.Discount.ValueUnsafe()?.Value,
+            NewPrice = p.NewPrice?.Value,
+            Discount = p.Discount?.Value,
             AverageRating = p.AvgRating.Value,
             TotalReviews = p.TotalReviews,
             TotalSales = p.TotalSales,
-            IsLowStock = p.IsLowStock,
+            StockLevel = p.StockLevel.ToString(),
+            Images = p.ProductImages.Select(pi => pi.ToImageDto()).ToArray(),
             Variants = p.Variants.Select(v => v.ToVariantDto()),
-            Reviews = p.Reviews.Select(r => r.ReviewsDto())
+            Reviews = p.Reviews.Select(r => r.ToReviewsDto())
         };
     }
 
-    private static ProductVariantDto ToVariantDto(this Models.Product v)
+    public static ProductVariantDto ToVariantDto(this Models.Product v)
     {
         return new ProductVariantDto()
         {
@@ -48,11 +44,11 @@ public static class ContractsExtensions
             Color = v.Color.Name,
             ColorHex = v.Color.Hex,
             Price = v.Price.Value,
-            Stock = v.Stock
+            Stock = v.Stock.Value
         };
     }
 
-    private static ReviewDto ReviewsDto(this Review review)
+    public static ReviewDto ToReviewsDto(this Review review)
     {
         return new ReviewDto()
         {
@@ -62,6 +58,17 @@ public static class ContractsExtensions
             Comment = review.Comment.Value,
             Rating = review.Rating.Value,
             RatingDescription = review.Rating.Description
+        };
+    }
+
+    public static ImageDto ToImageDto(this ProductImage pi)
+    {
+        return new ImageDto()
+        {
+            Id = pi.Id.Value,
+            Url = pi.ImageUrl.Value,
+            AltText = pi.AltText,
+            IsMain = pi.IsMain
         };
     }
 

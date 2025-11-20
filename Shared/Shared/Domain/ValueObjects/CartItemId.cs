@@ -1,21 +1,19 @@
 ﻿namespace Shared.Domain.ValueObjects;
 
-public class CartItemId : IId
+public record LineItemId : IId
 {
-    private CartItemId(Guid value)
+    private LineItemId(Guid value)
     {
         Value = value;
     }
 
     public Guid Value { get; }
 
-    public static CartItemId New()
+    public static LineItemId New =>
+        new LineItemId(Guid.NewGuid());
+    public static LineItemId From(Guid value)
     {
-        return new CartItemId(Guid.NewGuid());
-    }
-    public static CartItemId From(Guid value)
-    {
-        return new CartItemId(value);
+        return new LineItemId(value);
     }
 }
 

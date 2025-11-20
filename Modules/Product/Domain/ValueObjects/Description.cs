@@ -20,4 +20,9 @@ public record Description : DomainType<Description, string>
 
     public string To() => Value;
 
+
+    public static Description FromUnsafe(string repr)
+    {
+        return new Description(repr);
+    }
 }

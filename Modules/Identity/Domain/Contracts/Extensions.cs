@@ -9,12 +9,12 @@ public static class Extensions
         Email = user.Email.Value,
         FirstName = user.FirstName.Value,
         LastName = user.LastName.Value,
-        Age = user.Age.Value,
-        Avatar = user.Avatar.Value,
-        Gender = user.Gender.ToString(),
-        IsVerified = user.IsVerified,
+        Age = user.Age?.Value,
+        Avatar = user.Avatar?.Value,
+        Gender = user.Gender?.ToString(),
+        IsVerified = user.IsEmailVerified,
         CartId = user.CartId?.Value,
-        CouponIds = user.CouponIds.Select(ci => ci.Value),
+        //CouponIds = user.CouponIds.Select(ci => ci.Value),
         Address = new AddressDto
         {
             Street = user.Address.Street,
@@ -23,9 +23,9 @@ public static class Extensions
             //PostalCode = user.Address.PostalCode,
             //Country = user.Address.Country
         },
-        //Roles = user.Roles.Select(r => r.Name),
-        LikedProductIds = user.LikedProductsIds.Select(lp => lp.Value),
-        OrderIds = user.OrderIds.Select(o => o.Value)
+        Roles = user.Roles.Select(r => r.Name),
+        //LikedProductIds = user.LikedProducts,
+        //OrderIds = user.OrderIds.Select(o => o.Value)
     };
 }
 

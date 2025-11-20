@@ -20,26 +20,17 @@ public static class MassTransitExtensions
             config.AddActivities(assemblies);
 
 
-            //config.UsingInMemory((context, cfg) =>
-            //{
-            //    cfg.ConfigureEndpoints(context);
-            //});
-
-            //config.UsingRabbitMq((context, cfg) =>
-            //{
-            //    cfg.Host(new Uri(configuration["RabbitMQ:Host"]!), h =>
-            //    {
-            //        h.Username(configuration["RabbitMQ:Username"]!);
-            //        h.Password(configuration["RabbitMQ:Password"]!);
-            //    });
-            //    cfg.ConfigureEndpoints(context);
-            //});
-
             config.UsingRabbitMq((context, cfg) =>
             {
-                cfg.Host(configuration.GetConnectionString("RabbitMq"));
+                cfg.Host(new Uri(configuration["RabbitMq:Host"]!), h =>
+                {
+                    h.Username(configuration["RabbitMq:UserName"]!);
+                    h.Password(configuration["RabbitMq:Password"]!);
+                });
                 cfg.ConfigureEndpoints(context);
             });
+
+
         });
         return service;
     }

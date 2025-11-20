@@ -1,29 +1,35 @@
-using Basket.Domain.Contracts;
-
-using Shared.Domain.Contracts.Cart;
-
 namespace Basket.Application.Features.Cart.GetCart;
-public record GetCartByCartIdResult(
-    CartDto CartDto
-);
 
-public record GetCartByCartIdQuery(CartId CartId) : IQuery<Fin<GetCartByCartIdResult>>;
 
-internal class GetCartByCartIdQueryHandler(BasketDbContext dbContext, ICartRepository cartRepository)
-    : IQueryHandler<GetCartByCartIdQuery, Fin<GetCartByCartIdResult>>
+
+public record GetCartByCartIdQuery(CartId CartId) : IQuery<Fin<CartDto>>;
+
+internal class GetCartByCartIdQueryHandler(
+    BasketDbContext dbContext,
+    ICartRepository cartRepository,
+    ICouponRepository couponRepository)
+    : IQueryHandler<GetCartByCartIdQuery, Fin<CartDto>>
 {
-    public Task<Fin<GetCartByCartIdResult>> Handle(GetCartByCartIdQuery request, CancellationToken cancellationToken)
+    public Task<Fin<CartDto>> Handle(GetCartByCartIdQuery request, CancellationToken cancellationToken)
     {
-        var db = from x in Db<BasketDbContext>.liftIO(ctx => cartRepository.GetCartById(request.CartId, ctx,
+        var loadCart = from cart in Db<BasketDbContext>.liftIO(ctx => cartRepository.GetCartById(request.CartId, ctx,
                 opt =>
                 {
                     opt.AsNoTracking = true;
                     opt.AsSplitQuery = true;
-                    opt.AddInclude(c => c.CartItems);
-                    opt.AddInclude(c => c.Coupons);
+                    opt.AddInclude(c => c.LineItems);
+                    opt.AddInclude(c => c.CouponIds);
                 }))
-                 select new GetCartByCartIdResult(x.ToDto());
+                       select cart;
+
+        var loadCoupons =
+            from coupons in Db<BasketDbContext>.liftIO(ctx => couponRepository.GetCouponsByCartId(request.CartId, ctx))
+            select coupons;
+
+        var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToDto(coupons));
 
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
+
+
 }

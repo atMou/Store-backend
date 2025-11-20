@@ -1,24 +1,30 @@
-using Product.Domain.Contracts;
-using Product.Persistence.Data;
-
-using Shared.Application.Abstractions;
-using Shared.Application.Contracts.Product.Queries;
-using Shared.Domain.Errors;
 
 namespace Product.Application.Features.GetProductById;
 
-internal class GetProductByIdQueryHandler(ProductDBContext dbContext)
-    : IQueryHandler<GetProductByIdQuery, Fin<GetProductByIdResult>>
+
+internal class GetProductByIdQueryHandler(ProductDBContext dbContext, IProductRepository productRepository)
+    : IQueryHandler<GetProductByIdQuery, Fin<ProductDto>>
 {
-    public Task<Fin<GetProductByIdResult>> Handle(GetProductByIdQuery request,
+    public Task<Fin<ProductDto>> Handle(GetProductByIdQuery request,
         CancellationToken cancellationToken)
     {
-        return (from p in Db<ProductDBContext>.liftIO(async (ctx, e) =>
-                    await ctx.Products.FindAsync([request.ProductId.Value], e.Token))
-                from a in when(p is null,
-                    Db<ProductDBContext>.fail<Unit>(
-                        NotFoundError.New($"Product with id: '{request.ProductId.Value} was not found'")))
-                select new GetProductByIdResult(p.ToDto())
-            ).RunAsync(dbContext, EnvIO.New(null, cancellationToken));
+        var db = from res in Db<ProductDBContext>.liftIO(ctx =>
+                productRepository.GetProductById(request.ProductId, ctx, opt =>
+                {
+                    opt.AsNoTracking = true;
+                    opt.AsSplitQuery = true;
+                    if (request.IncludeRelated)
+                    {
+                        opt.AddInclude(p => p.ProductImages);
+                        opt.AddInclude(p => p.Reviews);
+                        opt.AddInclude(p => p.Variants);
+                    }
+                }))
+                 select res.ToDto();
+
+        return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
+
     }
+
+
 }

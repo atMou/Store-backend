@@ -1,29 +1,27 @@
-﻿using Basket.Domain.Contracts;
+﻿namespace Basket.Application.Features.Cart.GetCart;
 
-using Shared.Domain.Contracts.Cart;
+public record GetCartByUserIdQuery(UserId UserId) : IQuery<Fin<CartDto>>;
 
-namespace Basket.Application.Features.Cart.GetCart;
-
-public record GetCartByUserIdResult(
-    CartDto CartDto
-);
-
-public record GetCartByUserIdQuery(UserId UserId) : IQuery<Fin<GetCartByUserIdResult>>;
-
-internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext, ICartRepository cartRepository)
-    : IQueryHandler<GetCartByUserIdQuery, Fin<GetCartByUserIdResult>>
+internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext, ICartRepository cartRepository, ICouponRepository couponRepository)
+    : IQueryHandler<GetCartByUserIdQuery, Fin<CartDto>>
 {
-    public Task<Fin<GetCartByUserIdResult>> Handle(GetCartByUserIdQuery request, CancellationToken cancellationToken)
+    public Task<Fin<CartDto>> Handle(GetCartByUserIdQuery request, CancellationToken cancellationToken)
     {
-        var db = from x in Db<BasketDbContext>.liftIO(ctx => cartRepository.GetCartByUserId(request.UserId, ctx,
+        var loadCart = from cart in Db<BasketDbContext>.liftIO(ctx => cartRepository.GetCartByUserId(request.UserId, ctx,
                 opt =>
                 {
                     opt.AsNoTracking = true;
                     opt.AsSplitQuery = true;
-                    opt.AddInclude(c => c.CartItems);
-                    opt.AddInclude(c => c.Coupons);
+                    opt.AddInclude(c => c.LineItems);
+                    opt.AddInclude(c => c.CouponIds);
                 }))
-                 select new GetCartByUserIdResult(x.ToDto());
+                       select cart;
+
+        var loadCoupons =
+            from coupons in Db<BasketDbContext>.liftIO(ctx => couponRepository.GetCouponsByUserId(request.UserId, ctx))
+            select coupons;
+
+        var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToDto(coupons));
 
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

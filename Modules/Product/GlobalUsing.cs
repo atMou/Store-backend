@@ -1,20 +1,61 @@
 ﻿global using System.ComponentModel.DataAnnotations.Schema;
-global using System.Text.RegularExpressions;
+global using System.Reflection;
+
+global using CloudinaryDotNet;
+global using CloudinaryDotNet.Actions;
+
+global using Db.Errors;
 
 global using LanguageExt;
-global using LanguageExt.Common;
 global using LanguageExt.Traits.Domain;
 global using LanguageExt.UnsafeValueAccess;
 
+global using MediatR;
+
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
 //global using MediatR;
 
 global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Diagnostics;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Options;
 
+global using Product.Application.Events;
+global using Product.Domain.Contracts;
+global using Product.Domain.IRepositories;
 global using Product.Domain.ValueObjects;
+global using Product.Persistence.Data;
 
+global using Serilog;
+
+global using Shared.Application.Abstractions;
+global using Shared.Application.Behaviour;
+global using Shared.Application.Contracts.Product.Queries;
 global using Shared.Domain.Abstractions;
+global using Shared.Domain.Contracts.Product;
+global using Shared.Domain.Errors;
 global using Shared.Domain.Validations;
 global using Shared.Domain.ValueObjects;
+global using Shared.Infrastructure.Authentication;
+global using Shared.Infrastructure.Clock;
+global using Shared.Messaging.Abstractions;
+global using Shared.Persistence;
 global using Shared.Persistence.Db.Monad;
+global using Shared.Persistence.Extensions;
+global using Shared.Persistence.Interceptors;
+
+global using SixLabors.ImageSharp;
+global using SixLabors.ImageSharp.Formats.Jpeg;
+global using SixLabors.ImageSharp.Processing;
 
 global using static LanguageExt.Prelude;
+
+global using Color = Product.Domain.ValueObjects.Color;
+global using Error = LanguageExt.Common.Error;
+global using Size = Product.Domain.ValueObjects.Size;
+global using Unit = LanguageExt.Unit;
+
+
+//global using Product = Product.Domain.Models.Product;

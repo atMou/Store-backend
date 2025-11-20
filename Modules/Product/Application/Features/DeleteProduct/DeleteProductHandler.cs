@@ -1,31 +1,23 @@
-using Product.Persistence.Data;
-
-using Shared.Application.Abstractions;
-using Shared.Domain.Errors;
-
 namespace Product.Application.Features.DeleteProduct;
 
-public abstract record DeleteProductCommand(Guid Id) : ICommand<Fin<bool>>;
+public record DeleteProductCommand(ProductId ProductId) : ICommand<Fin<DeleteProductCommandResult>>;
+public record DeleteProductCommandResult(bool IsDeleted);
 
-internal class DeleteProductHandlerCommandHandler(ProductDBContext dbContext)
-    : ICommandHandler<DeleteProductCommand, Fin<bool>>
+internal class DeleteProductHandlerCommandHandler(ProductDBContext dbContext, IProductRepository productRepository, ISender sender)
+    : ICommandHandler<DeleteProductCommand, Fin<DeleteProductCommandResult>>
 {
-    public async Task<Fin<bool>> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
+    public async Task<Fin<DeleteProductCommandResult>> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
     {
         var db =
-            from p in Db<ProductDBContext>.liftIO(async (ctx, e) =>
-                await ctx.Products.FindAsync([request.Id], e.Token))
-            from _ in when(p is null,
-                Db<ProductDBContext>.fail<Unit>(NotFoundError.New($"Product with id '{request.Id}' was not found.")))
+            from _ in CanDeleteProduct(request.ProductId, sender)
+            from isDeleted in Db<ProductDBContext>.liftIO((ctx) => productRepository.DeleteProduct(request.ProductId, ctx))
+            select new DeleteProductCommandResult(isDeleted);
 
-                //from _1 in Db<ProductDBContext>.liftIO(async (_, env) =>
-                //{
-                //    await bus.Publish(new ProductDeletingEvent(p.Id), env.Token);
-                //    return unit;
-                //})
-            from _2 in Db<ProductDBContext>.lift(ctx => ctx.Products.Remove(p))
-            select true;
-
-        return await db.RunSaveT(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
+
+    private static IO<Unit> CanDeleteProduct(ProductId productId, ISender sender) =>
+        from x in IO.liftAsync(async e => await sender.Send(new IsProductInAnyCartsQuery(productId), e.Token))
+        select unit;
+
 }

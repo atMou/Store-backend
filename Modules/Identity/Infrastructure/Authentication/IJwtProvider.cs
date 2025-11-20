@@ -3,5 +3,5 @@ namespace Identity.Infrastructure.Authentication;
 
 public interface IJwtProvider
 {
-    Task<string> GenerateAsync(User user);
+    string Generate(User user, JwtOptions options, TimeSpan? duration = null);
 }

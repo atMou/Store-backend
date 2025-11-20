@@ -2,6 +2,10 @@ namespace Product.Domain.Models;
 
 public record Review : Entity<ReviewId>
 {
+    private Review() : base(ReviewId.New)
+    {
+
+    }
     private Review(UserId userId, ProductId productId, Comment comment, Rating rating) : base(ReviewId.New)
     {
         UserId = userId;

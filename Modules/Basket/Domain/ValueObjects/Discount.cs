@@ -1,8 +1,8 @@
-using Basket.Enums;
+using Basket.Domain.Enums;
 
-namespace Basket.Basket.Domain.ValueObjects;
+namespace Basket.Domain.ValueObjects;
 
-public record Discount : DomainType<Discount, (DiscountType DiscountType, decimal DiscountValue)>
+public record Discount : DomainType<Discount, (Enums.DiscountType DiscountType, decimal DiscountValue)>
 {
     public DiscountType DiscountType { get; }
     public decimal DiscountValue { get; }
@@ -16,8 +16,8 @@ public record Discount : DomainType<Discount, (DiscountType DiscountType, decima
     {
         return repr switch
         {
-            (DiscountType.None, _)
-                => new Discount(DiscountType.None, 0),
+            //(DiscountType.None, _)
+            //    => new Discount(DiscountType.None, 0),
 
             (DiscountType.Percentage, var v) when v is > 0 and <= 1
                 => new Discount(DiscountType.Percentage, v),
@@ -25,20 +25,20 @@ public record Discount : DomainType<Discount, (DiscountType DiscountType, decima
             (DiscountType.Amount, var v) when v > 0
                 => new Discount(DiscountType.Amount, v),
 
-            _ => FinFail<Discount>(Error.New(
-                $"Invalid discount: type={repr.DiscountType}, value={repr.DiscountValue}"
+            _ => FinFail<Discount>(BadRequestError.New(
+                $"Invalid discount: type '{repr.DiscountType.ToString()}', value '{repr.DiscountValue}'"
             ))
         };
     }
 
     public (DiscountType DiscountType, decimal DiscountValue) To() => (DiscountType, DiscountValue);
 
-    public decimal Apply(decimal lineTotal) =>
+    public decimal Apply(decimal total) =>
         DiscountType switch
         {
-            DiscountType.None => lineTotal,
-            DiscountType.Percentage => lineTotal * (1 - DiscountValue),
-            DiscountType.Amount => Math.Max(0, lineTotal - DiscountValue),
-            _ => lineTotal
+            //DiscountType.None => total,
+            DiscountType.Percentage => total - (total * (1 - DiscountValue)),
+            DiscountType.Amount => Math.Max(0, DiscountValue),
+            _ => total
         };
 }

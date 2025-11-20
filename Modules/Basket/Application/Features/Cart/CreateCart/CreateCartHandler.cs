@@ -1,66 +1,50 @@
-using Basket.Domain.Models;
-
-using MediatR;
+using Db.Errors;
 
 using Shared.Application.Contracts.Queries;
 using Shared.Domain.Contracts.User;
-using Shared.Domain.Errors;
-
-using Unit = LanguageExt.Unit;
 
 namespace Basket.Application.Features.Cart.CreateCart;
 
-public record CreateCartCommand(
-    double taxRate,
-    CouponId? couponId = null) : ICommand<Fin<CreateCartCommandResult>>;
-
-public record CreateCartCommandResult(
-    Guid CartId
-);
+public record CreateCartCommand : ICommand<Fin<Guid>>
+{
+    public UserId UserId { get; init; } = null!;
+    public decimal TaxRate { get; init; }
+    public CouponId? CouponId { get; init; } = null;
+}
 
 internal class CreateCartCommandHandler(
     IUserContext userContext,
-    BasketDbContext ctx,
-    ISender sender,
-    IBus bus,
-    ICartRepository cartRepository)
-    : ICommandHandler<CreateCartCommand, Fin<CreateCartCommandResult>>
+    BasketDbContext dbContext,
+    ISender sender)
+    : ICommandHandler<CreateCartCommand, Fin<Guid>>
 {
-    public Task<Fin<CreateCartCommandResult>> Handle(CreateCartCommand command, CancellationToken cancellationToken)
+    public Task<Fin<Guid>> Handle(CreateCartCommand command, CancellationToken cancellationToken)
     {
+        //var cart = Domain.Models.Cart.Create(command.UserId, command.TaxRate);
         var db =
-            from u in userContext.GetCurrentUser<IO>()
-            from res in IO.liftAsync(async e => await sender.Send(new GetUserByIdQuery(UserId.From(u.Id)), e.Token))
-            from _ in when(res.userDto.CartId is not null,
-                IO.fail<Unit>(
-                    $"Cannot Create Cart for User '{u.Id}': User Has Cart with Id: '{res.userDto.CartId}'"))
-            from co in GetCoupon(command.couponId, res.userDto)
-            let cart = Domain.Models.Cart.Create(
-                UserId.From(u.Id),
-                command.taxRate,
-                co)
-            from a in Db<BasketDbContext>.lift(BCxt =>
-            {
-                BCxt.Carts.Add(cart);
-                return unit;
-            })
-            select new CreateCartCommandResult(cart.Id.Value);
 
-        return db.RunSave(ctx, EnvIO.New(null, cancellationToken));
-    }
+            //from currentUser in userContext.GetCurrentUser<IO>().As().MapFail(e =>
+            //    UnAuthorizedError.New($"Cannot Create Cart: Unable to get current user."))
+
+            from result in IO.liftAsync(async e =>
+                await sender.Send(new GetUserByIdQuery(command.UserId), e.Token))
+
+            let userDto = result.Match<UserDto?>(userDto => userDto, _ => null)
+
+            from _1 in when(userDto.CartId is not null, IO.fail<Unit>(ConflictError.New(
+                $"Cannot Create Cart for User '{command.UserId.Value}': User Has Cart with Id: '{userDto.CartId}'")))
+
+            from _cart in Domain.Models.Cart.Create(command.UserId, command.TaxRate)
+
+                //from _2 in IO.liftAsync(async e =>
+                //    await sender.Send(new SetUserCartIdCommand(currentUser.Id, _cart.Id.Value), e.Token))
 
 
-    private IO<Coupon?> GetCoupon(CouponId? couponId, UserDto userDto)
-    {
-        return Optional(couponId).Match(
-            id =>
-            {
-                var coupon = userDto.CouponIds.FirstOrDefault(c => c == id.Value);
-                if (coupon == Guid.Empty)
-                    return from c in IO.liftAsync(async e => await ctx.Coupons.FindAsync([id.Value], e.Token))
-                           select c;
-                return IO.fail<Coupon?>(NotFoundError.New($"Coupon with Id '{id.Value}' not found"));
-            },
-            () => IO.pure<Coupon?>(null));
+            from _3 in Db<BasketDbContext>.lift(cxt => cxt.Carts.Add(_cart))
+            select _cart.Id.Value;
+
+        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }
+
+

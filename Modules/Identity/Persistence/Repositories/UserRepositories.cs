@@ -1,5 +1,7 @@
 ﻿using Db.Errors;
 
+using Identity.Domain.ValueObjects;
+
 using Microsoft.EntityFrameworkCore;
 
 using Shared.Domain.Errors;
@@ -8,7 +10,7 @@ namespace Identity.Persistence.Repositories;
 
 public class UserRepositories : IUserRepository
 {
-    public IO<User> GetUserById(UserId userId, UserDbContext ctx)
+    public IO<User> GetUserById(UserId userId, IdentityDbContext ctx)
     {
         return from u in IO.liftAsync<User?>(async e => await ctx.Users.FindAsync([userId], e.Token))
                from _ in when(u is null,
@@ -16,7 +18,7 @@ public class UserRepositories : IUserRepository
                select u;
     }
 
-    public IO<Unit> AddUser(User user, UserDbContext ctx)
+    public IO<Unit> AddUser(User user, IdentityDbContext ctx)
     {
         return IO.lift(_ =>
         {
@@ -25,7 +27,7 @@ public class UserRepositories : IUserRepository
         });
     }
 
-    public IO<User> GetUserByEmail(Email email, UserDbContext ctx)
+    public IO<User> GetUserByEmail(Email email, IdentityDbContext ctx)
     {
         return from u in IO.liftAsync<User?>(async e =>
                 await ctx.Users.FirstOrDefaultAsync(u => u.Email == email, e.Token))
@@ -34,7 +36,7 @@ public class UserRepositories : IUserRepository
                select u;
     }
 
-    public IO<Unit> CheckIfUserExists(Email email, UserDbContext ctx)
+    public IO<Unit> CheckIfUserExists(Email email, IdentityDbContext ctx)
     {
         return from u in IO.liftAsync<User?>(async e =>
                 await ctx.Users.FirstOrDefaultAsync(u => u.Email == email, e.Token))

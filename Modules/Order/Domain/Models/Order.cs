@@ -1,57 +1,136 @@
-﻿namespace Order.Domain.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+using Shared.Domain.Errors;
+
+namespace Order.Domain.Models;
 
 public record Order : Aggregate<OrderId>
 {
-    private Order(UserId userId, Seq<OrderItem> items, Money subtotal, Money total, Currency currency)
+    private Order(UserId userId, IEnumerable<OrderItem> orderItems, Money subtotal, Money total)
         : base(OrderId.New)
     {
         UserId = userId;
-        Items = items;
+        OrderItems = orderItems;
         Subtotal = subtotal;
         Total = total;
-        Currency = currency;
-        Status = OrderStatus.Pending;
+
+        //Status = OrderStatus.Pending;
         CreatedAt = DateTime.UtcNow;
     }
 
     public UserId UserId { get; private init; }
-    public Seq<OrderItem> Items { get; private init; }
-    public Money Subtotal { get; private init; }
-    public Money Total { get; private init; }
-    public Currency Currency { get; private init; }
-    public OrderStatus Status { get; private set; }
-    public DateTime CreatedAt { get; private init; }
+    public IEnumerable<OrderItem> OrderItems { get; private init; }
+    public OrderStatus OrderStatus { get; private set; }
+    //public PaymentStatus PaymentStatus { get; private set; }
+    //public Phone Phone { get; private set; }
+    public Address ShippingAddress { get; set; }
+    public decimal ShippingCost { get; set; }
+    public Email Email { get; private init; }
+    public decimal Subtotal { get; private init; }
+    public decimal Tax { get; init; }
+    public decimal Total { get; private init; }
+    public decimal Discount { get; init; }
+    //public PaymentMethod PaymentMethod { get; init; }
+    //public TrackingCode TrackingCode { get; init; }
 
-    public Option<DateTime> PaidAt { get; private set; }
-    public Option<DateTime> ShippedAt { get; private set; }
-    public Option<DateTime> DeliveredAt { get; private set; }
+    public string Notes { get; init; } = string.Empty;
+    public IEnumerable<CouponId> CouponIds { get; init; } = [];
 
-    public static Fin<Order> Create(UserId userId, Seq<OrderItem> items, Currency currency)
+    public DateTime? _paidAt
     {
-        if (items.IsEmpty)
-            return FinFail<Order>(Error.New("Order must contain at least one item."));
+        get
+        {
+            return PaidAt.Match<DateTime?>(
+                date => date,
+                () => null
+            );
+        }
+        set => PaidAt = Optional(value);
+    }
+    public DateTime? _shippedAt
+    {
+        get
+        {
+            return ShippedAt.Match<DateTime?>(
+                date => date,
+                () => null
+            );
+        }
+        set => ShippedAt = Optional(value);
+    }
+    public DateTime? _deliveredAt
+    {
+        get
+        {
+            return DeliveredAt.Match<DateTime?>(
+                date => date,
+                () => null
+            );
+        }
+        set => DeliveredAt = Optional(value);
+    }
+    public DateTime? _cancelledAt
+    {
+        get
+        {
+            return CancelledAt.Match<DateTime?>(
+                date => date,
+                () => null
+            );
+        }
+        set => CancelledAt = Optional(value);
+    }
+    public DateTime? _refundedAt
+    {
+        get
+        {
+            return RefundedAt.Match<DateTime?>(
+                date => date,
+                () => null
+            );
+        }
+        set => RefundedAt = Optional(value);
+    }
+    [NotMapped]
+    public Option<DateTime> PaidAt { get; private set; }
+    [NotMapped]
+    public Option<DateTime> DeliveredAt { get; private set; }
+    [NotMapped]
+    public Option<DateTime> ShippedAt { get; private set; }
+    [NotMapped]
+    public Option<DateTime> CancelledAt { get; private set; }
+    [NotMapped]
+    public Option<DateTime> RefundedAt { get; private set; }
 
-        var subtotal = items.Map(i => i.LineTotal).Fold(Money.Zero, (acc, next) => acc + next);
-        var total = subtotal; // You could apply discounts/taxes here
+    public static Fin<Order> Create(UserId userId, IEnumerable<OrderItem> items)
+    {
+        var _items = Seq(items);
+        if (_items.IsEmpty)
+            return FinFail<Order>(InvalidOperationError.New("Order must contain at least one item."));
 
-        return new Order(userId, items, subtotal, total, currency);
+        var subtotal = _items.Map(i => i.LineTotal).Fold(Money.Zero, (acc, next) => acc + next);
+        var total = subtotal;
+
+        return new Order(userId, _items, subtotal, total);
     }
 
-    public Order MarkAsPaid() =>
-        this with { Status = OrderStatus.Paid, PaidAt = DateTime.UtcNow };
+    //public Order MarkAsPaid(DateTime dateTime)
+    //{
+    //    return this with { Status = OrderStatus.Paid, PaidAt = dateTime };
+    //}
 
-    public Order MarkAsShipped() =>
-        this with { Status = OrderStatus.Shipped, ShippedAt = DateTime.UtcNow };
+    //public Order MarkAsShipped(DateTime dateTime)
+    //{
+    //    return this with { Status = OrderStatus.Shipped, ShippedAt = dateTime };
+    //}
 
-    public Order MarkAsDelivered() =>
-        this with { Status = OrderStatus.Delivered, DeliveredAt = DateTime.UtcNow };
-}
+    //public Order MarkAsDelivered(DateTime dateTime)
+    //{
+    //    return this with { Status = OrderStatus.Delivered, DeliveredAt = dateTime };
+    //}
 
-public enum OrderStatus
-{
-    Pending,
-    Paid,
-    Shipped,
-    Delivered,
-    Cancelled
+    //public Order MarkAsCancelled(DateTime dateTime)
+    //{
+    //    return this with { Status = OrderStatus.Cancelled, CancelledAt = dateTime };
+    //}
 }

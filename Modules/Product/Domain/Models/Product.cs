@@ -1,141 +1,132 @@
-using Product.Application.Events;
-using Product.Domain.Contracts;
+using Product.Domain.Enums;
 
 namespace Product.Domain.Models;
 
-//add-migration init -OutputDir data/Migrations -Project Catalog -StartUpProject Api
+//add-migration init -OutputDir Persistence/Data/Migrations -context ProductDBContext -Project Product -StartUpProject Api
+//add-migration init -OutputDir Persistence/Data/Migrations -context BasketDBContext -Project Basket -StartUpProject Api
+//add-migration init -OutputDir Persistence/Data/Migrations -context IdentityDBContext -Project Identity -StartUpProject Api
 public record Product : Aggregate<ProductId>
 {
-    private Product(Option<Money> newPrice) : base(ProductId.New())
+    private Product() : base(ProductId.New())
     {
-        NewPrice = newPrice;
     }
 
     private Product(
         Slug slug,
         Sku sku,
-        List<ImageUrl> imageUrls,
-        int stock,
-        int lowStockThreshold,
-        Money price,
-        Currency currency,
         Brand brand,
         Size size,
         Color color,
         Category category,
         Description description,
-        Option<Money> newPrice) : base(ProductId.New())
+        Money price,
+        Money? newPrice,
+        Discount discount,
+        Stock stock
+    ) : base(ProductId.New())
     {
         Slug = slug;
         Sku = sku;
-        ProductStatus = ProductStatus.New;
-        ImageUrls = imageUrls;
-        Stock = stock;
-        LowStockThreshold = lowStockThreshold;
-        Price = price;
-        Currency = currency;
         Brand = brand;
         Size = size;
         Color = color;
         Category = category;
         Description = description;
+        Price = price;
         NewPrice = newPrice;
+        Discount = discount;
+        Stock = stock;
+        Status = Status.New;
     }
 
+    public Sku Sku { get; private init; }
     public Slug Slug { get; private init; }
-    public Sku Sku { get; }
-    public ProductStatus ProductStatus { get; private init; }
-    public List<ImageUrl> ImageUrls { get; private init; }
-    public int Stock { get; private init; }
-    public int LowStockThreshold { get; private init; }
-    public Currency Currency { get; }
     public Brand Brand { get; private init; }
+    public Size Size { get; private init; }
     public Color Color { get; private init; }
-    public Size Size { get; }
     public Category Category { get; private init; }
+    public Discount Discount { get; private init; }
+    public Money Price { get; private init; }
     public Description Description { get; private init; }
+    public Status Status { get; }
+    public Stock Stock { get; private init; }
     public int TotalReviews { get; private init; }
     public int TotalSales { get; private init; }
-    public List<Product> Variants { get; private init; } = [];
-    public List<Review> Reviews { get; private init; } = [];
-    public Money Price { get; private init; }
+
     private double _averageRating { get; init; }
-
-    private Money? _newPrice
-    {
-        get
-        {
-            return NewPrice.Match<Money?>(
-                np => np,
-                () => null
-            );
-        }
-    }
-
-    [NotMapped] public bool IsLowStock => Stock <= LowStockThreshold;
-
-    [NotMapped] public Option<Money> NewPrice { get; }
+    public bool IsDeleted { get; private init; }
+    public List<Review> Reviews { get; private init; } = [];
+    public List<ProductImage> ProductImages { get; private init; } = [];
+    public List<Product> Variants { get; private init; } = [];
+    public Money? NewPrice { get; private init; }
+    public ProductId? ParentProductId { get; private init; }
+    public Product? ParentProduct { get; private init; }
 
     [NotMapped]
-    public Option<Money> Discount
-    {
-        get
+    public StockLevel StockLevel =>
+        Stock.Value switch
         {
-            return NewPrice switch
-            {
-                { IsNone: true } => Option<Money>.None,
-                { IsSome: true } np => np.Bind(npValue => Price.Value > npValue.Value
-                    ? Some(Money.FromDecimal(Price.Value - npValue.Value))
-                    : Option<Money>.None),
-                _ => Option<Money>.None
-            };
-        }
-    }
+            0 => StockLevel.OutOfStock,
+            var s when s <= Stock.Low => StockLevel.Low,
+            var s when s >= Stock.High => StockLevel.High,
+            _ => StockLevel.Medium
+        };
 
     [NotMapped]
     public Rating AvgRating =>
         Rating.From(_averageRating)
             .Match(rating => rating, _ => Rating.None);
 
+    public virtual bool Equals(Product? other)
+    {
+        return other is not null && Id == other.Id;
+    }
 
     public static Fin<Product> Create(CreateProductDto dto)
     {
-        var images = dto.ImageUrls.AsIterable().Traverse(ImageUrl.From).Map(imgs => imgs.ToList()).As();
+
         return (
                 Slug.From(dto.Slug),
-                images,
-                Currency.FromCode(dto.Currency),
                 Brand.FromCode(dto.Brand),
                 Size.FromCode(dto.Size),
                 Color.FromCode(dto.Color),
                 Category.FromCode(dto.Category),
-                Description.From(dto.Description)
-            ).Apply((_slug, _url, _curr, _brand, _size, _color, _cat, _desc) =>
-                new Product(
-                    _slug,
-                    Sku.From(
-                        _cat.Code.ToString(),
-                        _color.Code.ToString(),
-                        _size.Code.ToString(),
-                        _brand.Code.ToString()
-                    ),
-                    _url,
-                    dto.Stock,
+                Description.From(dto.Description),
+                Discount.From(dto.Price, dto.NewPrice),
+                Stock.From(
+                (dto.Stock,
                     dto.LowStockThreshold,
-                    Money.FromDecimal(dto.Price),
-                    _curr,
-                    _brand,
-                    _size,
-                    _color,
-                    _cat,
-                    _desc,
-                    Optional(dto.NewPrice).Map(Money.FromDecimal)
-                )).As();
-        //.Map(p =>
-        //{
-        //    p.AddDomainEvent(new ProductCreatedEvent(p.Category.Code.ToString()));
-        //    return p;
-        //});
+                    dto.MidStockThreshold,
+                    dto.HighStockThreshold)
+            )
+        ).Apply((slug, brand, size, color, category, description, discount, stock) =>
+        {
+            var sku = Sku.From(
+                category.Code.ToString(),
+                color.Code.ToString(),
+                size.Code.ToString(),
+                brand.Code.ToString()
+            );
+            return new Product(
+                slug,
+                sku,
+                brand,
+                size,
+                color,
+                category,
+                description,
+                //urls,
+                dto.Price,
+                dto.NewPrice,
+                discount,
+                stock
+            );
+        }).As()
+        .Map(p =>
+        {
+            p.AddDomainEvent(new ProductCreatedDomainEvent(p));
+            return p;
+        });
     }
 
 
@@ -144,36 +135,73 @@ public record Product : Aggregate<ProductId>
         return Slug.From(slug).Map(s => this with { Slug = s });
     }
 
-    public Fin<Product> AddImages(string[] imageUrls)
+    public Fin<Product> AddImages(params ImageDto[] imageDtos)
     {
-        return imageUrls.AsIterable().Traverse(ImageUrl.From)
-            .Map(urls => urls.Where(url => ImageUrls.Exists(imageUrl => url != imageUrl)))
-            .Map(imgUrls => this with { ImageUrls = ImageUrls.Concat(imgUrls).ToList() }).As();
+        return imageDtos.AsIterable().Traverse(dto => ProductImage.From(dto.Url, dto.AltText, dto.IsMain))
+            //.Map(pis => pis.Where(pi => !ProductImages.Exists(productImage => pi == productImage)))
+            .Map(pis => this with { ProductImages = ProductImages.Concat(pis).ToList() }).As();
     }
 
-    public Fin<Product> DeleteImages(string[] imageUrls)
+    public Product DeleteImages(Guid[] ids)
     {
-        return imageUrls.AsIterable().Traverse(ImageUrl.From)
-            .Map(imgUrls => this with { ImageUrls = ImageUrls.Except(imgUrls).ToList() }).As();
-    }
-
-    public Fin<Product> UpdateBrand(string brand)
-    {
-        //AddDomainEvent(new BrandChangedEvend()); // This one should trigger slug update as well
-        return Brand.FromCode(brand).Map(b => this with { Brand = b });
-    }
-
-
-    public Fin<Product> UpdateColor(string color)
-    {
-        //AddDomainEvent(new BrandChangedEvend()); // This one should trigger slug update as well
-        return Color.FromCode(color).Map(c => this with { Color = c });
+        var _images = ProductImages.Where(pi => !ids.Contains(pi.Id.Value));
+        return this with { ProductImages = [.. _images] };
     }
 
     public Fin<Product> UpdateCategory(string category)
     {
-        //AddDomainEvent(new BrandChangedEvend()); // This one should trigger slug update as well
-        return Category.FromCode(category).Map(c => this with { Category = c });
+        return Category.FromCode(category).Map(c => this with
+        {
+            Category = c,
+            Sku = Sku.From(
+                c.Code.ToString(),
+                Color.Code.ToString(),
+                Size.Code.ToString(),
+                Brand.Code.ToString()
+            )
+        });
+    }
+
+    public Fin<Product> UpdateSize(string size)
+    {
+        return Size.FromCode(size).Map(s => this with
+        {
+            Size = s,
+            Sku = Sku.From(
+                Category.Code.ToString(),
+                Color.Code.ToString(),
+                s.Code.ToString(),
+                Brand.Code.ToString()
+            )
+        });
+    }
+
+    public Fin<Product> UpdateBrand(string brand)
+    {
+        return Brand.FromCode(brand).Map(b => this with
+        {
+            Brand = b,
+            Sku = Sku.From(
+                Category.Code.ToString(),
+                Color.Code.ToString(),
+                Size.Code.ToString(),
+                b.Code.ToString()
+            )
+        });
+    }
+
+    public Fin<Product> UpdateColor(string color)
+    {
+        return Color.FromCode(color).Map(c => this with
+        {
+            Color = c,
+            Sku = Sku.From(
+                Category.Code.ToString(),
+                c.Code.ToString(),
+                Size.Code.ToString(),
+                Brand.Code.ToString()
+            )
+        });
     }
 
     public Fin<Product> UpdateDescription(string description)
@@ -183,38 +211,52 @@ public record Product : Aggregate<ProductId>
 
     public Product UpdateTotalSales(int soldItems = 1)
     {
+        // should be called through an event when an order is completed
         var newTotal = TotalSales + soldItems;
         return this with { TotalSales = newTotal };
     }
 
     public Product UpdatePrice(decimal price)
     {
-        AddDomainEvent(new ProductPriceChangedEvent(Id, price));
+        AddDomainEvent(new ProductPriceChangedEvent(this, price));
         return this with { Price = Money.FromDecimal(price) };
     }
 
-    // Price Changed Domain Event and invalidate cache
-    public Product UpdateStock(int stock)
+    public Fin<Product> UpdateStock(int stock)
     {
-        return this with { Stock = stock };
-        // Stock Changed Domain Event and invalidate cache
+        if (stock < 0) return FinFail<Product>(InvalidOperationError.New("Invalid stock value"));
+        if (StockLevel == StockLevel.Low) AddDomainEvent(new ProductLowStockAlertEvent(Id, stock, Stock.Low));
+        return this with { Stock = Stock with { Value = stock } };
     }
 
-    public Product UpdateLowStockThreshold(int threshold)
+    public Fin<Product> UpdateLowStockThreshold(int lowThreshold)
     {
-        return this with { LowStockThreshold = threshold };
-        // Threshold Changed Domain Event and invalidate cache
+        return Stock.From((Stock.Value, lowThreshold, Stock.Mid, Stock.High)).Map(s =>
+          {
+              if (s.Value <= s.Low)
+                  AddDomainEvent(new ProductLowStockAlertEvent(Id, s.Value, s.Low));
+              return this with { Stock = s };
+          });
+
     }
 
 
-    public Product AddVariant(Product product)
+    public Product AddVariants(params Product[] products)
     {
-        return this with { Variants = Variants.Append(product).ToList() };
+        var newVariants = new List<Product>();
+        foreach (var p in products)
+        {
+            if (Variants.Exists(v => v.Id == p.Id)) continue;
+            newVariants.Add(p);
+        }
+
+        AddDomainEvent(new ProductVariantsAddedEvent(newVariants.Select(v => v.Id)));
+        return this with { Variants = Variants.Concat(newVariants).ToList() };
     }
 
-    public Product RemoveVariant(ProductId variantId)
+    public Product RemoveVariants(params ProductId[] variantIds)
     {
-        return this with { Variants = Variants.Where(v => v.Id != variantId).ToList() };
+        return this with { Variants = [.. Variants.Where(v => !variantIds.Contains(v.Id))] };
     }
 
     public Product AddReview(Review review)
@@ -222,6 +264,8 @@ public record Product : Aggregate<ProductId>
         var newTotal = TotalReviews + 1;
         var newAvg = (_averageRating * TotalReviews + review.Rating.Value) / newTotal;
 
+
+        AddDomainEvent(new ProductReviewAddedEvent(Id, review.UserId, review.Id, review.Rating));
         return this with
         {
             Reviews = Reviews.Append(review).ToList(),
@@ -230,34 +274,34 @@ public record Product : Aggregate<ProductId>
         };
     }
 
-    public Product UpdateSoldTimes(int times = 1) // should be called through a n event when an order is completed  
-    {
-        var newTimesSold = TotalSales + times;
-        return this with { TotalSales = newTimesSold };
-    }
-
 
     public Fin<Product> Update(
-        UpdateProductDto dto
-    )
+        UpdateProductDto dto, List<Product> variants)
     {
         var validationSeq = Seq<Fin<Product>>();
 
         if (Slug.Value != dto.Slug)
             validationSeq = validationSeq.Add(UpdateSlug(dto.Slug));
-        if (dto.ImageUrls.Length > 0)
-            validationSeq = validationSeq.Add(AddImages(dto.ImageUrls));
+        if (Brand.Code.ToString() != dto.Brand)
+            validationSeq = validationSeq.Add(UpdateBrand(dto.Brand));
+        if (Color.Code.ToString() != dto.Color)
+            validationSeq = validationSeq.Add(UpdateColor(dto.Color));
+        if (Size.Code.ToString() != dto.Size)
+            validationSeq = validationSeq.Add(UpdateSize(dto.Size));
+        if (dto.ImageDtos.Length > 0)
+            validationSeq = validationSeq.Add(AddImages(dto.ImageDtos));
         if (Category.Code.ToString() != dto.Category)
             validationSeq = validationSeq.Add(UpdateCategory(dto.Category));
         if (Description.Value != dto.Description)
             validationSeq = validationSeq.Add(UpdateDescription(dto.Description));
-        if (Stock != dto.Stock)
-            UpdateStock(dto.Stock);
-        if (LowStockThreshold != dto.LowStockThreshold)
-            UpdateLowStockThreshold(dto.LowStockThreshold);
+        if (Stock.Value != dto.Stock)
+            validationSeq = validationSeq.Add(UpdateStock(dto.Stock));
+        if (Stock.Low != dto.LowStockThreshold)
+            validationSeq = validationSeq.Add(UpdateLowStockThreshold(dto.LowStockThreshold)); ;
         if (Price.Value != dto.Price)
             UpdatePrice(dto.Price);
-        ProductStatus.Update(dto.IsFeatured, dto.IsTrending, dto.IsBestSeller, dto.IsNew);
+        Status.Update(dto.IsFeatured, dto.IsTrending, dto.IsBestSeller, dto.IsNew);
+        if (variants.Any()) AddVariants([.. variants]);
 
         if (validationSeq.IsEmpty)
             return this;
@@ -265,25 +309,17 @@ public record Product : Aggregate<ProductId>
             .Map(_ => this).As();
     }
 
-    public void Deconstruct(out Slug slug, out Sku sku, out bool isNew, out bool isFeatured, out bool isBestSeller,
-        out bool isTrending, out ImageUrl[] imageUrl,
-        out int stock, out int lowStockThreshold, out Money price, out Brand brand,
-        out Color color, out Size size, out Category category, out Description description)
+    private static Fin<List<ProductImage>> ValidateImages(IEnumerable<ImageDto> images)
     {
-        slug = Slug;
-        sku = Sku;
-        isNew = ProductStatus.IsNew;
-        isFeatured = ProductStatus.IsFeatured;
-        isBestSeller = ProductStatus.IsBestSeller;
-        isTrending = ProductStatus.IsTrending;
-        imageUrl = ImageUrls.ToArray();
-        stock = Stock;
-        lowStockThreshold = LowStockThreshold;
-        price = Price;
-        brand = Brand;
-        color = Color;
-        size = Size;
-        category = Category;
-        description = Description;
+        return images.AsIterable().Traverse(dto => ProductImage.From(dto.Url, dto.AltText, dto.IsMain))
+            .Map(imgs => imgs.ToList())
+        .As().MapFail(_ =>
+            InvalidOperationError.New(
+             "Invalid image URL. Must be a valid HTTP/HTTPS URL ending with .jpg, .jpeg, or .png."));
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
     }
 }

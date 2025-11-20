@@ -1,7 +1,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 
-using Shared.Infrastructure.ValueObjects;
+using Role = Shared.Infrastructure.Enums.Role;
 
 namespace Shared.Infrastructure.Authentication;
 

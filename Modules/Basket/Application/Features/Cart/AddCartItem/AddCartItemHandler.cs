@@ -1,55 +1,57 @@
-using Basket.Domain.Contracts;
-using Basket.Domain.Models;
-
-using MediatR;
-
-using Shared.Application.Contracts.Product.Queries;
-using Shared.Domain.Contracts.Cart;
-
 namespace Basket.Application.Features.Cart.AddCartItem;
 
-public record AddCartItemCommand(
-    CartId CartId,
-    ProductId ProductId,
-    int Quantity)
-    : ICommand<Fin<CreateCartItemCommandResult>>;
+public record AddLineItemCommand : ICommand<Fin<Unit>>
+{
+    public CartId CartId { get; init; }
+    public ProductId ProductId { get; init; }
+    public int Quantity { get; init; }
+}
 
-public record CreateCartItemCommandResult(CartDto CartDto);
-
-internal class CreateCartItemCommandHandler(
+internal class AddLineItemCommandHandler(
     ISender sender,
     BasketDbContext dbContext,
     ICartRepository cartRepository
-) : ICommandHandler<AddCartItemCommand, Fin<CreateCartItemCommandResult>>
+) : ICommandHandler<AddLineItemCommand, Fin<Unit>>
 {
-    public async Task<Fin<CreateCartItemCommandResult>> Handle(AddCartItemCommand command,
+    public async Task<Fin<Unit>> Handle(AddLineItemCommand command,
         CancellationToken cancellationToken)
     {
-        var db = from cart in Db<BasketDbContext>.liftIO(ctx =>
+        var loadCart = from cart in Db<BasketDbContext>.liftIO(ctx =>
                 cartRepository.GetCartById(command.CartId, ctx, opts =>
                 {
                     opts.AsSplitQuery = true;
-                    opts.AddInclude(cart => cart.CartItems);
+                    opts.AddInclude(cart => cart.LineItems);
                 }))
-                 from res in IO.liftAsync(async e =>
-                     await sender.Send(new GetProductByIdQuery(command.ProductId), e.Token))
-                 let c = res.Match<CartDto?>(result => cart.AddCartItem(
+                       select cart;
 
-                     CartItem.Create(new CreateCartItemDto
-                     {
-                         CartId = cart.Id.Value,
-                         Slug = result.dto.Slug,
-                         Sku = result.dto.Sku,
-                         ProductId = result.dto.Id,
-                         ImageUrl = result.dto.ImageUrls.FirstOrDefault()!,
-                         Quantity = command.Quantity,
-                         UnitPrice = result.dto.Price
-                     }
-            )).ToDto(), _ => null)
+        var loadProduct = from product in Db<BasketDbContext>.liftIO(async (_, e) =>
+                await sender.Send(new GetProductByIdQuery(command.ProductId, false), e.Token))
+                          select product;
+
+        var combined =
+            (loadCart, loadProduct).Apply((c, fin) =>
+            {
+                var cart = fin.Map(p => c.AddLineItems(
+                    LineItem.Create(
+                        ProductId.From(p.Id),
+                        c.Id,
+                        p.Slug,
+                        p.Sku,
+                        p.Images.FirstOrDefault(dto => dto.IsMain)?.Url ?? p.Images.First().Url,
+                        command.Quantity,
+                        p.Price
+                    )));
+                return cart;
+            });
 
 
-                 select new CreateCartItemCommandResult(c);
+        var db =
+            from res in combined
+            from x in res.Match(cart => Db<BasketDbContext>.pure(unit), Db<BasketDbContext>.fail<Unit>)
+            select unit;
 
-        return await db.RunSave(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }
+
+

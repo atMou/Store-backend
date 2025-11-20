@@ -1,5 +1,5 @@
 namespace Product.Application.Events;
 
-public record ProductPriceChangedEvent(ProductId ProductId, decimal NewPrice) : IDomainEvent
+public record ProductPriceChangedEvent(Domain.Models.Product Product, decimal NewPrice) : IDomainEvent
 {
 }

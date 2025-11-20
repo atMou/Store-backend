@@ -1,42 +1,36 @@
-﻿using System.Reflection;
-
-using Basket.Persistence.Repositories;
-using Basket.Persistence.Seeder;
-
-using MediatR;
-
-using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-using Serilog;
-
-using Shared.Application.Behaviour;
-using Shared.Infrastructure.Clock;
-using Shared.Persistence;
-using Shared.Persistence.Interceptors;
-
-namespace Basket;
+﻿namespace Basket;
 public static class CartModule
 {
     public static IServiceCollection AddBasketModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMediatR(conf =>
-        {
-            conf.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-            conf.AddOpenBehavior(typeof(LoggingBehaviour<,>));
-        });
+        //services.AddMediatR(conf =>
+        //{
+        //    conf.RegisterServicesFromAssembly(typeof(SharedModule).Assembly);
+        //});
+        //services.AddModuleMassTransit<BasketDbContext>(typeof(CartModule).Assembly);
+
+        //services.AddMassTransit(cfg =>
+        //{
+        //    cfg.AddConsumers(Assembly.GetExecutingAssembly());
+
+        //    cfg.AddEntityFrameworkOutbox<BasketDbContext>(o =>
+        //    {
+        //        o.UseBusOutbox();
+        //    });
+
+        //    cfg.UsingRabbitMq((context, rabbit) =>
+        //    {
+        //        rabbit.ConfigureEndpoints(context);
+        //    });
+        //});
         services.AddBasketModuleServices(configuration);
-        services.AddScoped<IDataSeeder, BasketDataSeeder>();
         services.AddScoped<ICartRepository, CartRepository>();
+        services.AddScoped<ICouponRepository, CouponRepository>();
         return services;
     }
 
     public static IApplicationBuilder UseBasketModule(this IApplicationBuilder app)
     {
-        //app.UseMigration<BasketDbContext>();
         return app;
     }
 
@@ -53,10 +47,12 @@ public static class CartModule
             var userContext = Optional(sp.GetService<IUserContext>())
                 .IfNone(() => throw new InvalidOperationException("IUserContext is not registered"));
 
-            options.AddInterceptors(new AuditableEntityInterceptor(clock, userContext), new DispatchDomainEventInterceptor(mediatr));
+            options.AddInterceptors(new AuditableEntityInterceptor(clock, userContext),
+                new DispatchDomainEventInterceptor(mediatr));
+
+
+
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
-
-
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();
             options.LogTo(Log.Logger.Information,
@@ -66,10 +62,6 @@ public static class CartModule
         return services;
     }
 
-
-
-
-
-
-
 }
+
+//public interface IBasketBus : IBus { }

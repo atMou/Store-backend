@@ -1,6 +1,3 @@
-using Basket.Domain.Models;
-
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Basket.Persistence.Configurations;
@@ -8,54 +5,103 @@ internal class CartEntityConfigurations : IEntityTypeConfiguration<Cart>
 {
     public void Configure(EntityTypeBuilder<Cart> builder)
     {
+
+
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.Id)
+            .HasConversion(id => id.Value, guid => CartId.From(guid))
+            .HasColumnName("cart_id")
+            .ValueGeneratedNever();
+
         builder.Property(c => c.UserId)
+            .HasConversion(id => id.Value, guid => UserId.From(guid))
+            .HasColumnName("user_id")
             .IsRequired();
 
-        //// Owned type: Tax
-        //builder.OwnsOne(c => c.Tax, tax =>
+        builder.Property(cart => cart.TaxRate)
+            .HasConversion(tax => tax.Rate, r => Tax.FromUnsafe(r))
+            .HasColumnName("tax_rate").HasPrecision(5, 2);
+
+
+        builder.Property(cart => cart.IsCheckedOut)
+            .HasColumnName("is_checked_out");
+
+
+        builder.OwnsMany(x => x.CouponIds, b =>
+        {
+            b.ToTable("coupon_ids");
+            b.WithOwner().HasForeignKey("cart_id");
+            b.Property<Guid>("id");
+            b.Property(c => c.Value).HasColumnName("coupon_id");
+            b.HasKey("id");
+        });
+
+        builder.HasMany(c => c.LineItems)
+            .WithOne()
+            .HasForeignKey(ci => ci.CartId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(cart => cart.TotalSub)
+            .HasConversion(money => money.Value, d => Money.FromDecimal(d))
+            .HasColumnName("total_sub");
+
+        builder.Property(cart => cart.Discount)
+            .HasConversion(money => money.Value, d => Money.FromDecimal(d))
+            .HasColumnName("discount");
+
+
+        //builder.OwnsMany(c => c.LineItems, li =>
         //{
-        //    tax.Property(t => t.Rate)
-        //        .HasColumnName("TaxRate")
-        //        .IsRequired();
+        //    li.WithOwner().HasForeignKey("cart_id");
+        //    li.HasKey(item => new { item.ProductId, item.CartId });
+
+        //    li.Property(x => x.ProductId)
+        //        .HasConversion(
+        //            id => id.Value,
+        //            value => ProductId.From(value)).HasColumnName("product_id");
+
+        //    li.Property(x => x.CartId)
+        //        .HasConversion(
+        //            id => id.Value,
+        //            value => CartId.From(value)).HasColumnName("cart_id");
+
+        //    li.Property(x => x.LineTotal)
+        //        .HasConversion(money => money.Value, d => Money.FromDecimal(d))
+        //        .HasColumnName("line_total");
+
+        //    li.Property(x => x.UnitPrice)
+        //        .HasConversion(money => money.Value, d => Money.FromDecimal(d))
+        //        .HasColumnName("unit_price");
+
+        //    li.Property(x => x.Quantity);
+
+        //    li.Property(x => x.Slug).HasColumnName("slug");
+        //    li.Property(x => x.ImageUrl).HasColumnName("image_url");
+
+        //    li.ToTable("line_items");
         //});
 
-        // Owned type: Shipping
-        //builder.OwnsOne(c => c.Shipping, shipping =>
-        //{
-        //    shipping.OwnsOne(s => s.Cost, cost =>
-        //    {
-        //        cost.Property(m => m.Value)
-        //            .HasColumnName("ShippingCost")
-        //            .IsRequired();
-        //    });
-        //    shipping.OwnsOne(s => s.Address, address =>
-        //    {
-        //        address.Property(a => a.Street).HasMaxLength(200);
-        //        address.Property(a => a.City).HasMaxLength(100);
-        //        address.Property(a => a.State).HasMaxLength(100);
-        //        address.Property(a => a.Country).HasMaxLength(100);
-        //        address.Property(a => a.ZipCode).HasMaxLength(20);
-        //    });
-        //});
 
-        //// Optional Coupon navigation
-        //builder.HasOne(c => c.Coupon)
-        //    .WithMany()
-        //    .HasForeignKey(c => c.CouponId);
+        builder.Property(c => c.CreatedAt).HasColumnName("created_at");
+        builder.Property(c => c.CreatedBy).HasColumnName("created_by");
+        builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(c => c.UpdatedBy).HasColumnName("updated_by");
 
-        //// CartItem relationship
-        //builder.HasMany<CartItem>("Items")
-        //    .WithOne()
-        //    .HasForeignKey(ci => ci.CartId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //// Ignore computed properties
-        //builder.Ignore(c => c.Subtotal);
-        builder.Ignore(c => c.TotalTax);
-        //builder.Ignore(c => c.TotalShipping);
+        builder.Ignore(c => c.TaxValue);
+        builder.Ignore(c => c.TotalDiscounted);
         builder.Ignore(c => c.Total);
-        builder.Ignore(c => c.TotalDiscount);
+
+
+        builder.HasIndex(c => c.UserId);
+        builder.ToTable("carts");
+
     }
 }
+
+
+
+//builder.HasMany(c => c.LineItems)
+//    .WithOne()
+//    .HasForeignKey(ci => ci.CartId)
+//    .OnDelete(DeleteBehavior.Cascade);

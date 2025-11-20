@@ -31,10 +31,7 @@ public static class FinExtensions
         {
             case ManyErrors me:
                 list.AddRange(me.Errors.Select(e => e.Message));
-                codeInfo = HttpStatusCodeInfo.FromCode(
-                    me.Errors.FirstOrDefault()?
-                        .Code ?? StatusCodes.Status400BadRequest
-                );
+                codeInfo = HttpStatusCodeInfo.FromCode(StatusCodes.Status400BadRequest);
                 break;
 
             case Expected ex:

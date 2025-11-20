@@ -1,0 +1,117 @@
+﻿using System.Linq.Expressions;
+
+namespace Shared.Persistence.Extensions;
+
+public static class QueryableExtensions
+{
+
+    public static IQueryable<TAggregate> WithQueryOptions<TAggregate>(this IQueryable<TAggregate> queryable,
+        Action<QueryOptions<TAggregate>>? fn)
+        where TAggregate : class, IAggregate
+    {
+        if (fn is not null)
+        {
+            var options = new QueryOptions<TAggregate>();
+            fn.Invoke(options);
+            foreach (var include in options.IncludeExpressions)
+            {
+                queryable = queryable.Include(include);
+            }
+            foreach (var filter in options.FilterExpressions)
+            {
+                queryable = queryable.Where(filter);
+            }
+
+            if (options.AsNoTracking)
+            {
+                queryable = queryable.AsNoTracking();
+            }
+            if (options.AsSplitQuery)
+            {
+                queryable = queryable.AsSplitQuery();
+            }
+
+            if (options.Filter is not null)
+            {
+                queryable = queryable.Where(options.Filter);
+            }
+
+            if (options is { OrderAsc: true, OrderByExpression: not null })
+            {
+                queryable = queryable.OrderBy(options.OrderByExpression!);
+            }
+            else if (options is { OrderDesc: true, OrderByExpression: not null })
+            {
+                queryable = queryable.OrderByDescending(options.OrderByExpression!);
+            }
+            if (!options.WithPagination) return queryable;
+
+            var skip = (options.PageNumber - 1) * options.PageSize;
+            queryable = queryable.Skip(skip).Take(options.PageSize);
+
+
+        }
+
+        return queryable;
+
+
+    }
+
+
+}
+
+public record QueryOptions<TAggregate>
+{
+    public bool AsSplitQuery { get; set; }
+    public bool AsNoTracking { get; set; }
+    public int PageNumber { get; set; }
+
+    public bool WithPagination { get; set; }
+    public int PageSize { get; set; }
+
+    public bool OrderAsc { get; set; }
+    public bool OrderDesc { get; set; }
+
+    internal List<Expression<Func<TAggregate, object>>> IncludeExpressions { get; private init; } = [];
+    internal List<Expression<Func<TAggregate, bool>>> FilterExpressions { get; private init; } = [];
+
+    public QueryOptions<TAggregate> AddInclude(Expression<Func<TAggregate, object>> include)
+    {
+        List<Expression<Func<TAggregate, object>>> includes = [.. IncludeExpressions, include];
+        return this with { IncludeExpressions = includes };
+    }
+
+    public QueryOptions<TAggregate> AddInclude(params Expression<Func<TAggregate, object>>[] includeParams)
+    {
+        List<Expression<Func<TAggregate, object>>> includes = [.. IncludeExpressions, .. includeParams];
+        return this with { IncludeExpressions = includes };
+    }
+    public QueryOptions<TAggregate> AddFilter(Expression<Func<TAggregate, bool>> filter)
+    {
+        List<Expression<Func<TAggregate, bool>>> filters = [.. FilterExpressions, filter];
+        return this with { FilterExpressions = filters };
+    }
+    public Expression<Func<TAggregate, bool>>? Filter { get; set; }
+
+    public Expression<Func<TAggregate, object>>? OrderByExpression { get; private set; }
+
+
+    public QueryOptions<TAggregate> AddOrderBy(Expression<Func<TAggregate, object>> orderBy)
+    {
+        return this with { OrderByExpression = orderBy };
+    }
+
+    public QueryOptions<TAggregate> AddSortDirAsc()
+    {
+        return this with { OrderAsc = true, OrderDesc = false };
+    }
+    public QueryOptions<TAggregate> AddSortDirDesc()
+    {
+        return this with { OrderAsc = false, OrderDesc = true };
+    }
+
+    public QueryOptions<TAggregate> AddPaginationOption(int page, int pageSize)
+    {
+        return this with { WithPagination = true, PageNumber = page, PageSize = pageSize };
+    }
+}

@@ -1,41 +1,23 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-
-using Identity.Identity.Infrastructure.Authentication;
-
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-
-using Shared.Infrastructure.Authentication;
-
 namespace Identity.Infrastructure.Authentication;
 
 internal sealed class JwtProvider : IJwtProvider
 {
-    private readonly JwtOptions _options;
 
-    public JwtProvider(IOptions<JwtOptions> options)
-    {
-        _options = options.Value;
-    }
-
-    public async Task<string> GenerateAsync(User user)
+    public string Generate(User user, JwtOptions options, TimeSpan? duration = null)
     {
         var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email.Value),
+    {
+        new(JwtRegisteredClaimNames.Sub, user.Id.Value.ToString()),
+        new(JwtRegisteredClaimNames.Email, user.Email.Value),
 
-        };
+    };
 
         var roles = user.Roles.Select(r => r.Name).Distinct().ToList();
 
-        var permissions = user.Roles
-            .SelectMany(r => r.Permissions)
-            .Select(p => p.Name)
-            .Distinct().ToList();
-
+        var permissions = user.Permissions.Select(p => p.Name).Concat(
+            user.Roles.SelectMany(r => r.Permissions)
+                .Select(p => p.Name)
+        ).Distinct().ToList();
 
         foreach (var role in roles)
         {
@@ -49,16 +31,20 @@ internal sealed class JwtProvider : IJwtProvider
 
         var signingCredentials = new SigningCredentials(
             new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_options.SecretKey)),
+                Encoding.UTF8.GetBytes(options.SecretKey)),
             SecurityAlgorithms.HmacSha256);
 
+        var d = Optional(duration).Match(span => DateTime.UtcNow.Add(span),
+            () => DateTime.UtcNow.AddDays(2));
         var token = new JwtSecurityToken(
-            _options.Issuer,
-            _options.Audience,
+            options.Issuer,
+            options.Audience,
             claims,
             null,
-            DateTime.UtcNow.AddHours(1),
+            d,
             signingCredentials);
+
+        Console.WriteLine($"The Token Is going to expire in: {(d - DateTime.Now).TotalMinutes} minutes");
 
         string tokenValue = new JwtSecurityTokenHandler()
             .WriteToken(token);
@@ -66,3 +52,5 @@ internal sealed class JwtProvider : IJwtProvider
         return tokenValue;
     }
 }
+
+

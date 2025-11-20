@@ -1,8 +1,9 @@
+using Shared.Domain.Errors;
 using Shared.Domain.Validations;
 
 namespace Shared.Domain.ValueObjects;
 
-public record ImageUrl
+public record ImageUrl : DomainType<ImageUrl, string>
 {
     private static readonly Regex _allowedExtensions =
         new(@"\.(jpg|jpeg|png)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -22,11 +23,24 @@ public record ImageUrl
             .Bind(_ => IsValid(url)
                 ? FinSucc(new ImageUrl(url!))
                 : FinFail<ImageUrl>(
-                    (Error)"Invalid image URL. Must be a valid HTTP/HTTPS URL ending with .jpg, .jpeg, or .png.")
+                    InvalidOperationError.New("Invalid image URL. Must be a valid HTTP/HTTPS URL ending with .jpg, .jpeg, or .png."))
                 .As()
                 );
     }
 
+    public static ImageUrl FromUnsafe(string url)
+    {
+        return new ImageUrl(url);
+    }
+    public static ImageUrl? FromNullable(string? repr)
+    {
+        return repr is null ? null : new ImageUrl(repr);
+    }
+
+    public string To()
+    {
+        return Value;
+    }
 
     private static bool IsValid(string? url)
     {
@@ -38,4 +52,15 @@ public record ImageUrl
 
         return true;
     }
+
+    public virtual bool Equals(ImageUrl? other)
+    {
+        return other is not null && Value == other.Value;
+    }
+
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
+
 }

@@ -10,4 +10,5 @@ public record UserId : IId
 
     public static UserId From(Guid value) => new(value);
     public static UserId New => new(Guid.NewGuid());
+
 }

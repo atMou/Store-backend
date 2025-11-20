@@ -1,3 +1,4 @@
+using Basket.Persistence;
 
 namespace Basket.Application.Features.Cart.UpdateItemsPrice;
 
@@ -10,7 +11,7 @@ internal class UpdateCartItemPriceCommandHandler(
     BasketDbContext dbContext,
     IUserContext userContext,
     ICartRepository cartRepository,
-    IBus bus)
+    IPublishEndpoint endpoint)
     : ICommandHandler<UpdateCartItemsPriceCommand, Fin<UpdateCartItemsPriceResult>>
 {
     public async Task<Fin<UpdateCartItemsPriceResult>> Handle(UpdateCartItemsPriceCommand command,
@@ -23,12 +24,12 @@ internal class UpdateCartItemPriceCommandHandler(
                 cartRepository.UpdateCartItemPrice(command.ProductId, command.NewPrice, ctx))
             select new UpdateCartItemsPriceResult(res);
 
-        return await db.RunSave(dbContext, EnvIO.New(null, cancellationToken))
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseBiEvent(
                 res =>
-                    bus.Publish(new CartItemPriceUpdatedEvent(res.updatedCount, command.ProductId),
+                    endpoint.Publish(new CartItemPriceUpdatedEvent(res.updatedCount, command.ProductId),
                         cancellationToken),
                 err =>
-                    bus.Publish(new CartItemUpdateFailEvent(command.ProductId, err), cancellationToken));
+                    endpoint.Publish(new CartItemUpdateFailEvent(command.ProductId, err), cancellationToken));
     }
 }

@@ -81,7 +81,7 @@ public static class Errors
             public static class Email
             {
                 public static ValidationError Invalid(string repr) =>
-                    ValidationError.New($"Email: '{repr}' is invalid");
+                    ValidationError.New($"EmailService: '{repr}' is invalid");
             }
         }
 

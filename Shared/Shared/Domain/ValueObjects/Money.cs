@@ -18,11 +18,19 @@ public record Money
     public int Dollars => (int)Math.Truncate(Value);
     public byte Cents => (byte)((Value - Math.Truncate(Value)) * 100);
 
-    public static Money FromDecimal(decimal amount)
+    public static Money FromDecimal(decimal? amount)
     {
-        return new Money(amount);
+        return new Money(amount ?? 0);
     }
 
+    public static Money FromUnSafe(decimal repr)
+    {
+        return new Money(repr);
+    }
+    public static Money? Nullable(decimal? repr)
+    {
+        return repr;
+    }
     public static Money FromParts(int dollars, byte cents)
     {
         return new Money(dollars + cents / 100m);
@@ -40,6 +48,11 @@ public record Money
 
     public static implicit operator Money(decimal amount)
     {
+        return FromDecimal(amount);
+    }
+    public static implicit operator Money?(decimal? amount)
+    {
+        if (amount is null) return null;
         return FromDecimal(amount);
     }
     public static implicit operator decimal(Money money)
@@ -119,4 +132,5 @@ public record Money
     {
         return $"{Value:C}";
     }
+
 }
