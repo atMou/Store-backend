@@ -25,30 +25,28 @@ internal class AddLineItemCommandHandler(
                        select cart;
 
         var loadProduct = from product in Db<BasketDbContext>.liftIO(async (_, e) =>
-                await sender.Send(new GetProductByIdQuery(command.ProductId, false), e.Token))
+                await sender.Send(new GetProductByIdQuery(command.ProductId), e.Token))
                           select product;
 
-        var combined =
-            (loadCart, loadProduct).Apply((c, fin) =>
-            {
-                var cart = fin.Map(p => c.AddLineItems(
-                    LineItem.Create(
-                        ProductId.From(p.Id),
-                        c.Id,
-                        p.Slug,
-                        p.Sku,
-                        p.Images.FirstOrDefault(dto => dto.IsMain)?.Url ?? p.Images.First().Url,
-                        command.Quantity,
-                        p.Price
-                    )));
-                return cart;
-            });
-
-
         var db =
-            from res in combined
-            from x in res.Match(cart => Db<BasketDbContext>.pure(unit), Db<BasketDbContext>.fail<Unit>)
+            from t in (loadCart, loadProduct).Apply((c, product) => (c, fin: product))
+            from cart in t.fin.Map(p => t.c.AddLineItems(
+            LineItem.Create(
+                ProductId.From(p.Id),
+                t.c.Id,
+                p.Slug,
+                p.Sku,
+                p.Images.FirstOrDefault(dto => dto.IsMain)?.Url ?? p.Images.First().Url,
+                command.Quantity,
+                p.Price
+            )))
+            from a in Db<BasketDbContext>.lift(ctx =>
+                {
+                    ctx.Carts.Entry(t.c).CurrentValues.SetValues(cart);
+                    return unit;
+                })
             select unit;
+
 
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

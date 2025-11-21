@@ -7,6 +7,7 @@ public static class Extensions
     {
         Id = user.Id.Value,
         Email = user.Email.Value,
+        Phone = user.Phone?.Value,
         FirstName = user.FirstName.Value,
         LastName = user.LastName.Value,
         Age = user.Age?.Value,
@@ -14,18 +15,28 @@ public static class Extensions
         Gender = user.Gender?.ToString(),
         IsVerified = user.IsEmailVerified,
         CartId = user.CartId?.Value,
-        //CouponIds = user.CouponIds.Select(ci => ci.Value),
-        Address = new AddressDto
-        {
-            Street = user.Address.Street,
-            City = user.Address.City,
-            //State = user.Address.State,
-            //PostalCode = user.Address.PostalCode,
-            //Country = user.Address.Country
-        },
-        Roles = user.Roles.Select(r => r.Name),
-        //LikedProductIds = user.LikedProducts,
-        //OrderIds = user.OrderIds.Select(o => o.Value)
+        Address = user.Address.ToDto(),
+        Roles = user.Roles.Select(r => r.ToDto()),
+        Permissions = user.Permissions.Select(p => p.Name),
+        LikedProductIds = user.LikedProducts.Select(id => id.ProductId.Value),
+
+
     };
+    public static AddressDto ToDto(this Address address) => new()
+    {
+        Street = address.Street,
+        City = address.City,
+        PostalCode = address.PostalCode,
+        HouseNumber = address.HouseNumber,
+        ExtraDetails = address.ExtraDetails
+
+    };
+
+    public static RoleDto ToDto(this Role role) => new()
+    {
+        Name = role.Name,
+        Permissions = role.Permissions.Select(p => p.Name)
+    };
+
 }
 

@@ -1,11 +1,9 @@
-﻿using Shared.Application.Contracts.Queries;
-
-namespace Basket.Application.Features.Coupon.AssignCouponToUser;
+﻿namespace Basket.Application.Features.Coupon.AssignCouponToUser;
 
 public record AssignCouponToUserCommand(Guid UserId, Guid CouponId) : ICommand<Fin<Unit>>;
 
 
-internal class AssignCouponToUserCommandHandler(BasketDbContext dbContext, IUserContext userContext, ISender sender, IClock clock)
+internal class AssignCouponToUserCommandHandler(BasketDbContext dbContext, ISender sender, IClock clock)
     : ICommandHandler<AssignCouponToUserCommand, Fin<Unit>>
 {
     public Task<Fin<Unit>> Handle(AssignCouponToUserCommand command,

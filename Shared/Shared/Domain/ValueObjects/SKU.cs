@@ -1,3 +1,5 @@
+using Shared.Domain.Validations;
+
 namespace Shared.Domain.ValueObjects;
 
 public record Sku
@@ -18,7 +20,7 @@ public record Sku
 
     public static Sku From(string category, string color, string size, string brand)
     {
-        return new Sku(category, color, size, brand, GenerateSkuCode());
+        return new Sku(category, color, size, brand, Helpers.GenerateCode(6));
     }
 
     public static Sku FromUnsafe(string sku)
@@ -26,13 +28,7 @@ public record Sku
         return new Sku { Value = sku };
     }
 
-    private static string GenerateSkuCode()
-    {
-        var iterable = Range('A', 'Z').Concat(Range('0', '9')).ToArray();
-        var random = new Random();
-        random.Shuffle(iterable);
-        return new string(iterable.Take(6).ToArray());
-    }
+
 }
 
 //[Category]-[Color]-[Size]-[Brand]-[UniqueID]

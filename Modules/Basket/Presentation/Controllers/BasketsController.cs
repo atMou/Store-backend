@@ -8,8 +8,7 @@ namespace Basket.Presentation.Controllers;
 public class BasketsController(ISender sender) : ControllerBase
 
 {
-    [HttpGet(Name = "GetCartById")]
-    [Route("{id:guid}")]
+    [HttpGet("{id:guid}", Name = "GetCartById")]
     public async Task<ActionResult<CartDto>> GetCartById([FromRoute] Guid id)
     {
         var result = await sender.Send(new GetCartByCartIdQuery(CartId.From(id)));
@@ -42,4 +41,3 @@ public class BasketsController(ISender sender) : ControllerBase
 
 }
 
-public record GetBasketByIdQuery(Guid Id);

@@ -1,9 +1,4 @@
-﻿using Basket.Application.Features.Coupon.ExpireCoupon;
-using Basket.Application.Features.Coupon.GetCouponById;
-using Basket.Application.Features.Coupon.GetCouponByUserId;
-
-using Permission = Shared.Infrastructure.Enums.Permission;
-
+﻿
 namespace Basket.Presentation.Controllers;
 
 [ApiController]

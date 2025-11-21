@@ -1,9 +1,12 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 
+using Db.Errors;
+
 using Microsoft.AspNetCore.Http;
 
 using Shared.Domain.Contracts.Product;
+using Shared.Domain.Validations;
 using Shared.Infrastructure.Images.Options;
 
 namespace Shared.Infrastructure.Images;
@@ -86,62 +89,21 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
                }).Bind(x => x)
                select url;
     }
+    public IO<Unit> DeleteImagesAsync(IEnumerable<string> publicIds)
+    {
+        return from _cloudinary in GetCredentials()
 
-    //private IO<string> UploadAndResizeAsync(IFormFile file, string slug, string folderName = "products", int width = 600,
-    //    int height = 600)
-    //{
-    //    return from _cloudinary in GetCredentials()
-    //           from _ in when(!file.ContentType.StartsWith("image/"),
-    //               IO.fail<Unit>(InvalidOperationError.New("File is not a valid image.")))
-    //           from s in liftIO(async () =>
-    //           {
-    //               await using var inputStream = file.OpenReadStream();
-    //               using var image = await Image.LoadAsync(inputStream);
-    //               var fileName = Path.GetFileNameWithoutExtension(file.FileName);
-
-    //               // Resize only if larger than target
-    //               if (image.Width > width || image.Height > height)
-    //               {
-    //                   image.Mutate(x => x.Resize(new ResizeOptions
-    //                   {
-    //                       Size = new Size(width, height),
-    //                       Mode = ResizeMode.Max
-    //                   }));
-    //               }
-
-    //               //await using var outputStream = new MemoryStream();
-    //               //await image.SaveAsJpegAsync(outputStream);
-    //               //outputStream.Position = 0;
-
-    //               var publicId = $"{slug}_{fileName}";
-    //               var uploadParams = new ImageUploadParams
-    //               {
-    //                   File = new FileDescription(publicId, inputStream),
-    //                   Folder = folderName,
-    //                   Overwrite = true,
-    //                   PublicId = publicId,
-    //                   UseFilename = true,
-    //                   UniqueFilename = false,
-
-    //               };
-    //               var result = await _cloudinary.UploadAsync(uploadParams);
-    //               if (result.Error != null)
-    //               {
-    //                   return IO.fail<string>(
-    //                       InvalidOperationError.New($"Cloudinary upload failed: {result.Error.Message}"));
-    //               }
-
-    //               if (result.SecureUrl is null)
-    //               {
-    //                   return IO.fail<string>(InvalidOperationError.New("Failed to generate the Url"));
-    //               }
+               from results in publicIds.AsIterable().Traverse(id =>
+                   IO.liftAsync(async e => await _cloudinary.DestroyAsync(new DeletionParams(id))))
+               let res = results.Partition(result => result.Error.IsNotNull())
+               let errs = res.Second.Fold("", (s, result) => $"{s} :: {result.Error} ")
+               from x in when(res.Second.Any(),
+                   IO.fail<Unit>(ConflictError.New($"Failed to delete some or all images: {errs}")))
+               select unit;
 
 
-    //               return IO.pure(result.SecureUrl.ToString());
-    //           }).Bind(x => x)
-    //           select s;
-    //}
 
+    }
     private IO<Cloudinary> GetCredentials()
     {
         return from _cloudinary in

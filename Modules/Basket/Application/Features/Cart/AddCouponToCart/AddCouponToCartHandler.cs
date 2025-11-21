@@ -15,7 +15,8 @@ internal class AddCouponToCartCommandHandler(
     public Task<Fin<Unit>> Handle(AddCouponToCartCommand command, CancellationToken cancellationToken)
     {
         var loadCart = from c in Db<BasketDbContext>.liftIO(ctx =>
-            cartRepository.GetCartById(CartId.From(command.CartId), ctx, options => options.AddInclude(cart => cart.CouponIds)))
+            cartRepository.GetCartById(CartId.From(command.CartId), ctx,
+                options => options.AddInclude(cart => cart.CouponIds)))
                        from _ in userContext.IsSameUser<IO>(c.UserId,
                                  UnAuthorizedError.New("You are not authorized to add a coupon to this cart."))
                              | userContext.IsInRole<IO>(Role.Admin, UnAuthorizedError.New("You are not authorized to add a coupon to this cart.")).As()

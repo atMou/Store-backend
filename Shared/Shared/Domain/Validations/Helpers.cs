@@ -97,11 +97,15 @@ public static class Helpers
         return Convert.ToHexString(bytes);
     }
 
-
-    public static string Generate6DigitCode()
+    public static string GenerateCode(int length)
     {
-        return RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+        var iterable = Range('A', 'Z').Concat(Range('0', '9')).ToArray();
+        var random = new Random();
+        random.Shuffle(iterable);
+        return new string(iterable.Take(length).ToArray());
     }
+
+
 
 }
 

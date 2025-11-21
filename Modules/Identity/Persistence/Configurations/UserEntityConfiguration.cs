@@ -141,7 +141,7 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
             nb.Property(a => a.City).HasColumnName("city").HasMaxLength(200);
             nb.Property(a => a.Street).HasColumnName("street").HasMaxLength(200);
             nb.Property(a => a.HouseNumber).HasColumnName("house_number");
-            nb.Property(a => a.ZipCode).HasColumnName("zip_code");
+            //nb.Property(a => a.ZipCode).HasColumnName("zip_code");
         });
 
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");

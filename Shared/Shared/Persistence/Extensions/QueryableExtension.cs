@@ -17,6 +17,20 @@ public static class QueryableExtensions
             {
                 queryable = queryable.Include(include);
             }
+
+            foreach (string s in options.Includes)
+            {
+                queryable = s switch
+                {
+                    var _ when string.Equals("variants", s, StringComparison.InvariantCultureIgnoreCase) => queryable
+                        .Include("Variants"),
+                    var _ when string.Equals("images", s, StringComparison.InvariantCultureIgnoreCase) => queryable
+                        .Include("ProductImages"),
+                    var _ when string.Equals("reviews", s, StringComparison.InvariantCultureIgnoreCase) => queryable
+                        .Include("Reviews"),
+                    _ => queryable
+                };
+            }
             foreach (var filter in options.FilterExpressions)
             {
                 queryable = queryable.Where(filter);
@@ -30,12 +44,6 @@ public static class QueryableExtensions
             {
                 queryable = queryable.AsSplitQuery();
             }
-
-            if (options.Filter is not null)
-            {
-                queryable = queryable.Where(options.Filter);
-            }
-
             if (options is { OrderAsc: true, OrderByExpression: not null })
             {
                 queryable = queryable.OrderBy(options.OrderByExpression!);
@@ -49,19 +57,18 @@ public static class QueryableExtensions
             var skip = (options.PageNumber - 1) * options.PageSize;
             queryable = queryable.Skip(skip).Take(options.PageSize);
 
-
         }
 
         return queryable;
 
-
     }
-
 
 }
 
+
 public record QueryOptions<TAggregate>
 {
+    public string[] Includes { get; set; } = [];
     public bool AsSplitQuery { get; set; }
     public bool AsNoTracking { get; set; }
     public int PageNumber { get; set; }
@@ -75,23 +82,27 @@ public record QueryOptions<TAggregate>
     internal List<Expression<Func<TAggregate, object>>> IncludeExpressions { get; private init; } = [];
     internal List<Expression<Func<TAggregate, bool>>> FilterExpressions { get; private init; } = [];
 
+    public QueryOptions<TAggregate> AddInclude(params Expression<Func<TAggregate, object>>[] includes)
+    {
+        List<Expression<Func<TAggregate, object>>> includesList = [.. IncludeExpressions, .. includes];
+        return this with { IncludeExpressions = includesList };
+    }
     public QueryOptions<TAggregate> AddInclude(Expression<Func<TAggregate, object>> include)
     {
         List<Expression<Func<TAggregate, object>>> includes = [.. IncludeExpressions, include];
         return this with { IncludeExpressions = includes };
     }
 
-    public QueryOptions<TAggregate> AddInclude(params Expression<Func<TAggregate, object>>[] includeParams)
+    public QueryOptions<TAggregate> AddInclude(params string[] includeParams)
     {
-        List<Expression<Func<TAggregate, object>>> includes = [.. IncludeExpressions, .. includeParams];
-        return this with { IncludeExpressions = includes };
+        return this with { Includes = [.. Includes, .. includeParams] };
     }
-    public QueryOptions<TAggregate> AddFilter(Expression<Func<TAggregate, bool>> filter)
+
+    public QueryOptions<TAggregate> AddFilters(params Expression<Func<TAggregate, bool>>[] _filters)
     {
-        List<Expression<Func<TAggregate, bool>>> filters = [.. FilterExpressions, filter];
+        List<Expression<Func<TAggregate, bool>>> filters = [.. FilterExpressions, .. _filters];
         return this with { FilterExpressions = filters };
     }
-    public Expression<Func<TAggregate, bool>>? Filter { get; set; }
 
     public Expression<Func<TAggregate, object>>? OrderByExpression { get; private set; }
 
@@ -110,8 +121,4 @@ public record QueryOptions<TAggregate>
         return this with { OrderAsc = false, OrderDesc = true };
     }
 
-    public QueryOptions<TAggregate> AddPaginationOption(int page, int pageSize)
-    {
-        return this with { WithPagination = true, PageNumber = page, PageSize = pageSize };
-    }
 }

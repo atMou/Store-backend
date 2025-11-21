@@ -46,7 +46,7 @@ namespace Basket.Persistence.Data.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_checked_out");
 
-                    b.Property<decimal>("TaxRate")
+                    b.Property<decimal>("Tax")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)")
                         .HasColumnName("tax_rate");

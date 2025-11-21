@@ -179,7 +179,7 @@ public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A
         Readable.ask<Db<RT>, RT>();
     public static K<Db<RT>, A> Asks(Func<RT, A> f) =>
         Readable.asks<Db<RT>, RT, A>(f);
-    public static K<Db<RT>, A> Local<A>(Func<RT, RT> f, K<Db<RT>, A> ma) =>
+    public static K<Db<RT>, A> Local(Func<RT, RT> f, K<Db<RT>, A> ma) =>
         Readable.local(f, ma);
 
 

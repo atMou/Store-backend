@@ -80,7 +80,8 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
 
         builder.HasMany(p => p.Variants)
             .WithOne(p => p.ParentProduct)
-            .HasForeignKey(p => p.ParentProductId).OnDelete(DeleteBehavior.NoAction);
+            .HasForeignKey(p => p.ParentProductId)
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.OwnsMany(p => p.ProductImages, img =>
         {

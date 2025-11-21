@@ -10,7 +10,7 @@ public class UserEmailVerifiedIntegrationEventHandler(ISender sender, IPublishEn
 
         // get the taxrate base on user location or default taxrate
         decimal tax = 0.15M;
-        var result = await sender.Send(new CreateCartCommand() { UserId = UserId.From(context.Message.UserId), TaxRate = tax });
+        var result = await sender.Send(new CreateCartCommand() { UserId = UserId.From(context.Message.UserId), Tax = tax });
 
         if (result.IsFail)
         {

@@ -2,6 +2,10 @@
 
 
 
+using Shared.Domain.Errors;
+
+using Unit = LanguageExt.Unit;
+
 namespace Order.Domain.ValueObjects;
 
 public record OrderStatus
@@ -78,9 +82,9 @@ public record OrderStatus
         _ = OnHold;
         _ = Unknown;
 
-        Pending.AllowedStatusChangeTo = [PaymentFailed, Paid, Cancelled, OnHold];
+        Pending.AllowedStatusChangeTo = [PaymentFailed, Processing, Paid, Cancelled, OnHold];
         PaymentFailed.AllowedStatusChangeTo = [Pending, OnHold];
-        Paid.AllowedStatusChangeTo = [Processing];
+        Paid.AllowedStatusChangeTo = [Shipped, Delivered];
         Processing.AllowedStatusChangeTo = [Shipped];
         Shipped.AllowedStatusChangeTo = [Delivered];
         Delivered.AllowedStatusChangeTo = [Completed];
@@ -91,18 +95,20 @@ public record OrderStatus
         Unknown.AllowedStatusChangeTo = [];
     }
 
-    public bool CanTransitionTo(OrderStatus target) =>
-        AllowedStatusChangeTo.Contains(target);
+    public Fin<Unit> CanTransitionTo(OrderStatus target) =>
+
+        AllowedStatusChangeTo.Contains(target) ? FinSucc(unit)
+            : FinFail<Unit>(InvalidOperationError.New($"Cannot transition from '{Name}' to '{target.Name}'."));
 
     public static Fin<OrderStatus> FromCode(string code) =>
         Enum.TryParse<OrderStatusCode>(code, true, out var statusCode)
             ? Optional(_all.FirstOrDefault(s => s.Code == statusCode))
-                .ToFin((Error)$"Invalid order status code '{code}'")
-            : FinFail<OrderStatus>((Error)$"Invalid order status code '{code}'");
+                .ToFin(InvalidOperationError.New($"Invalid order status code '{code}'"))
+            : FinFail<OrderStatus>(InvalidOperationError.New($"Invalid order status code '{code}'"));
 
     public static Fin<OrderStatus> FromName(string name) =>
         Optional(_all.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            .ToFin((Error)$"Invalid order status name '{name}'");
+            .ToFin(InvalidOperationError.New($"Invalid order status name '{name}'"));
 
     public static OrderStatus FromUnsafe(string repr) =>
         _all.FirstOrDefault(s => s.Name.Equals(repr, StringComparison.OrdinalIgnoreCase)) ?? Unknown;

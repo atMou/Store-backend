@@ -11,13 +11,11 @@ internal class GetProductByIdQueryHandler(ProductDBContext dbContext, IProductRe
         var db = from res in Db<ProductDBContext>.liftIO(ctx =>
                 productRepository.GetProductById(request.ProductId, ctx, opt =>
                 {
-                    opt.AsNoTracking = true;
-                    opt.AsSplitQuery = true;
-                    if (request.IncludeRelated)
+                    if (request.Include is not null && request.Include.Any())
                     {
-                        opt.AddInclude(p => p.ProductImages);
-                        opt.AddInclude(p => p.Reviews);
-                        opt.AddInclude(p => p.Variants);
+                        opt.AsNoTracking = true;
+                        opt.AsSplitQuery = true;
+                        opt.AddInclude(request.Include);
                     }
                 }))
                  select res.ToDto();

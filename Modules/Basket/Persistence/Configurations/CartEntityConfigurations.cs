@@ -19,7 +19,7 @@ internal class CartEntityConfigurations : IEntityTypeConfiguration<Cart>
             .HasColumnName("user_id")
             .IsRequired();
 
-        builder.Property(cart => cart.TaxRate)
+        builder.Property(cart => cart.Tax)
             .HasConversion(tax => tax.Rate, r => Tax.FromUnsafe(r))
             .HasColumnName("tax_rate").HasPrecision(5, 2);
 

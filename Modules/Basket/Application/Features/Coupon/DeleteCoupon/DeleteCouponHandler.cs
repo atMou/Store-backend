@@ -1,13 +1,12 @@
-﻿using Basket.Persistence;
-
-namespace Basket.Application.Features.Coupon.DeleteCoupon;
+﻿namespace Basket.Application.Features.Coupon.DeleteCoupon;
 
 
 public record DeleteCouponCommand(Guid CouponId) : ICommand<Fin<DeleteCouponResult>>;
 
 public record DeleteCouponResult();
 
-internal class DeleteCouponCommandHandler(BasketDbContext dbContext, IUserContext userContext) : ICommandHandler<DeleteCouponCommand, Fin<DeleteCouponResult>>
+internal class DeleteCouponCommandHandler(BasketDbContext dbContext)
+    : ICommandHandler<DeleteCouponCommand, Fin<DeleteCouponResult>>
 {
     public Task<Fin<DeleteCouponResult>> Handle(DeleteCouponCommand command,
         CancellationToken cancellationToken)

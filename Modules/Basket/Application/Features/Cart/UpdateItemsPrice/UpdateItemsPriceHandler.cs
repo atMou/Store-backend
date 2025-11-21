@@ -1,5 +1,3 @@
-using Basket.Persistence;
-
 namespace Basket.Application.Features.Cart.UpdateItemsPrice;
 
 public record UpdateCartItemsPriceCommand(ProductId ProductId, decimal NewPrice)
@@ -18,7 +16,7 @@ internal class UpdateCartItemPriceCommandHandler(
         CancellationToken cancellationToken)
     {
         var db =
-            from x in userContext.HasPermission<IO>(Permission.EditProduct,
+            from x in userContext.HasPermission<IO>(Shared.Domain.ValueObjects.Permission.EditProduct,
                 UnAuthorizedError.New("You are not authorized to update cart item prices")).As()
             from res in Db<BasketDbContext>.liftIO(ctx =>
                 cartRepository.UpdateCartItemPrice(command.ProductId, command.NewPrice, ctx))

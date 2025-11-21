@@ -5,6 +5,7 @@ namespace Product.Domain.Models;
 //add-migration init -OutputDir Persistence/Data/Migrations -context ProductDBContext -Project Product -StartUpProject Api
 //add-migration init -OutputDir Persistence/Data/Migrations -context BasketDBContext -Project Basket -StartUpProject Api
 //add-migration init -OutputDir Persistence/Data/Migrations -context IdentityDBContext -Project Identity -StartUpProject Api
+//add-migration init -OutputDir Persistence/Data/Migrations -context OrderDbContext -Project Order -StartUpProject Api
 public record Product : Aggregate<ProductId>
 {
     private Product() : base(ProductId.New())
@@ -55,12 +56,12 @@ public record Product : Aggregate<ProductId>
 
     private double _averageRating { get; init; }
     public bool IsDeleted { get; private init; }
-    public List<Review> Reviews { get; private init; } = [];
-    public List<ProductImage> ProductImages { get; private init; } = [];
-    public List<Product> Variants { get; private init; } = [];
     public Money? NewPrice { get; private init; }
     public ProductId? ParentProductId { get; private init; }
     public Product? ParentProduct { get; private init; }
+    public List<Product> Variants { get; private init; } = [];
+    public List<Review> Reviews { get; private init; } = [];
+    public List<ProductImage> ProductImages { get; private set; } = [];
 
     [NotMapped]
     public StockLevel StockLevel =>
@@ -129,8 +130,7 @@ public record Product : Aggregate<ProductId>
         });
     }
 
-
-    public Fin<Product> UpdateSlug(string slug)
+    private Fin<Product> UpdateSlug(string slug)
     {
         return Slug.From(slug).Map(s => this with { Slug = s });
     }
@@ -142,13 +142,13 @@ public record Product : Aggregate<ProductId>
             .Map(pis => this with { ProductImages = ProductImages.Concat(pis).ToList() }).As();
     }
 
-    public Product DeleteImages(Guid[] ids)
+    public Unit DeleteImages(IEnumerable<ProductImageId> ids)
     {
-        var _images = ProductImages.Where(pi => !ids.Contains(pi.Id.Value));
-        return this with { ProductImages = [.. _images] };
+        ProductImages = ProductImages.Where(pi => !ids.Contains(pi.Id)).ToList();
+        return unit;
     }
 
-    public Fin<Product> UpdateCategory(string category)
+    private Fin<Product> UpdateCategory(string category)
     {
         return Category.FromCode(category).Map(c => this with
         {
@@ -162,7 +162,7 @@ public record Product : Aggregate<ProductId>
         });
     }
 
-    public Fin<Product> UpdateSize(string size)
+    private Fin<Product> UpdateSize(string size)
     {
         return Size.FromCode(size).Map(s => this with
         {
@@ -176,7 +176,7 @@ public record Product : Aggregate<ProductId>
         });
     }
 
-    public Fin<Product> UpdateBrand(string brand)
+    private Fin<Product> UpdateBrand(string brand)
     {
         return Brand.FromCode(brand).Map(b => this with
         {
@@ -190,7 +190,7 @@ public record Product : Aggregate<ProductId>
         });
     }
 
-    public Fin<Product> UpdateColor(string color)
+    private Fin<Product> UpdateColor(string color)
     {
         return Color.FromCode(color).Map(c => this with
         {
@@ -204,45 +204,39 @@ public record Product : Aggregate<ProductId>
         });
     }
 
-    public Fin<Product> UpdateDescription(string description)
+    private Fin<Product> UpdateDescription(string description)
     {
         return Description.From(description).Map(d => this with { Description = d });
     }
 
-    public Product UpdateTotalSales(int soldItems = 1)
+    private Product UpdateTotalSales(int soldItems = 1)
     {
         // should be called through an event when an order is completed
         var newTotal = TotalSales + soldItems;
         return this with { TotalSales = newTotal };
     }
 
-    public Product UpdatePrice(decimal price)
+    private Product UpdatePrice(decimal price)
     {
         AddDomainEvent(new ProductPriceChangedEvent(this, price));
         return this with { Price = Money.FromDecimal(price) };
     }
 
-    public Fin<Product> UpdateStock(int stock)
-    {
-        if (stock < 0) return FinFail<Product>(InvalidOperationError.New("Invalid stock value"));
-        if (StockLevel == StockLevel.Low) AddDomainEvent(new ProductLowStockAlertEvent(Id, stock, Stock.Low));
-        return this with { Stock = Stock with { Value = stock } };
-    }
 
-    public Fin<Product> UpdateLowStockThreshold(int lowThreshold)
+    private Fin<Product> UpdateStockThreshold(int? value, int? low, int? mid, int? heigh)
     {
-        return Stock.From((Stock.Value, lowThreshold, Stock.Mid, Stock.High)).Map(s =>
+        return Stock.From((value ?? Stock.Value, low ?? Stock.Low, mid ?? Stock.Mid, heigh ?? Stock.High)).Map(s =>
           {
-              if (s.Value <= s.Low)
+              if (StockLevel == StockLevel.Low)
                   AddDomainEvent(new ProductLowStockAlertEvent(Id, s.Value, s.Low));
               return this with { Stock = s };
           });
 
     }
 
-
-    public Product AddVariants(params Product[] products)
+    private Product AddVariants(params Product[] products)
     {
+
         var newVariants = new List<Product>();
         foreach (var p in products)
         {
@@ -274,9 +268,30 @@ public record Product : Aggregate<ProductId>
         };
     }
 
+    public Product UpdateReview(Review oldReview, Review newReview)
+    {
+        var newAvg = (_averageRating * TotalReviews - oldReview.Rating.Value + newReview.Rating.Value) / TotalReviews;
+        return this with
+        {
+            Reviews = Reviews.Select(r => r.Id == oldReview.Id ? newReview : r).ToList(),
+            _averageRating = newAvg
+        };
+    }
+    public Product DeleteReview(Review review)
+    {
+        var newTotal = TotalReviews - 1;
+        var newAvg = (_averageRating * TotalReviews + review.Rating.Value) / newTotal;
+        return this with
+        {
+            Reviews = Reviews.Where(r => r.Id != review.Id).ToList(),
+            TotalReviews = newTotal,
+            _averageRating = newAvg
+        };
+    }
+
 
     public Fin<Product> Update(
-        UpdateProductDto dto, List<Product> variants)
+        UpdateProductDto dto, List<Product> variants, List<ImageDto> imageDtos)
     {
         var validationSeq = Seq<Fin<Product>>();
 
@@ -288,25 +303,24 @@ public record Product : Aggregate<ProductId>
             validationSeq = validationSeq.Add(UpdateColor(dto.Color));
         if (Size.Code.ToString() != dto.Size)
             validationSeq = validationSeq.Add(UpdateSize(dto.Size));
-        if (dto.ImageDtos.Length > 0)
-            validationSeq = validationSeq.Add(AddImages(dto.ImageDtos));
+        if (imageDtos.Any())
+            validationSeq = validationSeq.Add(AddImages([.. imageDtos]));
         if (Category.Code.ToString() != dto.Category)
             validationSeq = validationSeq.Add(UpdateCategory(dto.Category));
         if (Description.Value != dto.Description)
             validationSeq = validationSeq.Add(UpdateDescription(dto.Description));
-        if (Stock.Value != dto.Stock)
-            validationSeq = validationSeq.Add(UpdateStock(dto.Stock));
-        if (Stock.Low != dto.LowStockThreshold)
-            validationSeq = validationSeq.Add(UpdateLowStockThreshold(dto.LowStockThreshold)); ;
+        if (Stock.Value != dto.Stock || Stock.Low != dto.LowStockThreshold || Stock.Mid != dto.MidStockThreshold || Stock.High != dto.HighStockThreshold)
+            validationSeq = validationSeq.Add(UpdateStockThreshold(dto.Stock, dto.LowStockThreshold, dto.MidStockThreshold, dto.HighStockThreshold)); ;
         if (Price.Value != dto.Price)
             UpdatePrice(dto.Price);
+
         Status.Update(dto.IsFeatured, dto.IsTrending, dto.IsBestSeller, dto.IsNew);
         if (variants.Any()) AddVariants([.. variants]);
 
         if (validationSeq.IsEmpty)
             return this;
         return validationSeq.Traverse(identity)
-            .Map(_ => this).As();
+            .Map(seq => seq.Last.Match(p => p, () => this)).As();
     }
 
     private static Fin<List<ProductImage>> ValidateImages(IEnumerable<ImageDto> images)

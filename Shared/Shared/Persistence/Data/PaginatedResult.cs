@@ -1,4 +1,4 @@
-﻿namespace Product.Persistence.Data;
+﻿namespace Shared.Persistence.Data;
 public record PaginatedResult<T>
 {
     public IEnumerable<T> Items { get; init; }

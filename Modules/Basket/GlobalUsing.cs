@@ -2,6 +2,9 @@
 
 global using Basket.Application.Events;
 global using Basket.Application.Features.Cart.CreateCart;
+global using Basket.Application.Features.Coupon.ExpireCoupon;
+global using Basket.Application.Features.Coupon.GetCouponById;
+global using Basket.Application.Features.Coupon.GetCouponByUserId;
 global using Basket.Domain.Contracts;
 global using Basket.Domain.IRepositories;
 global using Basket.Domain.Models;
@@ -9,6 +12,8 @@ global using Basket.Domain.ValueObjects;
 global using Basket.Persistence;
 global using Basket.Persistence.Repositories;
 global using Basket.Presentation.Requests;
+
+global using Db.Errors;
 
 global using LanguageExt;
 global using LanguageExt.Common;
@@ -29,8 +34,10 @@ global using Serilog;
 
 global using Shared.Application.Abstractions;
 global using Shared.Application.Contracts.Product.Queries;
+global using Shared.Application.Contracts.Queries;
 global using Shared.Domain.Abstractions;
 global using Shared.Domain.Contracts.Cart;
+global using Shared.Domain.Contracts.User;
 global using Shared.Domain.Errors;
 global using Shared.Domain.Validations;
 global using Shared.Domain.ValueObjects;
@@ -43,4 +50,5 @@ global using Shared.Presentation.Extensions;
 
 global using static LanguageExt.Prelude;
 
+global using Permission = Shared.Infrastructure.Enums.Permission;
 global using Unit = LanguageExt.Unit;

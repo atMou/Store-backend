@@ -12,7 +12,7 @@ public class CartCheckedOutIntegrationEventHandler(ISender sender) : IConsumer<C
     {
         await sender.Send(new CreateOrderCommand
         {
-            UserId = context.Message.UserId,
+            UserId = UserId.From(context.Message.UserId),
             OrderItemsDtos = context.Message.LineItems.Select(item => new CreateOrderItemDto
             {
                 ProductId = ProductId.From(item.ProductId),

@@ -3,11 +3,10 @@
 namespace Order.Domain.Models;
 public record OrderItem : Entity<OrderItemId>
 {
-    private OrderItem(ProductId productId, string slug, string sku, string imageUrl, int quantity, Money unitPrice) : base(OrderItemId.New)
+    private OrderItem(ProductId productId, string slug, string imageUrl, int quantity, Money unitPrice) : base(OrderItemId.New)
     {
         ProductId = productId;
         Slug = slug;
-        Sku = sku;
         ImageUrl = imageUrl;
         Quantity = quantity;
         UnitPrice = unitPrice;
@@ -26,7 +25,7 @@ public record OrderItem : Entity<OrderItemId>
         if (quantity <= 0)
             return FinFail<OrderItem>(InvalidOperationError.New("Quantity must be greater than zero."));
 
-        return new OrderItem(productId, slug, sku, imageUrl, quantity, unitPrice);
+        return new OrderItem(productId, slug, imageUrl, quantity, unitPrice);
     }
 }
 

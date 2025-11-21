@@ -3,7 +3,11 @@ namespace Order.Application.Features.CreateOrder;
 
 public class CreateOrderCommand : ICommand<Fin<CreateOrderResult>>
 {
-    public Guid UserId { get; set; }
+    public UserId UserId { get; init; }
+    public Money Subtotal { get; init; }
+    public Money Total { get; init; }
+    public Money Tax { get; init; }
+    public Money Discount { get; set; }
     public IEnumerable<CreateOrderItemDto> OrderItemsDtos { get; set; }
 }
 
@@ -24,9 +28,16 @@ internal class CreateOrderCommandHandler(OrderDBContext dbContext)
         ).Map(items => items.AsEnumerable()).As();
 
         var order = orderItems.Bind(items => Domain.Models.Order.Create(
-            UserId.From(command.UserId),
-            items
+            command.UserId,
+            items,
+            command.Subtotal,
+            command.Total,
+            command.Tax,
+            command.Discount
+
+
         ));
+
 
         var db =
             from o in order

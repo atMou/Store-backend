@@ -1,40 +1,44 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
+using Identity.Domain.ValueObjects;
+
 using Shared.Domain.Errors;
 
 namespace Order.Domain.Models;
 
 public record Order : Aggregate<OrderId>
 {
-    private Order(UserId userId, IEnumerable<OrderItem> orderItems, Money subtotal, Money total)
+    private Order() : base(OrderId.New)
+    {
+    }
+    private Order(UserId userId, IEnumerable<OrderItem> orderItems, Money subtotal, Money total, Money tax, Money discount)
         : base(OrderId.New)
     {
         UserId = userId;
         OrderItems = orderItems;
         Subtotal = subtotal;
         Total = total;
+        Tax = tax;
+        Discount = discount;
+        TrackingCode = TrackingCode.Create();
 
-        //Status = OrderStatus.Pending;
-        CreatedAt = DateTime.UtcNow;
     }
 
     public UserId UserId { get; private init; }
-    public IEnumerable<OrderItem> OrderItems { get; private init; }
-    public OrderStatus OrderStatus { get; private set; }
-    //public PaymentStatus PaymentStatus { get; private set; }
-    //public Phone Phone { get; private set; }
-    public Address ShippingAddress { get; set; }
-    public decimal ShippingCost { get; set; }
     public Email Email { get; private init; }
-    public decimal Subtotal { get; private init; }
-    public decimal Tax { get; init; }
-    public decimal Total { get; private init; }
-    public decimal Discount { get; init; }
-    //public PaymentMethod PaymentMethod { get; init; }
-    //public TrackingCode TrackingCode { get; init; }
+    public Phone Phone { get; private set; }
+    public ShipmentId? ShipmentId { get; private init; }
+    public PaymentId? PaymentId { get; private init; }
+    public Money Subtotal { get; private init; }
+    public Money Tax { get; init; }
+    public Money Total { get; private init; }
+    public Money Discount { get; init; }
+    public TrackingCode TrackingCode { get; init; }
+    public OrderStatus OrderStatus { get; private set; } = OrderStatus.Pending;
+    public IEnumerable<CouponId> CouponIds { get; init; } = [];
+    public IEnumerable<OrderItem> OrderItems { get; private init; }
 
     public string Notes { get; init; } = string.Empty;
-    public IEnumerable<CouponId> CouponIds { get; init; } = [];
 
     public DateTime? _paidAt
     {
@@ -92,45 +96,40 @@ public record Order : Aggregate<OrderId>
         set => RefundedAt = Optional(value);
     }
     [NotMapped]
-    public Option<DateTime> PaidAt { get; private set; }
+    public Option<DateTime> PaidAt { get; private set; } = Option<DateTime>.None;
     [NotMapped]
-    public Option<DateTime> DeliveredAt { get; private set; }
+    public Option<DateTime> DeliveredAt { get; private set; } = Option<DateTime>.None;
     [NotMapped]
-    public Option<DateTime> ShippedAt { get; private set; }
+    public Option<DateTime> ShippedAt { get; private set; } = Option<DateTime>.None;
     [NotMapped]
-    public Option<DateTime> CancelledAt { get; private set; }
+    public Option<DateTime> CancelledAt { get; private set; } = Option<DateTime>.None;
     [NotMapped]
-    public Option<DateTime> RefundedAt { get; private set; }
+    public Option<DateTime> RefundedAt { get; private set; } = Option<DateTime>.None;
 
-    public static Fin<Order> Create(UserId userId, IEnumerable<OrderItem> items)
+    public static Fin<Order> Create(UserId userId, IEnumerable<OrderItem> orderItems, Money subtotal, Money total, Money tax, Money discount)
     {
-        var _items = Seq(items);
-        if (_items.IsEmpty)
-            return FinFail<Order>(InvalidOperationError.New("Order must contain at least one item."));
-
-        var subtotal = _items.Map(i => i.LineTotal).Fold(Money.Zero, (acc, next) => acc + next);
-        var total = subtotal;
-
-        return new Order(userId, _items, subtotal, total);
+        var items = orderItems.ToList();
+        return !items.Any() ? FinFail<Order>(InvalidOperationError.New("Order must contain at least one item."))
+            : new Order(userId, items, subtotal, total, tax, discount);
     }
+    public Fin<Order> MarkAsPaid(PaymentId paymentId, DateTime dateTime) =>
+        OrderStatus.CanTransitionTo(OrderStatus.Paid).Map(_ =>
+        this with { PaymentId = paymentId, PaidAt = dateTime });
 
-    //public Order MarkAsPaid(DateTime dateTime)
-    //{
-    //    return this with { Status = OrderStatus.Paid, PaidAt = dateTime };
-    //}
 
-    //public Order MarkAsShipped(DateTime dateTime)
-    //{
-    //    return this with { Status = OrderStatus.Shipped, ShippedAt = dateTime };
-    //}
+    public Fin<Order> MarkAsShipped(ShipmentId shipmentId, DateTime dateTime) => OrderStatus
+        .CanTransitionTo(OrderStatus.Shipped).Map(_ =>
+            this with { ShipmentId = ShipmentId, ShippedAt = dateTime });
 
-    //public Order MarkAsDelivered(DateTime dateTime)
-    //{
-    //    return this with { Status = OrderStatus.Delivered, DeliveredAt = dateTime };
-    //}
+    public Fin<Order> MarkAsDelivered(DateTime dateTime) => OrderStatus.CanTransitionTo(OrderStatus.Delivered).Map(_ =>
+        this with { OrderStatus = OrderStatus.Delivered, DeliveredAt = dateTime }
+    );
+    public Fin<Order> MarkAsCancelled(DateTime dateTime) => OrderStatus.CanTransitionTo(OrderStatus.Cancelled)
+        .Map(_ => this with { OrderStatus = OrderStatus.Cancelled, CancelledAt = dateTime });
 
-    //public Order MarkAsCancelled(DateTime dateTime)
-    //{
-    //    return this with { Status = OrderStatus.Cancelled, CancelledAt = dateTime };
-    //}
+    public Fin<Order> MarkAsRefunded(DateTime dateTime) => OrderStatus.CanTransitionTo(OrderStatus.Refunded).Map(_ =>
+        this with { OrderStatus = OrderStatus.Refunded, RefundedAt = dateTime }
+    );
+
+
 }

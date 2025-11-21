@@ -3,28 +3,30 @@ namespace Basket.Domain.Models;
 public record Cart : Aggregate<CartId>
 {
 
-    private Cart(UserId userId, Tax taxRate)
+    private Cart(UserId userId, Tax tax, Money shipmentCost)
         : base(CartId.New)
     {
         UserId = userId;
-        TaxRate = taxRate;
+        Tax = tax;
+        ShipmentCost = shipmentCost;
         AddDomainEvent(new CartCreatedEvent(Id, userId));
     }
 
     public UserId UserId { get; }
-    public Tax TaxRate { get; }
+    public Tax Tax { get; }
     public bool IsCheckedOut { get; private set; }
     public Money TotalSub { get; private set; } = Money.Zero;
     public Money Discount { get; private set; } = Money.Zero;
+    public Money ShipmentCost { get; private set; }
     public Money TotalDiscounted => Money.FromDecimal(Math.Max(0, TotalSub.Value - Discount.Value));
-    public Money TaxValue => TaxRate * TotalDiscounted;
+    public Money TaxValue => Tax * TotalDiscounted;
     public Money Total => TotalDiscounted + TaxValue;
     public IEnumerable<CouponId> CouponIds { get; private set; } = [];
     public List<LineItem> LineItems { get; private set; } = [];
 
 
-    public static Fin<Cart> Create(UserId userId, decimal taxRate) =>
-        Tax.From(taxRate).Map(tax => new Cart(userId, tax));
+    public static Fin<Cart> Create(UserId userId, decimal tax, decimal shipmentCost) =>
+        Tax.From(tax).Map(tx => new Cart(userId, tx, shipmentCost));
 
     public Cart SetCartCheckedOut()
     {
@@ -54,10 +56,6 @@ public record Cart : Aggregate<CartId>
     {
         return AddCouponIds(couponId)
             .Map(c => c with { Discount = Discount + discount });
-        //        .Map(c =>
-        //    {
-        //        AddDomainEvent(new CartDiscountAddedEvent(c.Id, couponId, discount));
-        //    });
     }
 
     public Fin<(decimal RestDiscount, Cart Cart)> RemoveDiscount(decimal discount, CouponId couponId)

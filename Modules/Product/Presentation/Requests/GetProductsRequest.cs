@@ -11,12 +11,11 @@ public record GetProductsRequest
     public decimal? MinPrice { get; init; }
     public decimal? MaxPrice { get; init; }
     public string? Search { get; init; }
-    public bool? IncludeVariants { get; init; }
-    public bool? IncludeReviews { get; init; }
     public string? OrderBy { get; init; }
     public string? SortDir { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 20;
+    public string[] Include { get; init; } = [];
 
     public GetProductsQuery ToQuery() => new()
     {
@@ -27,11 +26,10 @@ public record GetProductsRequest
         MinPrice = MinPrice,
         MaxPrice = MaxPrice,
         Search = Search,
-        IncludeVariants = IncludeVariants,
-        IncludeReviews = IncludeReviews,
         OrderBy = OrderBy,
         SortDir = SortDir,
         PageNumber = PageNumber,
-        PageSize = PageSize
+        PageSize = PageSize,
+        Include = Include
     };
 }

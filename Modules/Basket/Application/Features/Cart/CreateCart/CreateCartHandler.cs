@@ -1,26 +1,23 @@
-using Db.Errors;
 
-using Shared.Application.Contracts.Queries;
-using Shared.Domain.Contracts.User;
 
 namespace Basket.Application.Features.Cart.CreateCart;
 
 public record CreateCartCommand : ICommand<Fin<Guid>>
 {
     public UserId UserId { get; init; } = null!;
-    public decimal TaxRate { get; init; }
+    public decimal Tax { get; init; }
+    public decimal ShipmentCost { get; init; }
     public CouponId? CouponId { get; init; } = null;
 }
 
 internal class CreateCartCommandHandler(
-    IUserContext userContext,
     BasketDbContext dbContext,
     ISender sender)
     : ICommandHandler<CreateCartCommand, Fin<Guid>>
 {
     public Task<Fin<Guid>> Handle(CreateCartCommand command, CancellationToken cancellationToken)
     {
-        //var cart = Domain.Models.Cart.Create(command.UserId, command.TaxRate);
+        //var cart = Domain.Models.Cart.Create(command.UserId, command.Tax);
         var db =
 
             //from currentUser in userContext.GetCurrentUser<IO>().As().MapFail(e =>
@@ -34,7 +31,7 @@ internal class CreateCartCommandHandler(
             from _1 in when(userDto.CartId is not null, IO.fail<Unit>(ConflictError.New(
                 $"Cannot Create Cart for User '{command.UserId.Value}': User Has Cart with Id: '{userDto.CartId}'")))
 
-            from _cart in Domain.Models.Cart.Create(command.UserId, command.TaxRate)
+            from _cart in Domain.Models.Cart.Create(command.UserId, command.Tax, command.ShipmentCost)
 
                 //from _2 in IO.liftAsync(async e =>
                 //    await sender.Send(new SetUserCartIdCommand(currentUser.Id, _cart.Id.Value), e.Token))

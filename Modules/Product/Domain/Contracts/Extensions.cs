@@ -1,7 +1,7 @@
 ﻿using Product.Domain.Models;
 
 namespace Product.Domain.Contracts;
-public static class ContractsExtensions
+public static class Extensions
 {
     public static ProductDto ToDto(this Models.Product p)
     {
@@ -32,6 +32,11 @@ public static class ContractsExtensions
             Variants = p.Variants.Select(v => v.ToVariantDto()),
             Reviews = p.Reviews.Select(r => r.ToReviewsDto())
         };
+    }
+
+    public static IEnumerable<ProductDto> ToDto(this IEnumerable<Models.Product> ps)
+    {
+        return ps.Select(p => p.ToDto());
     }
 
     public static ProductVariantDto ToVariantDto(this Models.Product v)

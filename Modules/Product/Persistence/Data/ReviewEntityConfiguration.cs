@@ -58,5 +58,10 @@ public class ReviewEntityConfiguration : IEntityTypeConfiguration<Review>
         builder.Property(r => r.UpdatedBy)
             .HasColumnName("updated_by");
 
+
+        builder.HasIndex(r => r.UserId);
+        builder.HasIndex(r => r.ProductId);
+        builder.ToTable("reviews");
+
     }
 }

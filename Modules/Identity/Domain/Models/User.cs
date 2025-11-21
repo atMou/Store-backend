@@ -134,7 +134,7 @@ public record User : Aggregate<UserId>
 
     public User SetPhone(Phone phone, DateTime utcNow)
     {
-        var token = Helpers.Generate6DigitCode();
+        var token = Helpers.GenerateCode(6);
         AddDomainEvent(new PhoneNumberAddedDomainEvent(phone, token));
 
         return this with
@@ -158,7 +158,7 @@ public record User : Aggregate<UserId>
     {
         return this with
         {
-            PhoneConfirmationToken = Helpers.Generate6DigitCode(),
+            PhoneConfirmationToken = Helpers.GenerateCode(6),
             PhoneConfirmationExpiresAt = DateTime.UtcNow.AddMinutes(30)
         };
     }

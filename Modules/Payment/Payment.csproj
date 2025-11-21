@@ -12,9 +12,7 @@
 
   <ItemGroup>
     <Folder Include="Application\" />
-    <Folder Include="Domain\" />
     <Folder Include="Infrastructure\" />
-    <Folder Include="Persistence\" />
     <Folder Include="Presentation\Controllers\" />
   </ItemGroup>
 
