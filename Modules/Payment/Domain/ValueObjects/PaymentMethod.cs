@@ -1,7 +1,5 @@
 ﻿using Order.Domain.Enums;
 
-using Shared.Domain.Errors;
-
 namespace Order.Domain.ValueObjects;
 
 public record PaymentMethod
@@ -51,15 +49,6 @@ public record PaymentMethod
         _ = Unknown;
     }
 
-    public static Fin<PaymentMethod> FromCode(string code) =>
-        Enum.TryParse<PaymentMethodCode>(code, true, out var statusCode)
-            ? Optional(_all.FirstOrDefault(s => s.Code == statusCode))
-                .ToFin(InvalidOperationError.New($"Invalid payment method code '{code}'"))
-            : FinFail<PaymentMethod>(InvalidOperationError.New($"Invalid payment method code '{code}'"));
-
-    public static Fin<PaymentMethod> FromName(string name) =>
-        Optional(_all.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            .ToFin(InvalidOperationError.New($"Invalid payment method name '{name}'"));
 
     public static PaymentMethod FromUnsafe(string repr) =>
         _all.FirstOrDefault(s => s.Name.Equals(repr, StringComparison.OrdinalIgnoreCase)) ?? Unknown;

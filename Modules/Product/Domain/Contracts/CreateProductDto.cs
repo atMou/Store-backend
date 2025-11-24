@@ -1,4 +1,6 @@
-﻿namespace Product.Domain.Contracts;
+﻿using Shared.Application.Contracts.Product.Results;
+
+namespace Product.Domain.Contracts;
 public record CreateProductDto
 {
     public string Slug { get; init; } = null!;
@@ -7,7 +9,7 @@ public record CreateProductDto
     public string Color { get; init; } = null!;
     public string Category { get; init; } = null!;
     public string Description { get; init; } = null!;
-    public ImageDto[] Images { get; init; } = [];
+    public ImageResult[] Images { get; init; } = [];
     public decimal Price { get; init; }
     public decimal? NewPrice { get; init; }
     public int Stock { get; init; }

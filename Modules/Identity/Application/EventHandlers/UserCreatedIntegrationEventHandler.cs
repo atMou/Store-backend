@@ -28,7 +28,7 @@ public class UserCreatedIntegrationEventHandler(IEmailService emailService, Link
                  from response in emailService.Send<IO>(
                      new EmailAddress("ahmedmou@b-tu.de", "Admin"),
                      new EmailAddress(context.Message.Email),
-                     "VerifyEmail your email",
+                     "VerifyConfirmationToken your email",
                      null!,
                      emailBody, context.CancellationToken)
                  select response;

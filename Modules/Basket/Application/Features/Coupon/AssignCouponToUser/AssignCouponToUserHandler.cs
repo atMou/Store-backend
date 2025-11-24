@@ -1,6 +1,8 @@
-﻿namespace Basket.Application.Features.Coupon.AssignCouponToUser;
+﻿using Shared.Application.Contracts.User.Queries;
 
-public record AssignCouponToUserCommand(Guid UserId, Guid CouponId) : ICommand<Fin<Unit>>;
+namespace Basket.Application.Features.Coupon.AssignCouponToUser;
+
+public record AssignCouponToUserCommand(UserId UserId, CouponId CouponId) : ICommand<Fin<Unit>>;
 
 
 internal class AssignCouponToUserCommandHandler(BasketDbContext dbContext, ISender sender, IClock clock)
@@ -9,42 +11,22 @@ internal class AssignCouponToUserCommandHandler(BasketDbContext dbContext, ISend
     public Task<Fin<Unit>> Handle(AssignCouponToUserCommand command,
         CancellationToken cancellationToken)
     {
-        var loadUser =
-            Db<BasketDbContext>.liftIO(async (_, e) =>
-                await sender.Send(new GetUserByIdQuery(UserId.From(command.UserId)), e.Token));
+        var loadUser = Db<BasketDbContext>.liftIO(async (_, e) =>
+            await sender.Send(new GetUserByIdQuery(command.UserId), e.Token));
 
-        var loadCoupon = Db<BasketDbContext>.liftIO(async (ctx, e) =>
-            await ctx.Coupons.FirstOrDefaultAsync(c => c.Id == CouponId.From(command.CouponId), e.Token));
-
+        var loadCoupon =
+            GetEntity<BasketDbContext, Domain.Models.Coupon>(
+            coupon => coupon.Id == command.CouponId,
+            NotFoundError.New($"Coupon with Id {command.CouponId.Value} not found."));
 
         var db = from x in (
                 loadUser,
                 loadCoupon
-            ).Apply((fin, coupon) => { return fin.Bind(_ => ValidateCoupon(coupon)); })
-
-                 from c in x.Bind(coupon => coupon.SetUser(UserId.From(command.UserId)))
+            ).Apply((u, c) =>
+                u.Bind(ud => c.AssignToUser(UserId.From(ud.Id), DateTime.UtcNow)))
                  select unit;
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
-    private static Fin<Domain.Models.Coupon> ValidateCoupon(
-        Domain.Models.Coupon? coupon)
-    {
-        if (coupon is null)
-            return FinFail<Domain.Models.Coupon>(NotFoundError.New("Coupon not found."));
-
-        if (coupon.IsDeleted)
-            return FinFail<Domain.Models.Coupon>(InvalidOperationError.New("Coupon is deleted."));
-
-        if (coupon.UserId is not null || coupon.CartId is not null)
-            return FinFail<Domain.Models.Coupon>(InvalidOperationError.New("Coupon is already assigned to a cart."));
-
-        if (coupon.Status != CouponStatus.Unknown)
-        {
-            return FinFail<Domain.Models.Coupon>(InvalidOperationError.New("Coupon is unavailable."));
-        }
-
-        return coupon;
-    }
 }

@@ -1,24 +1,21 @@
 ﻿namespace Basket.Application.Features.Coupon.DeleteCoupon;
 
 
-public record DeleteCouponCommand(Guid CouponId) : ICommand<Fin<DeleteCouponResult>>;
+public record DeleteCouponCommand(CouponId CouponId) : ICommand<Fin<Unit>>;
 
-public record DeleteCouponResult();
 
 internal class DeleteCouponCommandHandler(BasketDbContext dbContext)
-    : ICommandHandler<DeleteCouponCommand, Fin<DeleteCouponResult>>
+    : ICommandHandler<DeleteCouponCommand, Fin<Unit>>
 {
-    public Task<Fin<DeleteCouponResult>> Handle(DeleteCouponCommand command,
+    public Task<Fin<Unit>> Handle(DeleteCouponCommand command,
         CancellationToken cancellationToken)
     {
         var db =
-            from c in Db<BasketDbContext>.liftIO(async (ctx, e) =>
-                await ctx.Coupons.FindAsync([command.CouponId], e.Token))
-            from _1 in when(c is null, IO.fail<Unit>(NotFoundError.New("Coupon not found.")))
-            from _2 in when(c.IsDeleted, IO.fail<Unit>(InvalidOperationError.New("Coupon is already deleted.")))
-            from _3 in when(c.Status == CouponStatus.AssignedToUser, IO.fail<Unit>(InvalidOperationError.New("Cannot delete an active coupon.")))
-            from _4 in Db<BasketDbContext>.lift(ctx => ctx.Coupons.Remove(c))
-            select new DeleteCouponResult();
+            GetUpdateEntity<BasketDbContext, Domain.Models.Coupon>(
+                coupon => coupon.Id == command.CouponId,
+                NotFoundError.New($"Coupon with id '{command.CouponId.Value} was not found'"),
+                c => c.EnsureCanDelete().Map(co => co.MarkAsDeleted())
+                );
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

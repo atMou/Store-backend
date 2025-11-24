@@ -1,4 +1,4 @@
-using Shared.Domain.Contracts.Cart;
+using Shared.Application.Contracts.Carts.Results;
 using Shared.Messaging.Abstractions;
 
 namespace Shared.Messaging.Events;
@@ -13,6 +13,6 @@ public record CartCheckedOutIntegrationEvent : IntegrationEvent
     public decimal Discount { get; init; }
     public decimal TotalDiscounted { get; init; }
     public List<Guid> CouponIds { get; init; }
-    public List<LineItemDto> LineItems { get; init; }
+    public List<LineItemResult> LineItems { get; init; }
 }
 

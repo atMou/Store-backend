@@ -1,5 +1,3 @@
-
-
 namespace Shared.Domain.Abstractions;
 
 public record Aggregate<TId>(TId Id) : Entity<TId>(Id), IAggregate<TId> where TId : IId

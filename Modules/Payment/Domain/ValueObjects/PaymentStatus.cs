@@ -2,6 +2,8 @@
 
 using Shared.Domain.Errors;
 
+using Unit = LanguageExt.Unit;
+
 namespace Payment.Domain.ValueObjects;
 
 public record PaymentStatus
@@ -66,22 +68,12 @@ public record PaymentStatus
         Unknown.AllowedStatusChangeTo = [];
     }
 
-    public Fin<Unit> CanTransitionTo(PaymentStatus target) =>
+    public Fin<Unit> EnsureCanTransitionTo(PaymentStatus target) =>
 
         AllowedStatusChangeTo.Contains(target)
             ? unit
             : FinFail<Unit>(
                 InvalidOperationError.New($"Changing Payment status from '{Name}' to '{target.Name}' is not allowed"));
-
-    public static Fin<PaymentStatus> FromCode(string code) =>
-        Enum.TryParse<PaymentStatusCode>(code, true, out var statusCode)
-            ? Optional(_all.FirstOrDefault(s => s.Code == statusCode))
-                .ToFin(InvalidOperationError.New($"Invalid payment status code '{code}'"))
-            : FinFail<PaymentStatus>(InvalidOperationError.New($"Invalid payment status code '{code}'"));
-
-    public static Fin<PaymentStatus> FromName(string name) =>
-        Optional(_all.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            .ToFin(InvalidOperationError.New($"Invalid payment status name '{name}'"));
 
     public static PaymentStatus FromUnsafe(string repr) =>
         _all.FirstOrDefault(s => s.Name.Equals(repr, StringComparison.OrdinalIgnoreCase)) ?? Unknown;

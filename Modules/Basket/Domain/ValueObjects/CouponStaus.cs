@@ -30,9 +30,9 @@ public record CouponStatus
     // 2. Populate allowed transitions once, after all singletons are created
     static CouponStatus()
     {
-        Unknown.AllowedStatusChange = [AssignedToUser, AppliedToCart, Expired];
+        Unknown.AllowedStatusChange = [AssignedToUser, Expired];
         AssignedToUser.AllowedStatusChange = [AppliedToCart, Expired];
-        AppliedToCart.AllowedStatusChange = [AssignedToUser, Redeemed];
+        AppliedToCart.AllowedStatusChange = [Redeemed];
         Expired.AllowedStatusChange = [];
         Redeemed.AllowedStatusChange = [];
     }
@@ -49,7 +49,7 @@ public record CouponStatus
     public static CouponStatus FromUnsafe(string name) =>
         FromName(name).IfFail(Unknown);
 
-    public Fin<Unit> IsAllowedStatusChange(CouponStatus status) =>
+    public Fin<Unit> EnsureCanTransitionTo(CouponStatus status) =>
         AllowedStatusChange.Contains(status)
             ? unit
             : FinFail<Unit>(InvalidOperationError.New(

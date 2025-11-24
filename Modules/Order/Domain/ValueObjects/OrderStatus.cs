@@ -1,12 +1,4 @@
-﻿
-
-
-
-using Shared.Domain.Errors;
-
-using Unit = LanguageExt.Unit;
-
-namespace Order.Domain.ValueObjects;
+﻿namespace Order.Domain.ValueObjects;
 
 public record OrderStatus
 {
@@ -23,13 +15,12 @@ public record OrderStatus
         _all.Add(this);
     }
 
-    public OrderStatusCode Code { get; private set; }
-    public string Name { get; private set; } = null!;
-    public string Description { get; private set; }
+    public OrderStatusCode Code { get; }
+    public string Name { get; }
+    public string Description { get; }
 
     public static IReadOnlyList<OrderStatus> All => _all;
 
-    // Predefined order statuses
     public static readonly OrderStatus Pending =
         new(OrderStatusCode.Pending, nameof(Pending), "Order created, awaiting payment.");
 
@@ -112,5 +103,16 @@ public record OrderStatus
 
     public static OrderStatus FromUnsafe(string repr) =>
         _all.FirstOrDefault(s => s.Name.Equals(repr, StringComparison.OrdinalIgnoreCase)) ?? Unknown;
+
+
+    public virtual bool Equals(OrderStatus? other)
+    {
+        return other is { } o && Code == o.Code;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Code, Name);
+    }
 }
 

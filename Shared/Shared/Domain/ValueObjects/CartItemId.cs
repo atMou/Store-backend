@@ -15,5 +15,13 @@ public record LineItemId : IId
     {
         return new LineItemId(value);
     }
+    public virtual bool Equals(LineItemId? other)
+    {
+        return other is not null && Value.Equals(other.Value);
+    }
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
 }
 

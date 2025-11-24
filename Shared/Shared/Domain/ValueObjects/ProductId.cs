@@ -17,4 +17,12 @@ public record ProductId : IId
     {
         return new ProductId(value);
     }
+    public virtual bool Equals(ProductId? other)
+    {
+        return other is not null && Value.Equals(other.Value);
+    }
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
 }

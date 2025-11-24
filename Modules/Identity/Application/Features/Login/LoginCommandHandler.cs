@@ -17,17 +17,25 @@ public class LogoutCommandHandler(IOptions<JwtOptions> options,
     public Task<Fin<LoginCommandResult>> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
         var db = from email in Email.From(command.Email)
+                 from u in GetEntity<IdentityDbContext, User>(
+                     user => user.Email == email,
+                     opt =>
+                     {
+                         opt.AddInclude(user => user.RefreshTokens);
+                         opt.AsSplitQuery = true;
+                         return opt;
+                     },
+                     NotFoundError.New($"Invalid credentials."))
 
-                 from u in Db<IdentityDbContext>.liftIO(async (ctx, e) =>
-                    await ctx.Users.FirstOrDefaultAsync(user => user.Email == email, e.Token))
-                 from _1 in when(u is null, IO.fail<Unit>(NotFoundError.New($"Invalid credentials.")))
-                 from _2 in u.VerifyPassword(command.Password).MapFail(_ => NotFoundError.New($"Invalid credentials."))
+
+                 from _ in UpdateEntity<IdentityDbContext, User>(u,
+                      u => u.VerifyPassword(command.Password),
+                      user => user.RevokeTokens(clock.UtcNow, "New refresh token generated"))
                  let accessToken = jwtProvider.Generate(u, options.Value)
                  let refreshToken = RefreshToken.Generate(u.Id, options.Value.Salt, clock.UtcNow)
-                 from _3 in GetAndRevokeOldRefreshTokens(u.Id)
-                 from _4 in Db<IdentityDbContext>.lift((ctx) =>
-                     ctx.RefreshTokens.Add(refreshToken))
                  select new LoginCommandResult(refreshToken, accessToken);
+
+
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 

@@ -226,7 +226,7 @@ namespace Product.Persistence.Data.Migrations
                                 .HasForeignKey("ProductId");
                         });
 
-                    b.OwnsMany("Shared.Domain.ValueObjects.ProductImage", "ProductImages", b1 =>
+                    b.OwnsMany("Db.Domain.ValueObjects.ProductImage", "ProductImages", b1 =>
                         {
                             b1.Property<Guid>("Id")
                                 .HasColumnType("uniqueidentifier");

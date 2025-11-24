@@ -73,7 +73,11 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
             .WithOne()
             .HasForeignKey(lp => lp.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
+        builder
+            .HasMany(u => u.PendingOrderIds)
+            .WithOne()
+            .HasForeignKey(lp => lp.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
 
         //builder.OwnsMany(u => u.CouponIds, b =>
@@ -135,6 +139,9 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
                 value => value == null ? null : CartId.From(value.Value)
             )
             .HasColumnName("cart_id");
+
+        builder.HasMany(u => u.RefreshTokens).WithOne().HasForeignKey(token => token.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.OwnsOne(u => u.Address, nb =>
         {

@@ -4,7 +4,7 @@ namespace Basket.Domain.Contracts;
 
 public record UpdateCouponDto
 {
-    public Guid CouponId { get; init; }
+    public CouponId CouponId { get; init; }
     public string? Description { get; init; }
     public DateTime? ExpiryDate { get; init; }
     public DiscountType? DiscountType { get; init; }

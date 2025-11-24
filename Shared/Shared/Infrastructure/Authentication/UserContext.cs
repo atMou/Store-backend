@@ -11,8 +11,11 @@ public record CurrentUser(Guid Id, string Email, string Name)
 public interface IUserContext
 {
     K<M, CurrentUser> GetCurrentUser<M>() where M : MonadIO<M>, Fallible<M>;
+    K<M, CurrentUser> GetCurrentUserF<M>() where M : Monad<M>, Fallible<M>;
     K<M, Unit> IsInRole<M>(Role role, Error error) where M : MonadIO<M>, Fallible<M>;
+    K<M, Unit> IsInRoleF<M>(Role role, Error error) where M : Monad<M>, Fallible<M>;
     K<M, Unit> IsSameUser<M>(UserId userId, Error error) where M : MonadIO<M>, Fallible<M>;
+    K<M, Unit> IsSameUserF<M>(UserId userId, Error error) where M : Monad<M>, Fallible<M>;
     K<M, Unit> HasPermission<M>(Permission permission, Error error) where M : MonadIO<M>, Fallible<M>;
 }
 
@@ -29,8 +32,25 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
                from a in result.Match(M.Pure, M.Fail<CurrentUser>)
                select a;
     }
+    public K<M, CurrentUser> GetCurrentUserF<M>() where M : Monad<M>, Fallible<M>
+    {
+        return from user in iff(User.IsNull(), M.Fail<ClaimsPrincipal>(UnAuthorizedError.New("You are not authorized")),
+                M.Pure(User)!)
+               let result = (ParseId(user), GetEmail(user), GetName(user))
+                   .Apply((id, email, name) => new CurrentUser(id, email, name)).As()
+               from a in result.Match(M.Pure, M.Fail<CurrentUser>)
+               select a;
+    }
+
 
     public K<M, Unit> IsInRole<M>(Role role, Error error) where M : MonadIO<M>, Fallible<M>
+    {
+        return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))
+            .Map(p => p.IsInRole(role.Name))
+            .Match(b => b ? M.Pure(unit) : M.Fail<Unit>(error), M.Fail<Unit>);
+    }
+
+    public K<M, Unit> IsInRoleF<M>(Role role, Error error) where M : Monad<M>, Fallible<M>
     {
         return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))
             .Map(p => p.IsInRole(role.Name))
@@ -43,7 +63,12 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
             .Map(ParseId)
             .Match(id => id == userId.Value ? M.Pure(unit) : M.Fail<Unit>(error), M.Fail<Unit>);
     }
-
+    public K<M, Unit> IsSameUserF<M>(UserId userId, Error error) where M : Monad<M>, Fallible<M>
+    {
+        return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))
+            .Map(ParseId)
+            .Match(id => id == userId.Value ? M.Pure(unit) : M.Fail<Unit>(error), M.Fail<Unit>);
+    }
     public K<M, Unit> HasPermission<M>(Permission permission, Error error) where M : MonadIO<M>, Fallible<M>
     {
         return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))

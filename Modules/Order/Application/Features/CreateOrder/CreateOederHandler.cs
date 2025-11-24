@@ -1,20 +1,21 @@
 ﻿
+
 namespace Order.Application.Features.CreateOrder;
 
-public class CreateOrderCommand : ICommand<Fin<CreateOrderResult>>
+public class CreateOrderCommand : ICommand<Fin<Unit>>
 {
     public UserId UserId { get; init; }
     public Money Subtotal { get; init; }
     public Money Total { get; init; }
     public Money Tax { get; init; }
     public Money Discount { get; set; }
-    public IEnumerable<CreateOrderItemDto> OrderItemsDtos { get; set; }
+    public IEnumerable<CreateOrderItemDto> OrderItemsDtos { get; init; }
 }
 
 internal class CreateOrderCommandHandler(OrderDBContext dbContext)
-    : ICommandHandler<CreateOrderCommand, Fin<CreateOrderResult>>
+    : ICommandHandler<CreateOrderCommand, Fin<Unit>>
 {
-    public Task<Fin<CreateOrderResult>> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
+    public Task<Fin<Unit>> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
     {
         var orderItems = command.OrderItemsDtos.AsIterable().Traverse(item =>
             OrderItem.Create(
@@ -43,20 +44,9 @@ internal class CreateOrderCommandHandler(OrderDBContext dbContext)
             from o in order
             from _ in Db<OrderDBContext>.lift(ctx =>
                 ctx.Orders.Add(o))
-            select new CreateOrderResult
-            {
-                OrderId = o.Id.Value,
-                OrderItems = o.OrderItems.Select(item => new CreateOrderItemResult
-                {
-                    ProductId = item.ProductId.Value,
-                    Sku = item.Sku,
-                    Slug = item.Slug,
-                    ImageUrl = item.ImageUrl,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice.Value
-                }).ToList()
-            };
+            select unit;
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }
+

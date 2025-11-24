@@ -34,18 +34,10 @@ public partial class Db<RT>
 
     public static Db<RT, A> liftIO<A>(Func<RT, Task<A>> f) =>
         Db<RT, A>.LiftIO(f);
-    //public static Db<RT,Unit> liftIO(Func<EnvIO, Task> f) =>
-    //    Db<RT, Unit>.LiftIO(f);
+
     public static Db<RT, A> liftIO<A>(Func<RT, EnvIO, Task<A>> f) =>
         Db<RT, A>.LiftIO(f);
 
-
-
-    //public static Db<RT, A> liftIO<A>(Func<RT, EnvIO, IO<A>> f) =>
-    //    Db<RT, A>.LiftIO(f);
-
-    //public static Db<RT, A> liftIO<A>(Func<RT, EnvIO, ValueTask<A>> f) =>
-    //    Db<RT, A>.LiftIO(f);
     public static Db<RT, A> liftIO<A>(Func<RT, Task<Fin<A>>> f) =>
         Db<RT, A>.LiftIO(f);
 

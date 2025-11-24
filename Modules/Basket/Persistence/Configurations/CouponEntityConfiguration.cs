@@ -52,7 +52,7 @@ public class CouponConfiguration : IEntityTypeConfiguration<Coupon>
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
-        builder.Property(c => c.Status)
+        builder.Property(c => c.CouponStatus)
             .HasConversion(status => status.Name, s => CouponStatus.FromUnsafe(s))
             .HasColumnName("status");
 

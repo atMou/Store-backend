@@ -2,7 +2,6 @@
 
 using Identity.Domain.ValueObjects;
 
-using Shared.Domain.Errors;
 
 namespace Order.Domain.Models;
 
@@ -15,11 +14,11 @@ public record Order : Aggregate<OrderId>
         : base(OrderId.New)
     {
         UserId = userId;
-        OrderItems = orderItems;
         Subtotal = subtotal;
         Total = total;
         Tax = tax;
         Discount = discount;
+        OrderItems = orderItems;
         TrackingCode = TrackingCode.Create();
 
     }
@@ -37,6 +36,8 @@ public record Order : Aggregate<OrderId>
     public OrderStatus OrderStatus { get; private set; } = OrderStatus.Pending;
     public IEnumerable<CouponId> CouponIds { get; init; } = [];
     public IEnumerable<OrderItem> OrderItems { get; private init; }
+
+    public bool IsDeleted { get; private set; }
 
     public string Notes { get; init; } = string.Empty;
 
@@ -112,6 +113,22 @@ public record Order : Aggregate<OrderId>
         return !items.Any() ? FinFail<Order>(InvalidOperationError.New("Order must contain at least one item."))
             : new Order(userId, items, subtotal, total, tax, discount);
     }
+
+
+    public Fin<Unit> EnsureCanDelete()
+    {
+        if (OrderStatus == OrderStatus.Cancelled || OrderStatus == OrderStatus.Unknown || OrderStatus == OrderStatus.Pending)
+        {
+            return FinFail<Unit>(InvalidOperationError.New($"Cannot delete order in '{OrderStatus.Name} Status'"));
+        }
+
+        return unit;
+
+    }
+
+    public Fin<Order> MarkAsDeleted() =>
+        EnsureCanDelete().Map(_ => this with { IsDeleted = true });
+
     public Fin<Order> MarkAsPaid(PaymentId paymentId, DateTime dateTime) =>
         OrderStatus.CanTransitionTo(OrderStatus.Paid).Map(_ =>
         this with { PaymentId = paymentId, PaidAt = dateTime });
@@ -119,7 +136,7 @@ public record Order : Aggregate<OrderId>
 
     public Fin<Order> MarkAsShipped(ShipmentId shipmentId, DateTime dateTime) => OrderStatus
         .CanTransitionTo(OrderStatus.Shipped).Map(_ =>
-            this with { ShipmentId = ShipmentId, ShippedAt = dateTime });
+            this with { ShipmentId = shipmentId, ShippedAt = dateTime });
 
     public Fin<Order> MarkAsDelivered(DateTime dateTime) => OrderStatus.CanTransitionTo(OrderStatus.Delivered).Map(_ =>
         this with { OrderStatus = OrderStatus.Delivered, DeliveredAt = dateTime }

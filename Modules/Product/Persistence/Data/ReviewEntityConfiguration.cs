@@ -41,7 +41,7 @@ public class ReviewEntityConfiguration : IEntityTypeConfiguration<Review>
 
         builder.Property(r => r.Rating)
             .HasConversion(r => r.Value, b => Rating.FromUnsafe(b)).HasPrecision(3, 2)
-            .HasColumnName("value").IsRequired();
+            .HasColumnName("rating").IsRequired();
 
         builder.HasOne(r => r.Product)
             .WithMany(p => p.Reviews)

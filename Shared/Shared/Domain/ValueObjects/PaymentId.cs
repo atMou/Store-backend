@@ -11,4 +11,13 @@ public record PaymentId : IId
 
     public static PaymentId From(Guid value) => new(value);
     public static PaymentId New => new(Guid.NewGuid());
+
+    public virtual bool Equals(PaymentId? other)
+    {
+        return other is not null && Value.Equals(other.Value);
+    }
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
 }

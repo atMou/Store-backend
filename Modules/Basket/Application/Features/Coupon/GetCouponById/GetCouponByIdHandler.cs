@@ -1,22 +1,25 @@
-﻿namespace Basket.Application.Features.Coupon.GetCouponById;
+﻿using Shared.Application.Contracts.Carts.Results;
+
+namespace Basket.Application.Features.Coupon.GetCouponById;
 
 
-public record GetCouponByIdCommand(Guid CouponId) : ICommand<Fin<GetCouponByIdResult>>;
+public record GetCouponByIdCommand(CouponId CouponId) : ICommand<Fin<CouponResult>>;
 
-public record GetCouponByIdResult(CouponDto Coupon);
 
-internal class GetCouponByIdCommandHandler(BasketDbContext dbContext, IClock clock) : ICommandHandler<GetCouponByIdCommand, Fin<GetCouponByIdResult>>
+internal class GetCouponByIdCommandHandler(BasketDbContext dbContext) : ICommandHandler<GetCouponByIdCommand, Fin<CouponResult>>
 {
-    public Task<Fin<GetCouponByIdResult>> Handle(GetCouponByIdCommand command,
+    public Task<Fin<CouponResult>> Handle(GetCouponByIdCommand command,
         CancellationToken cancellationToken)
     {
-        var db =
-
-            from co in Db<BasketDbContext>.liftIO(async (ctx, e) =>
-                await ctx.Coupons
-                    .FirstOrDefaultAsync(c => c.Id == CouponId.From(command.CouponId), e.Token))
-            from _1 in when(co is null, IO.fail<Unit>(NotFoundError.New($"Coupon with id '{command.CouponId}' not found")))
-            select new GetCouponByIdResult(co.ToDto());
+        var db = GetEntity<BasketDbContext, Domain.Models.Coupon>(
+            c => c.Id == command.CouponId,
+            options =>
+            {
+                options.AsNoTracking = true;
+                return options;
+            },
+            NotFoundError.New($"Coupon with id '{command.CouponId.Value} was not found'"))
+            .Map(coupon => coupon.ToResult());
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

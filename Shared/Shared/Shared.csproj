@@ -35,5 +35,11 @@
         </PackageReference>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Application\Contracts\Order\Results\" />
+      <Folder Include="Application\Features\" />
+      <Folder Include="Persistence\Data\" />
+    </ItemGroup>
+
 
 </Project>

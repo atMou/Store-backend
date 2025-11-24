@@ -1,6 +1,5 @@
 ﻿using MassTransit;
 
-using Product.Persistence.Repositories;
 
 using Shared.Infrastructure.Images.Options;
 
@@ -32,7 +31,7 @@ public static class ProductModule
 
         services.ConfigureOptions<CloudinarySettingsSetup>();
 
-        services.AddScoped<IProductRepository, ProductRepository>();
+        //services.AddScoped<IProductRepository, ProductRepository>();
         services.AddProductModuleServices(configuration);
         return services;
     }

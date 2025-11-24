@@ -1,11 +1,5 @@
 ﻿using Db.Errors;
 
-using Identity.Domain.ValueObjects;
-
-using Microsoft.EntityFrameworkCore;
-
-using Shared.Domain.Errors;
-
 namespace Identity.Persistence.Repositories;
 
 public class UserRepositories : IUserRepository

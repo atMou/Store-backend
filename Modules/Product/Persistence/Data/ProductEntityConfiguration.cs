@@ -26,9 +26,9 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
         builder.Property(p => p.Discount).HasColumnName("discount");
         builder.Property(p => p.Price).HasColumnName("price");
         builder.Property(p => p.NewPrice).HasColumnName("new_price");
-        builder.Property(p => p.TotalReviews).HasColumnName("total_reviews");
+
         builder.Property(p => p.TotalSales).HasColumnName("total_sold_items");
-        builder.Property("_averageRating").HasColumnName("average_rating");
+        //builder.Property("_averageRating").HasColumnName("average_rating");
         builder.Property(p => p.IsDeleted).HasColumnName("is_Deleted");
         builder.Property(p => p.CreatedAt).HasColumnName("created_at");
         builder.Property(p => p.CreatedBy).HasColumnName("created_by");
@@ -65,18 +65,7 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
                     .HasColumnName("is_new");
             });
 
-        builder.OwnsOne(p => p.Stock,
-            ps =>
-            {
-                ps.Property(stock => stock.Value)
-                    .HasColumnName("stock");
-                ps.Property(stock => stock.Low)
-                    .HasColumnName("low_stock_threshold");
-                ps.Property(stock => stock.High)
-                    .HasColumnName("high_stock_threshold");
-                ps.Property(stock => stock.Mid)
-                    .HasColumnName("mid_stock_threshold");
-            });
+
 
         builder.HasMany(p => p.Variants)
             .WithOne(p => p.ParentProduct)
@@ -103,6 +92,13 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
                 .HasColumnName("is_main");
         });
 
+        builder.Property(p => p.AverageRating).HasComputedColumnSql("COALESCE(AVG(Reviews.Rating), 0)").HasColumnName("average_rating"); ;
+
+
+        builder.Property(p => p.TotalReviews)
+            .HasComputedColumnSql("COALESCE(COUNT(Reviews.Id), 0)")
+            .HasColumnName("total_reviews");
+
         builder.HasMany(p => p.Reviews)
             .WithOne(r => r.Product)
             .HasForeignKey(review => review.ProductId)
@@ -112,3 +108,15 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
         builder.ToTable("Products");
     }
 }
+//builder.OwnsOne(p => p.Stock,
+//    ps =>
+//    {
+//        ps.Property(stock => stock.Value)
+//            .HasColumnName("stock");
+//        ps.Property(stock => stock.Low)
+//            .HasColumnName("low_stock_threshold");
+//        ps.Property(stock => stock.High)
+//            .HasColumnName("high_stock_threshold");
+//        ps.Property(stock => stock.Mid)
+//            .HasColumnName("mid_stock_threshold");
+//    });

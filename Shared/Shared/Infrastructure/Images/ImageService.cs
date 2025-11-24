@@ -5,7 +5,7 @@ using Db.Errors;
 
 using Microsoft.AspNetCore.Http;
 
-using Shared.Domain.Contracts.Product;
+using Shared.Application.Contracts.Product.Results;
 using Shared.Domain.Validations;
 using Shared.Infrastructure.Images.Options;
 
@@ -15,7 +15,7 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
 {
     private readonly CloudinarySettings _options = options.Value;
 
-    public IO<IEnumerable<ImageDto>> UploadProductImages(IFormFile[] files, bool[] isMain, string slug, string category,
+    public IO<IEnumerable<ImageResult>> UploadProductImages(IFormFile[] files, bool[] isMain, string slug, string category,
         string brand, string color)
     {
         var index = 0;
@@ -27,7 +27,7 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
             index++;
 
             return UploadAndResizeAsync(file, slug)
-                .Map(url => new ImageDto
+                .Map(url => new ImageResult
                 {
                     Url = url,
                     AltText = alt,

@@ -9,7 +9,8 @@ public record AssignCouponToUserRequest
 
     public AssignCouponToUserCommand ToCommand()
     {
-        return new AssignCouponToUserCommand(UserId, CouponId);
+        return new AssignCouponToUserCommand(Shared.Domain.ValueObjects.UserId.From(UserId),
+            Shared.Domain.ValueObjects.CouponId.From(CouponId));
     }
 
 }

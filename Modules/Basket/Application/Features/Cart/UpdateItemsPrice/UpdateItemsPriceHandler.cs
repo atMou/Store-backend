@@ -3,12 +3,12 @@ namespace Basket.Application.Features.Cart.UpdateItemsPrice;
 public record UpdateCartItemsPriceCommand(ProductId ProductId, decimal NewPrice)
     : ICommand<Fin<UpdateCartItemsPriceResult>>;
 
-public record UpdateCartItemsPriceResult(int updatedCount);
+public record UpdateCartItemsPriceResult(int UpdatedCount);
 
 internal class UpdateCartItemPriceCommandHandler(
     BasketDbContext dbContext,
     IUserContext userContext,
-    ICartRepository cartRepository,
+
     IPublishEndpoint endpoint)
     : ICommandHandler<UpdateCartItemsPriceCommand, Fin<UpdateCartItemsPriceResult>>
 {
@@ -16,18 +16,25 @@ internal class UpdateCartItemPriceCommandHandler(
         CancellationToken cancellationToken)
     {
         var db =
-            from x in userContext.HasPermission<IO>(Shared.Domain.ValueObjects.Permission.EditProduct,
-                UnAuthorizedError.New("You are not authorized to update cart item prices")).As()
             from res in Db<BasketDbContext>.liftIO(ctx =>
-                cartRepository.UpdateCartItemPrice(command.ProductId, command.NewPrice, ctx))
+                UpdateCartItemPrice(command.ProductId, command.NewPrice, ctx))
             select new UpdateCartItemsPriceResult(res);
 
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseBiEvent(
                 res =>
-                    endpoint.Publish(new CartItemPriceUpdatedEvent(res.updatedCount, command.ProductId),
+                    endpoint.Publish(new CartItemPriceUpdatedEvent(res.UpdatedCount, command.ProductId),
                         cancellationToken),
                 err =>
                     endpoint.Publish(new CartItemUpdateFailEvent(command.ProductId, err), cancellationToken));
+    }
+
+    public IO<int> UpdateCartItemPrice(ProductId productId, decimal newPrice, BasketDbContext ctx)
+    {
+        return from res in IO.liftAsync(async e =>
+                await ctx.CartItems.Where(ci => ci.ProductId == productId)
+                    .ExecuteUpdateAsync(s =>
+                        s.SetProperty(ci => ci.UnitPrice.Value, _ => newPrice), e.Token))
+               select res;
     }
 }

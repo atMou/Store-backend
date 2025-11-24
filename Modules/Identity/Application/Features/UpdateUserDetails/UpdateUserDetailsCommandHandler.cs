@@ -12,6 +12,22 @@ public record UpdateUserDetailsCommand : ICommand<Fin<Unit>>
     public string? Password { get; init; }
     public string? Gender { get; init; }
     public byte? Age { get; init; }
+
+    public UpdateUserDto ToDto()
+    {
+        return new UpdateUserDto()
+        {
+            Email = Email,
+            FirstName = FirstName,
+            LastName = LastName,
+            Address = Address,
+            Age = Age,
+            Gender = Gender,
+            Password = Password,
+            Phone = Phone,
+            UserId = UserId
+        };
+    }
 }
 
 public class UpdateUserDetailsCommandHandler(
@@ -25,22 +41,22 @@ public class UpdateUserDetailsCommandHandler(
     public Task<Fin<Unit>> Handle(UpdateUserDetailsCommand command, CancellationToken cancellationToken)
     {
         var db =
-
-            from user in Db<IdentityDbContext>.liftIO(async (ctx, e) =>
-                await ctx.Users.FirstOrDefaultAsync(user => user.Id == command.UserId, e.Token))
-            from _1 in when(user is null,
-                IO.fail<Unit>(NotFoundError.New($"User with id: '{command.UserId}' does not exists"))).As()
-            from image in Optional(command.Image).Match<IO<ImageUrl>>(file =>
-                imageService.UploadImage(file, user.Id.Value.ToString()), () => IO.pure<ImageUrl>(null!))
-            from userUpdated in IO.lift(() => user.Update(command.Email,
-                command.FirstName, command.LastName, command.Age, command.Password, command.Gender, command.Address,
-                command.Phone, image))
-            from _2 in Db<IdentityDbContext>.lift(ctx =>
-            {
-                ctx.Users.Entry(user).CurrentValues.SetValues(userUpdated);
-                return unit;
-            })
+            from u in GetUpdateEntityA<IdentityDbContext, User>(
+                user => user.Id == command.UserId,
+                NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
+                null,
+                user => user.Update(command.ToDto()))
+            from img in UploadImage(command.Image, u.FirstName.Value, u.LastName.Value)
+            from _ in UpdateEntity<IdentityDbContext, User>(u, user => user.Update(new UpdateUserDto() { Image = img }))
             select unit;
+
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+    }
+    private IO<ImageUrl> UploadImage(IFormFile? Imag, string firstname, string lastname)
+    {
+        return Imag.IsNotNull()
+            ? imageService.UploadImage(Imag!, $"{firstname}_{lastname}")
+            : IO.pure(ImageUrl.FromUnsafe(""));
+
     }
 }

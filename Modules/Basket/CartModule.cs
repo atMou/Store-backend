@@ -24,8 +24,8 @@ public static class CartModule
         //    });
         //});
         services.AddBasketModuleServices(configuration);
-        services.AddScoped<ICartRepository, CartRepository>();
-        services.AddScoped<ICouponRepository, CouponRepository>();
+        //services.AddScoped<ICartRepository, CartRepository>();
+        //services.AddScoped<ICouponRepository, CouponRepository>();
         return services;
     }
 

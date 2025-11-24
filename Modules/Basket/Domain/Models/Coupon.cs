@@ -10,7 +10,7 @@ public record Coupon : Aggregate<CouponId>
 
     private Coupon(
         string code,
-        string description,
+        Description description,
         ExpiryDate expiryDate,
         Discount discount, decimal minimumPurchaseAmount) : base(CouponId.New)
     {
@@ -25,62 +25,77 @@ public record Coupon : Aggregate<CouponId>
     public CartId? CartId { get; private init; }
     public string Code { get; private init; }
     public Discount Discount { get; private set; }
-    public string Description { get; private init; }
+    public Description Description { get; private init; }
     public ExpiryDate ExpiryDate { get; private set; }
     public decimal MinimumPurchaseAmount { get; private init; }
-    public CouponStatus Status { get; private set; } = CouponStatus.Unknown;
+    public CouponStatus CouponStatus { get; private set; } = CouponStatus.Unknown;
     public bool IsDeleted { get; private set; }
 
     public static Fin<Coupon> Create(
-        string Description,
-        decimal DiscountValue,
+        string description,
+        decimal discountValue,
         DateTime expiryDate,
-        DiscountType DiscountType,
-        DateTime CurrentDate,
-        decimal MinimumPurchaseAmount
+        DiscountType discountType,
+        DateTime currentDate,
+        decimal minimumPurchaseAmount
     )
     {
         return (
-                ValidateDescription(Description),
-                ExpiryDate.From(expiryDate, CurrentDate),
-                Discount.From((DiscountType, DiscountValue)))
-            .Apply((_, _expiryDate, _discount) =>
-                new Coupon(GenerateCode(), Description, _expiryDate, _discount, MinimumPurchaseAmount)).As();
+                Description.From(description),
+                ExpiryDate.From(expiryDate, currentDate),
+                Discount.From((discountType, discountValue)))
+            .Apply((desc, exp, discount) =>
+                new Coupon(GenerateCode(), desc, exp, discount, minimumPurchaseAmount)).As();
     }
 
 
 
     public Fin<Coupon> ApplyToCart(CartId cartId, UserId userId, DateTime utcNow)
     {
-        return from _ in CartId is not null
-                ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."))
-                : UserId is not null
-                    ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a user."))
+        return (EnsureHasNoUser(), EnsureHasNoCart(), ExpiryDate.EnsureIsValid(utcNow))
+            .Apply((_, _, _) => this with { CartId = cartId, CouponStatus = CouponStatus.AppliedToCart })
+            .As();
 
-                : Status switch
-                {
-                    { Value: 0 } => unit,
-                    { Value: 1 } => unit,
-                    { Value: 2 } => FinFail<Unit>(InvalidOperationError.New("Cannot assign an applied coupon.")),
-                    { Value: 3 } => FinFail<Unit>(InvalidOperationError.New("Cannot assign an expired coupon.")),
-                    { Value: 4 } => FinFail<Unit>(InvalidOperationError.New("Cannot assign a redeemed coupon.")),
-                    _ => FinFail<Unit>(InvalidOperationError.New("Cannot assign coupon with unknown status."))
-                }
-               from _1 in ExpiryDate.IsValid(utcNow)
-               select this with { CartId = cartId, Status = CouponStatus.AppliedToCart };
     }
 
+    public Fin<Coupon> AssignToUser(UserId userId, DateTime utcNow)
+    {
+        return (CouponStatus.EnsureCanTransitionTo(CouponStatus.AssignedToUser),
+                ExpiryDate.EnsureIsValid(utcNow), EnsureHasNoUser())
+                .Apply((_, _, _) => this with
+                {
+                    UserId = userId,
+                    CouponStatus = CouponStatus.AssignedToUser
+                }).As();
+    }
 
+    private Fin<Unit> EnsureHasNoUser()
+    {
+        return UserId.IsNull() ? unit
+            : FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a user."));
+    }
+    private Fin<Unit> EnsureHasAUser()
+    {
+        return UserId.IsNull()
+            ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a user.")) :
+            unit;
+    }
+
+    private Fin<Unit> EnsureHasNoCart()
+    {
+        return CartId.IsNull() ? unit
+    : FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."));
+    }
+    private Fin<Unit> EnsureHasACart()
+    {
+        return CartId.IsNull()
+            ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."))
+            : unit;
+    }
     public Fin<decimal> GetDiscountFromTotal(decimal total, DateTime utcNow)
     {
-        return from _1 in CartId.IsNull()
-                ? FinFail<Unit>(InvalidOperationError.New("Coupon is not assigned to a cart."))
-                : unit
-               from _2 in UserId.IsNull()
-                   ? FinFail<Unit>(InvalidOperationError.New("Coupon is not assigned to a user"))
-                   : unit
-               from _3 in ExpiryDate.IsValid(utcNow)
-               select Discount.Apply(total);
+        return (EnsureHasACart(), EnsureHasAUser(), ExpiryDate.EnsureIsValid(utcNow))
+               .Apply((_, _, _) => Discount.Apply(total)).As();
     }
 
     public Coupon MarkAsDeleted()
@@ -89,70 +104,42 @@ public record Coupon : Aggregate<CouponId>
     }
 
 
-    public Coupon SetExpired(DateTime utcNow)
+    public Fin<Coupon> MarkAsExpired(DateTime utcNow)
     {
-        return this with { Status = CouponStatus.Expired, ExpiryDate = ExpiryDate.FromUnsafe(utcNow) };
+        if (CouponStatus == CouponStatus.Expired)
+        {
+            return FinFail<Coupon>(NotFoundError.New($"Coupon with ID '{Id.Value}' is already expired."));
+        }
+        return this with { CouponStatus = CouponStatus.Expired, ExpiryDate = ExpiryDate.FromUnsafe(utcNow) };
     }
 
-
-    private static Fin<Unit> ValidateExpiryDate(DateTime expiryDate, DateTime currentDate)
-    {
-        return expiryDate < currentDate.Date
-            ? FinFail<Unit>(Error.New($"Coupon expiry date '{expiryDate:yyyy-MM-dd}' cannot be in the past."))
-            : unit;
-    }
-
-    private static Fin<Unit> ValidateDescription(string description)
-    {
-        return (Helpers.MinLength10(description, $"Coupon {nameof(Description)}"),
-                Helpers.MaxLength200(description, $"Coupon {nameof(Description)}"))
-            .Apply((_, _) => unit).As().ToFin();
-    }
 
     // should be called from outside when redeeming the coupon or when user add it to cart
     public Fin<Coupon> ChangeCouponStatus(CouponStatus status)
     {
-        return Status.IsAllowedStatusChange(status).Map(_ => this with { Status = status });
+        return CouponStatus.EnsureCanTransitionTo(status).Map(_ => this with { CouponStatus = status });
     }
 
-    // should be called when assigning coupon to a user
-    public Fin<Coupon> SetUser(UserId userId)
+
+    public Fin<Coupon> EnsureCanDelete()
     {
-        return UserId is not null
-            ? FinFail<Coupon>(InvalidOperationError.New("Coupon is already assigned to a user."))
-            : ChangeCouponStatus(CouponStatus.AssignedToUser).Map(_ =>
-            {
-                UserId = userId;
-                Status = CouponStatus.AssignedToUser;
-                return this;
-            });
+        if (IsDeleted) return FinFail<Coupon>(InvalidOperationError.New("Coupon is already deleted."));
+        return (EnsureHasNoCart(), EnsureHasNoUser()).Apply((_, _) => this).As();
     }
-
-    //private static Fin<Unit> ValidateCode(string code)
-    //{
-    //    if (string.IsNullOrWhiteSpace(code))
-    //        return FinFail<Unit>(Error.New("Coupon code cannot be empty."));
-
-    //    var regex = new Regex(@"^[A-Za-z0-9]{5}(-[A-Za-z0-9]{5}){4}$", RegexOptions.Compiled);
-
-    //    return regex.IsMatch(code)
-    //        ? unit
-    //        : FinFail<Unit>(Error.New("Invalid coupon code."));
-    //}
 
     public Fin<Coupon> Update(UpdateCouponDto dto, DateTime utcNow)
     {
-        List<Fin<Coupon>> validations = [];
+        var validations = Seq<Fin<Coupon>>();
         if (dto.Description is not null)
-            validations.Add(
-                ValidateDescription(dto.Description).Map(_ =>
-                    this with { Description = dto.Description! }));
+            validations = validations.Add(
+                  Description.From(dto.Description).Map(d =>
+                      this with { Description = d }));
         if (dto.ExpiryDate is not null)
-            validations.Add(
+            validations = validations.Add(
                 Optional(dto.ExpiryDate).ToFin().Bind(ex => ExpiryDate.From(ex, utcNow).Map(e =>
                     this with { ExpiryDate = e })));
         if (dto.DiscountType is not null)
-            validations.Add(
+            validations = validations.Add(
                 (Optional(dto.DiscountValue).ToFin(InvalidOperationError.New("Invalid discount value.")),
                     Optional(dto.DiscountType).ToFin(InvalidOperationError.New("Invalid discount type.")))
                 .Apply((d, type) => (type, d))
@@ -160,30 +147,28 @@ public record Coupon : Aggregate<CouponId>
                     this with { Discount = discount })).As());
 
         if (dto.Status is { } cs)
-            validations.Add(Status.IsAllowedStatusChange(cs).Map(_ => this with { Status = cs }));
+            validations = validations.Add(CouponStatus.EnsureCanTransitionTo(cs).Map(_ => this with { CouponStatus = cs }));
 
         if (dto.MinimumPurchaseAmount is not null)
-            validations.Add(
+            validations = validations.Add(
                 ValidateMinimumPurchaseAmount(dto.MinimumPurchaseAmount).Map(_ =>
                     this with { MinimumPurchaseAmount = dto.MinimumPurchaseAmount.Value }));
 
-        return CanEdit().Bind(_ => validations.AsIterable()
+        return EnsureIsValid(utcNow).Bind(_ => validations
             .Traverse(identity)
-            .Map(_ => this)
+            .Map(seq => seq.Last.Match(coupon => coupon, () => this))
         );
     }
 
-    public Fin<Unit> CanEdit()
+    private Fin<Unit> EnsureIsValid(DateTime datetime)
     {
-        return Status switch
-        {
-            { Value: 0 } => unit,
-            { Value: 1 } => unit,
-            { Value: 2 } => FinFail<Unit>(InvalidOperationError.New("Cannot edit an applied coupon.")),
-            { Value: 3 } => FinFail<Unit>(InvalidOperationError.New("Cannot edit an expired coupon.")),
-            { Value: 4 } => FinFail<Unit>(InvalidOperationError.New("Cannot edit a redeemed coupon.")),
-            _ => FinFail<Unit>(InvalidOperationError.New("Cannot edit coupon with unknown status."))
-        };
+        if (CouponStatus == CouponStatus.Expired)
+            return FinFail<Unit>(InvalidOperationError.New("Coupon is expired."));
+        if (CouponStatus == CouponStatus.Redeemed)
+            return FinFail<Unit>(InvalidOperationError.New("Coupon is redeemed."));
+        return ExpiryDate.EnsureIsValid(datetime);
+
+
     }
 
     private Fin<decimal?> ValidateMinimumPurchaseAmount(decimal? minimumAmount)

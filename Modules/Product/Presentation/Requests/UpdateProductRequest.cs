@@ -19,10 +19,10 @@ public record UpdateProductRequest
     public decimal Price { get; init; }
     public decimal NewPrice { get; init; }
     public string Description { get; init; }
-    public int Stock { get; init; }
-    public int LowStockThreshold { get; init; }
-    public int MidStockThreshold { get; init; }
-    public int HighStockThreshold { get; init; }
+    //public int Stock { get; init; }
+    //public int LowStockThreshold { get; init; }
+    //public int MidStockThreshold { get; init; }
+    //public int HighStockThreshold { get; init; }
     public ProductId[] VariantsIds { get; init; }
 
 
@@ -46,10 +46,10 @@ public record UpdateProductRequest
                 Price = Price,
                 NewPrice = NewPrice,
                 Description = Description,
-                Stock = Stock,
-                LowStockThreshold = LowStockThreshold,
-                MidStockThreshold = MidStockThreshold,
-                HighStockThreshold = HighStockThreshold,
+                //Stock = Stock,
+                //LowStockThreshold = LowStockThreshold,
+                //MidStockThreshold = MidStockThreshold,
+                //HighStockThreshold = HighStockThreshold,
                 VariantsIds = VariantsIds
 
             }

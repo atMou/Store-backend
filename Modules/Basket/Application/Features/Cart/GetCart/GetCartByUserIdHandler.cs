@@ -1,28 +1,31 @@
-﻿namespace Basket.Application.Features.Cart.GetCart;
+﻿using Shared.Application.Contracts.Carts.Results;
 
-public record GetCartByUserIdQuery(UserId UserId) : IQuery<Fin<CartDto>>;
+namespace Basket.Application.Features.Cart.GetCart;
 
-internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext, ICartRepository cartRepository, ICouponRepository couponRepository)
-    : IQueryHandler<GetCartByUserIdQuery, Fin<CartDto>>
+public record GetCartByUserIdQuery() : IQuery<Fin<CartResult>>, ICartQuery
 {
-    public Task<Fin<CartDto>> Handle(GetCartByUserIdQuery request, CancellationToken cancellationToken)
+    public UserId UserId { get; init; }
+    public string[]? Include { get; init; }
+}
+
+internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext)
+    : IQueryHandler<GetCartByUserIdQuery, Fin<CartResult>>
+{
+    public Task<Fin<CartResult>> Handle(GetCartByUserIdQuery query, CancellationToken cancellationToken)
     {
-        var loadCart = from cart in Db<BasketDbContext>.liftIO(ctx => cartRepository.GetCartByUserId(request.UserId, ctx,
-                opt =>
-                {
-                    opt.AsNoTracking = true;
-                    opt.AsSplitQuery = true;
-                    opt.AddInclude(c => c.LineItems);
-                    opt.AddInclude(c => c.CouponIds);
-                }))
-                       select cart;
+        var loadCart =
+            GetEntity<BasketDbContext, Domain.Models.Cart>(
+                cart => cart.UserId == query.UserId,
+                opt => CartQueryEvaluator.Evaluate(opt, query),
+                NotFoundError.New($"Cart not found for user {query.UserId.Value}."));
 
         var loadCoupons =
-            from coupons in Db<BasketDbContext>.liftIO(ctx => couponRepository.GetCouponsByUserId(request.UserId, ctx))
-            select coupons;
+            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.UserId == query.UserId);
 
-        var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToDto(coupons));
+        var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToResult(coupons));
 
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
+
+
 }

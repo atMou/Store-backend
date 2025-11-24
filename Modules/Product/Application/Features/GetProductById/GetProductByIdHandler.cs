@@ -1,24 +1,26 @@
-
 namespace Product.Application.Features.GetProductById;
 
 
-internal class GetProductByIdQueryHandler(ProductDBContext dbContext, IProductRepository productRepository)
-    : IQueryHandler<GetProductByIdQuery, Fin<ProductDto>>
+internal class GetProductByIdQueryHandler(ProductDBContext dbContext)
+    : IQueryHandler<GetProductByIdQuery, Fin<ProductResult>>
 {
-    public Task<Fin<ProductDto>> Handle(GetProductByIdQuery request,
+    public Task<Fin<ProductResult>> Handle(GetProductByIdQuery request,
         CancellationToken cancellationToken)
     {
-        var db = from res in Db<ProductDBContext>.liftIO(ctx =>
-                productRepository.GetProductById(request.ProductId, ctx, opt =>
-                {
-                    if (request.Include is not null && request.Include.Any())
-                    {
-                        opt.AsNoTracking = true;
-                        opt.AsSplitQuery = true;
-                        opt.AddInclude(request.Include);
-                    }
-                }))
-                 select res.ToDto();
+
+
+        var db = GetEntity<ProductDBContext, Domain.Models.Product>(
+            product => product.Id == request.ProductId,
+            opt =>
+        {
+            if (request.Include is not null && request.Include.Any())
+            {
+                opt.AsNoTracking = true;
+                opt.AsSplitQuery = true;
+                opt.AddInclude(request.Include);
+            }
+            return opt;
+        }, NotFoundError.New($"Product with ID {request.ProductId} not found")).Map(p => p.ToResult());
 
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
 

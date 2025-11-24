@@ -1,9 +1,10 @@
 namespace Shared.Domain.Abstractions;
 
-public interface IEntity<TId>
+public interface IEntity<TId> where TId : IId
 {
     public TId Id { get; }
 }
+
 
 public interface IEntity
 {

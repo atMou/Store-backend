@@ -28,9 +28,9 @@ internal class DeleteImagesCommandHandler(
 
             from updatedProduct in iff(er is null,
                 Review.Create(command.UserId, command.ProductId, command.Comment, command.Rating)
-                    .Map(review => product.AddReview(review)),
+                    .Map(product.AddReview),
                 er.Update(command.Comment, command.Rating)
-                    .Map(review => product.UpdateReview(er, review))).As()
+                    .Map(product.UpdateReview)).As()
 
             from x in Db<ProductDBContext>.lift(ctx =>
                 {

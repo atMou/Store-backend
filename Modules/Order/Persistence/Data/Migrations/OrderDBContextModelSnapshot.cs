@@ -94,7 +94,7 @@ namespace Order.Persistence.Data.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("updated_by");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("user_id");
 
@@ -125,7 +125,7 @@ namespace Order.Persistence.Data.Migrations
                     b.HasIndex("TrackingCode")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("OrderId");
 
                     b.ToTable("orders", "order");
                 });
@@ -191,7 +191,7 @@ namespace Order.Persistence.Data.Migrations
 
             modelBuilder.Entity("Order.Domain.Models.Order", b =>
                 {
-                    b.OwnsMany("Shared.Domain.ValueObjects.CouponId", "CouponIds", b1 =>
+                    b.OwnsMany("Db.Domain.ValueObjects.CouponId", "CouponIds", b1 =>
                         {
                             b1.Property<Guid>("id")
                                 .ValueGeneratedOnAdd()

@@ -1,5 +1,3 @@
-using Product.Domain.Enums;
-
 namespace Product.Domain.Models;
 
 //add-migration init -OutputDir Persistence/Data/Migrations -context ProductDBContext -Project Product -StartUpProject Api
@@ -22,8 +20,7 @@ public record Product : Aggregate<ProductId>
         Description description,
         Money price,
         Money? newPrice,
-        Discount discount,
-        Stock stock
+        Discount discount
     ) : base(ProductId.New())
     {
         Slug = slug;
@@ -36,7 +33,6 @@ public record Product : Aggregate<ProductId>
         Price = price;
         NewPrice = newPrice;
         Discount = discount;
-        Stock = stock;
         Status = Status.New;
     }
 
@@ -50,11 +46,11 @@ public record Product : Aggregate<ProductId>
     public Money Price { get; private init; }
     public Description Description { get; private init; }
     public Status Status { get; }
-    public Stock Stock { get; private init; }
+    public int Stock { get; private init; }
+    public string Availability { get; private set; }
     public int TotalReviews { get; private init; }
     public int TotalSales { get; private init; }
-
-    private double _averageRating { get; init; }
+    public double AverageRating { get; private init; }
     public bool IsDeleted { get; private init; }
     public Money? NewPrice { get; private init; }
     public ProductId? ParentProductId { get; private init; }
@@ -63,25 +59,11 @@ public record Product : Aggregate<ProductId>
     public List<Review> Reviews { get; private init; } = [];
     public List<ProductImage> ProductImages { get; private set; } = [];
 
-    [NotMapped]
-    public StockLevel StockLevel =>
-        Stock.Value switch
-        {
-            0 => StockLevel.OutOfStock,
-            var s when s <= Stock.Low => StockLevel.Low,
-            var s when s >= Stock.High => StockLevel.High,
-            _ => StockLevel.Medium
-        };
 
     [NotMapped]
-    public Rating AvgRating =>
-        Rating.From(_averageRating)
+    public Rating Rating =>
+        Rating.From(AverageRating)
             .Match(rating => rating, _ => Rating.None);
-
-    public virtual bool Equals(Product? other)
-    {
-        return other is not null && Id == other.Id;
-    }
 
     public static Fin<Product> Create(CreateProductDto dto)
     {
@@ -93,14 +75,9 @@ public record Product : Aggregate<ProductId>
                 Color.FromCode(dto.Color),
                 Category.FromCode(dto.Category),
                 Description.From(dto.Description),
-                Discount.From(dto.Price, dto.NewPrice),
-                Stock.From(
-                (dto.Stock,
-                    dto.LowStockThreshold,
-                    dto.MidStockThreshold,
-                    dto.HighStockThreshold)
-            )
-        ).Apply((slug, brand, size, color, category, description, discount, stock) =>
+                Discount.From(dto.Price, dto.NewPrice)
+
+        ).Apply((slug, brand, size, color, category, description, discount) =>
         {
             var sku = Sku.From(
                 category.Code.ToString(),
@@ -116,11 +93,10 @@ public record Product : Aggregate<ProductId>
                 color,
                 category,
                 description,
-                //urls,
                 dto.Price,
                 dto.NewPrice,
-                discount,
-                stock
+                discount
+
             );
         }).As()
         .Map(p =>
@@ -130,22 +106,25 @@ public record Product : Aggregate<ProductId>
         });
     }
 
+    public Product MarkAsDeleted()
+    {
+        return this with { IsDeleted = true };
+    }
     private Fin<Product> UpdateSlug(string slug)
     {
         return Slug.From(slug).Map(s => this with { Slug = s });
     }
 
-    public Fin<Product> AddImages(params ImageDto[] imageDtos)
+    public Fin<Product> AddImages(params ImageResult[] imageDtos)
     {
         return imageDtos.AsIterable().Traverse(dto => ProductImage.From(dto.Url, dto.AltText, dto.IsMain))
-            //.Map(pis => pis.Where(pi => !ProductImages.Exists(productImage => pi == productImage)))
             .Map(pis => this with { ProductImages = ProductImages.Concat(pis).ToList() }).As();
     }
 
-    public Unit DeleteImages(IEnumerable<ProductImageId> ids)
+    public Product DeleteImages(IEnumerable<ProductImageId> ids)
     {
-        ProductImages = ProductImages.Where(pi => !ids.Contains(pi.Id)).ToList();
-        return unit;
+
+        return this with { ProductImages = ProductImages.Where(pi => !ids.Contains(pi.Id)).ToList() };
     }
 
     private Fin<Product> UpdateCategory(string category)
@@ -222,18 +201,6 @@ public record Product : Aggregate<ProductId>
         return this with { Price = Money.FromDecimal(price) };
     }
 
-
-    private Fin<Product> UpdateStockThreshold(int? value, int? low, int? mid, int? heigh)
-    {
-        return Stock.From((value ?? Stock.Value, low ?? Stock.Low, mid ?? Stock.Mid, heigh ?? Stock.High)).Map(s =>
-          {
-              if (StockLevel == StockLevel.Low)
-                  AddDomainEvent(new ProductLowStockAlertEvent(Id, s.Value, s.Low));
-              return this with { Stock = s };
-          });
-
-    }
-
     private Product AddVariants(params Product[] products)
     {
 
@@ -255,43 +222,41 @@ public record Product : Aggregate<ProductId>
 
     public Product AddReview(Review review)
     {
-        var newTotal = TotalReviews + 1;
-        var newAvg = (_averageRating * TotalReviews + review.Rating.Value) / newTotal;
-
-
-        AddDomainEvent(new ProductReviewAddedEvent(Id, review.UserId, review.Id, review.Rating));
+        if (review.Rating <= Rating.Fair)
+            AddDomainEvent(new ProductReviewAddedEvent(Id, review.UserId, review.Id, review.Rating));
         return this with
         {
             Reviews = Reviews.Append(review).ToList(),
-            TotalReviews = newTotal,
-            _averageRating = newAvg
         };
     }
 
-    public Product UpdateReview(Review oldReview, Review newReview)
+    public Product UpdateReview(Review review)
     {
-        var newAvg = (_averageRating * TotalReviews - oldReview.Rating.Value + newReview.Rating.Value) / TotalReviews;
+        var oldReview = Reviews.FirstOrDefault(r => r.Id == review.Id);
+        if (oldReview is null)
+            return this;
+
+        var updatedReviews = Reviews
+            .Where(r => r.Id != review.Id)
+            .Append(review)
+            .ToList();
+
         return this with
         {
-            Reviews = Reviews.Select(r => r.Id == oldReview.Id ? newReview : r).ToList(),
-            _averageRating = newAvg
+            Reviews = updatedReviews
         };
     }
+
     public Product DeleteReview(Review review)
     {
-        var newTotal = TotalReviews - 1;
-        var newAvg = (_averageRating * TotalReviews + review.Rating.Value) / newTotal;
         return this with
         {
             Reviews = Reviews.Where(r => r.Id != review.Id).ToList(),
-            TotalReviews = newTotal,
-            _averageRating = newAvg
         };
     }
 
-
     public Fin<Product> Update(
-        UpdateProductDto dto, List<Product> variants, List<ImageDto> imageDtos)
+        UpdateProductDto dto, List<Product> variants, List<ImageResult> imageDtos)
     {
         var validationSeq = Seq<Fin<Product>>();
 
@@ -309,8 +274,7 @@ public record Product : Aggregate<ProductId>
             validationSeq = validationSeq.Add(UpdateCategory(dto.Category));
         if (Description.Value != dto.Description)
             validationSeq = validationSeq.Add(UpdateDescription(dto.Description));
-        if (Stock.Value != dto.Stock || Stock.Low != dto.LowStockThreshold || Stock.Mid != dto.MidStockThreshold || Stock.High != dto.HighStockThreshold)
-            validationSeq = validationSeq.Add(UpdateStockThreshold(dto.Stock, dto.LowStockThreshold, dto.MidStockThreshold, dto.HighStockThreshold)); ;
+
         if (Price.Value != dto.Price)
             UpdatePrice(dto.Price);
 
@@ -322,16 +286,10 @@ public record Product : Aggregate<ProductId>
         return validationSeq.Traverse(identity)
             .Map(seq => seq.Last.Match(p => p, () => this)).As();
     }
-
-    private static Fin<List<ProductImage>> ValidateImages(IEnumerable<ImageDto> images)
+    public virtual bool Equals(Product? other)
     {
-        return images.AsIterable().Traverse(dto => ProductImage.From(dto.Url, dto.AltText, dto.IsMain))
-            .Map(imgs => imgs.ToList())
-        .As().MapFail(_ =>
-            InvalidOperationError.New(
-             "Invalid image URL. Must be a valid HTTP/HTTPS URL ending with .jpg, .jpeg, or .png."));
+        return other is not null && Id == other.Id;
     }
-
     public override int GetHashCode()
     {
         return Id.GetHashCode();

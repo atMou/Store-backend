@@ -1,8 +1,3 @@
-using System.Reflection;
-
-using Microsoft.Extensions.DependencyInjection;
-
-using Shared.Application.Behaviour;
 
 namespace Shared.Application.Extensions;
 

@@ -4,8 +4,12 @@ using MassTransit;
 
 using Microsoft.OpenApi.Models;
 
+using Payment;
+
 using Shared;
 using Shared.Application.Extensions;
+
+using Shipment;
 
 namespace Api;
 
@@ -33,18 +37,25 @@ internal class Program
         var basketAssembly = typeof(CartModule).Assembly;
         var orderAssembly = typeof(OrderModule).Assembly;
         var identityAssembly = typeof(IdentityModule).Assembly;
+        var paymentAssembly = typeof(PaymentModule).Assembly;
+        var shipmentAssembly = typeof(ShipmentModule).Assembly;
 
         builder.Services.AddSharedModule(builder.Configuration);
         builder.Services.AddIdentityModule(builder.Configuration);
         builder.Services.AddProductModule(builder.Configuration);
         builder.Services.AddBasketModule(builder.Configuration);
         builder.Services.AddOrderModule(builder.Configuration);
+        builder.Services.AddShipmentModule(builder.Configuration);
+        builder.Services.AddPaymentModule(builder.Configuration);
 
         builder.Services.AddMediatrWithAssemblies(
                 productAssembly,
                 basketAssembly,
                 identityAssembly,
-                orderAssembly);
+                orderAssembly,
+                paymentAssembly,
+                shipmentAssembly
+);
 
 
         builder.Services.AddMassTransit(cfg =>

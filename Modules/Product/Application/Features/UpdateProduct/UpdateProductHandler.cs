@@ -12,7 +12,6 @@ public record UpdateProductCommand(UpdateProductDto UpdateProductDto)
 
 internal class UpdateProductCommandHandler(
     ProductDBContext dbContext,
-    IProductRepository productRepository,
     IImageService imageService)
     : ICommandHandler<UpdateProductCommand, Fin<Unit>>
 {
@@ -27,6 +26,7 @@ internal class UpdateProductCommandHandler(
                     {
                         opt.AsSplitQuery = true;
                         opt.AddInclude(p => p.ProductImages, p => p.Reviews, p => p.Variants);
+                        return opt;
                     })
                     .FirstOrDefaultAsync(product => product.Id == dto.ProductId, e.Token))
             from _ in when(p is null, IO.fail<Unit>(NotFoundError.New($"Product with id '{dto.ProductId}' was not found.")))

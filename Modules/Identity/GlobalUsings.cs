@@ -6,10 +6,18 @@ global using System.Security.Claims;
 global using System.Text;
 
 global using Identity.Application.EventHandlers;
+global using Identity.Application.Events;
+global using Identity.Application.Features.AddPhoneNumber;
+global using Identity.Application.Features.AssignPermission;
+global using Identity.Application.Features.AssignRole;
+global using Identity.Application.Features.DeletePermission;
+global using Identity.Application.Features.DeleteRole;
+global using Identity.Application.Features.EmailVerification;
 global using Identity.Application.Features.Login;
 global using Identity.Application.Features.Logout;
 global using Identity.Application.Features.Refresh;
 global using Identity.Application.Features.Register;
+global using Identity.Application.Features.UpdateUserDetails;
 global using Identity.Domain.Contracts;
 global using Identity.Domain.IRepositories;
 global using Identity.Domain.Models;
@@ -25,6 +33,7 @@ global using LanguageExt;
 global using LanguageExt.Common;
 global using LanguageExt.Sys.Traits;
 global using LanguageExt.Traits.Domain;
+global using LanguageExt.UnsafeValueAccess;
 
 global using MassTransit;
 
@@ -34,6 +43,7 @@ global using Microsoft.AspNetCore.Authentication.JwtBearer;
 global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Identity;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Routing;
 global using Microsoft.EntityFrameworkCore;
@@ -49,9 +59,9 @@ global using SendGrid.Helpers.Mail;
 global using Serilog;
 
 global using Shared.Application.Abstractions;
-global using Shared.Application.Contracts.Queries;
+global using Shared.Application.Contracts.User.Queries;
+global using Shared.Application.Contracts.User.Results;
 global using Shared.Domain.Abstractions;
-global using Shared.Domain.Contracts.User;
 global using Shared.Domain.Errors;
 global using Shared.Domain.Validations;
 global using Shared.Domain.ValueObjects;
@@ -66,6 +76,7 @@ global using Shared.Persistence.Interceptors;
 global using Shared.Presentation.Extensions;
 
 global using static LanguageExt.Prelude;
+global using static Shared.Persistence.Db.Monad.Db;
 
 global using fileIO = LanguageExt.Sys.Live.Implementations.FileIO;
 global using Unit = LanguageExt.Unit;

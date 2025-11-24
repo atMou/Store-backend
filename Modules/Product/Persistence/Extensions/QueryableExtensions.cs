@@ -76,8 +76,8 @@ public static class QueryableExtensions
             "Price" => Expr(e, p => p.Price.Value),
             "Category" => Expr(e, p => p.Category.Name),
             "Description" => Expr(e, p => p.Description.Value),
-            "Stock" => Expr(e, p => p.Stock.Value),
-            "AverageRating" => Expr(e, p => p.AvgRating.Value),
+            //"Stock" => Expr(e, p => p.Stock.Value),
+            //"AverageRating" => Expr(e, p => p.AvgRating.Value),
 
             "NewPrice" => Expression.Condition(
                 Expression.ReferenceEqual(Expression.Property(e, "NewPrice"), Expression.Constant(null)),
@@ -124,29 +124,29 @@ public static class QueryableExtensions
     //    // Map DTO property → actual expression on entity (with Value Object unwrapping)
     //    return fieldName switch
     //    {
-    //        nameof(ProductDto.Id) => Expr(e => ((Domain.Models.Product)e).Id.Value),
-    //        nameof(ProductDto.Slug) => Expr(e => ((Domain.Models.Product)e).Slug.Value),
-    //        nameof(ProductDto.Sku) => Expr(e => ((Domain.Models.Product)e).Sku.Value),
-    //        nameof(ProductDto.Brand) => Expr(e => ((Domain.Models.Product)e).Brand.Name),
-    //        nameof(ProductDto.Size) => Expr(e => ((Domain.Models.Product)e).Size.Name),
-    //        nameof(ProductDto.Color) => Expr(e => ((Domain.Models.Product)e).Color.Name),
-    //        nameof(ProductDto.ColorHex) => Expr(e => ((Domain.Models.Product)e).Color.Hex),
-    //        nameof(ProductDto.Price) => Expr(e => ((Domain.Models.Product)e).Price.Value),
-    //        nameof(ProductDto.NewPrice) => Expr(e => ((Domain.Models.Product)e).NewPrice == null ? (decimal?)null : ((Domain.Models.Product)e).NewPrice.Value),
-    //        nameof(ProductDto.Discount) => Expr(e => ((Domain.Models.Product)e).Discount == null ? (decimal?)null : ((Domain.Models.Product)e).Discount.Value),
-    //        nameof(ProductDto.Category) => Expr(e => ((Domain.Models.Product)e).Category.Name),
-    //        nameof(ProductDto.Description) => Expr(e => ((Domain.Models.Product)e).Description.Value),
-    //        nameof(ProductDto.Stock) => Expr(e => ((Domain.Models.Product)e).Stock.Value),
-    //        nameof(ProductDto.AverageRating) => Expr(e => ((Domain.Models.Product)e).AvgRating.Value),
-    //        nameof(ProductDto.StockLevel) => Expr(e => ((Domain.Models.Product)e).StockLevel.ToString()),
-    //        nameof(ProductDto.IsNew) => Expr(e => ((Domain.Models.Product)e).Status.IsNew),
-    //        nameof(ProductDto.IsFeatured) => Expr(e => ((Domain.Models.Product)e).Status.IsFeatured),
-    //        nameof(ProductDto.IsBestSeller) => Expr(e => ((Domain.Models.Product)e).Status.IsBestSeller),
-    //        nameof(ProductDto.IsTrending) => Expr(e => ((Domain.Models.Product)e).Status.IsTrending),
-    //        nameof(ProductDto.TotalReviews) => Expr(e => ((Domain.Models.Product)e).TotalReviews),
-    //        nameof(ProductDto.TotalSales) => Expr(e => ((Domain.Models.Product)e).TotalSales),
+    //        nameof(ProductResult.Id) => Expr(e => ((Domain.Models.Product)e).Id.Value),
+    //        nameof(ProductResult.Slug) => Expr(e => ((Domain.Models.Product)e).Slug.Value),
+    //        nameof(ProductResult.Sku) => Expr(e => ((Domain.Models.Product)e).Sku.Value),
+    //        nameof(ProductResult.Brand) => Expr(e => ((Domain.Models.Product)e).Brand.Name),
+    //        nameof(ProductResult.Size) => Expr(e => ((Domain.Models.Product)e).Size.Name),
+    //        nameof(ProductResult.Color) => Expr(e => ((Domain.Models.Product)e).Color.Name),
+    //        nameof(ProductResult.ColorHex) => Expr(e => ((Domain.Models.Product)e).Color.Hex),
+    //        nameof(ProductResult.Price) => Expr(e => ((Domain.Models.Product)e).Price.Value),
+    //        nameof(ProductResult.NewPrice) => Expr(e => ((Domain.Models.Product)e).NewPrice == null ? (decimal?)null : ((Domain.Models.Product)e).NewPrice.Value),
+    //        nameof(ProductResult.Discount) => Expr(e => ((Domain.Models.Product)e).Discount == null ? (decimal?)null : ((Domain.Models.Product)e).Discount.Value),
+    //        nameof(ProductResult.Category) => Expr(e => ((Domain.Models.Product)e).Category.Name),
+    //        nameof(ProductResult.Description) => Expr(e => ((Domain.Models.Product)e).Description.Value),
+    //        nameof(ProductResult.Stock) => Expr(e => ((Domain.Models.Product)e).Stock.Value),
+    //        nameof(ProductResult.AverageRating) => Expr(e => ((Domain.Models.Product)e).AvgRating.Value),
+    //        nameof(ProductResult.StockLevel) => Expr(e => ((Domain.Models.Product)e).StockLevel.ToString()),
+    //        nameof(ProductResult.IsNew) => Expr(e => ((Domain.Models.Product)e).Status.IsNew),
+    //        nameof(ProductResult.IsFeatured) => Expr(e => ((Domain.Models.Product)e).Status.IsFeatured),
+    //        nameof(ProductResult.IsBestSeller) => Expr(e => ((Domain.Models.Product)e).Status.IsBestSeller),
+    //        nameof(ProductResult.IsTrending) => Expr(e => ((Domain.Models.Product)e).Status.IsTrending),
+    //        nameof(ProductResult.TotalReviews) => Expr(e => ((Domain.Models.Product)e).TotalReviews),
+    //        nameof(ProductResult.TotalSales) => Expr(e => ((Domain.Models.Product)e).TotalSales),
 
-    //        nameof(ProductDto.Images) => Expr(e => (IEnumerable<ImageDto>)((Domain.Models.Product)e)
+    //        nameof(ProductResult.Images) => Expr(e => (IEnumerable<ImageDto>)((Domain.Models.Product)e)
     //            .ProductImages.Select(pi => new ImageDto
     //            {
     //                Id = pi.Id.Value,
@@ -155,8 +155,8 @@ public static class QueryableExtensions
     //                IsMain = pi.IsMain
     //            })),
 
-    //        nameof(ProductDto.Variants) => Expr(e => (IEnumerable<ProductVariantDto>)((Domain.Models.Product)e)
-    //            .Variants.Select(v => new ProductVariantDto
+    //        nameof(ProductResult.Variants) => Expr(e => (IEnumerable<ProductVariantResult>)((Domain.Models.Product)e)
+    //            .Variants.Select(v => new ProductVariantResult
     //            {
     //                Id = v.Id.Value,
     //                Sku = v.Sku.Value,
@@ -167,8 +167,8 @@ public static class QueryableExtensions
     //                Stock = v.Stock.Value
     //            })),
 
-    //        nameof(ProductDto.Reviews) => Expr(e => (IEnumerable<ReviewDto>)((Domain.Models.Product)e)
-    //            .Reviews.Select(r => new ReviewDto
+    //        nameof(ProductResult.Reviews) => Expr(e => (IEnumerable<ReviewResult>)((Domain.Models.Product)e)
+    //            .Reviews.Select(r => new ReviewResult
     //            {
     //                Id = r.Id.Value,
     //                UserId = r.UserId.Value,

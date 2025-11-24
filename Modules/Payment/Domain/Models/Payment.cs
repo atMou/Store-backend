@@ -1,8 +1,9 @@
-﻿using Payment.Domain.ValueObjects;
+﻿using Order.Domain.ValueObjects;
+
+using Payment.Domain.ValueObjects;
 
 namespace Payment.Domain.Models;
 
-using Order.Domain.ValueObjects; // Only for OrderId reference
 
 
 public record Payment : Aggregate<PaymentId>
@@ -10,24 +11,26 @@ public record Payment : Aggregate<PaymentId>
     private Payment() : base(PaymentId.New)
     {
     }
-    private Payment(OrderId orderId) : base(PaymentId.New)
+    private Payment(OrderId orderId, UserId userId) : base(PaymentId.New)
     {
         OrderId = orderId;
+        UserId = userId;
     }
-    public OrderId OrderId { get; private init; } // only a reference
+    public OrderId OrderId { get; private init; }
+    public UserId UserId { get; private init; }
     public PaymentStatus PaymentStatus { get; private set; } = PaymentStatus.Pending;
     public PaymentMethod PaymentMethod { get; private set; } = PaymentMethod.Unknown;
-
-    private string? _transactionId
+    public string TransactionId { get; private set; }
+    public DateTime? _paidAt
     {
         get
         {
-            return TransactionId.Match<string?>(
+            return PaidAt.Match<DateTime?>(
                 date => date,
                 () => null
             );
         }
-        set => TransactionId = Optional(value);
+        set => PaidAt = Optional(value);
     }
     public DateTime? _refundedAt
     {
@@ -40,16 +43,15 @@ public record Payment : Aggregate<PaymentId>
         }
         set => RefundedAt = Optional(value);
     }
-    public Option<string> TransactionId { get; private set; } = Option<string>.None;
     public Option<DateTime> PaidAt { get; private set; } = Option<DateTime>.None;
     public Option<DateTime> RefundedAt { get; private set; } = Option<DateTime>.None;
 
-    public static Payment Create(OrderId orderId)
+    public static Payment Create(OrderId orderId, UserId userId)
     {
-        return new Payment(orderId);
+        return new Payment(orderId, userId);
     }
     public Fin<Payment> MarkAsPaid(PaymentMethod method, string transactionId, DateTime date) =>
-        PaymentStatus.CanTransitionTo(PaymentStatus.Paid).Map(_ => this with
+        PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Paid).Map(_ => this with
         {
             PaymentStatus = PaymentStatus.Paid,
             PaymentMethod = method,
@@ -60,7 +62,7 @@ public record Payment : Aggregate<PaymentId>
 
 
     public Fin<Payment> MarkAsFailed(PaymentMethod method, DateTime date) =>
-        PaymentStatus.CanTransitionTo(PaymentStatus.Failed).Map(_ => this with
+        PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Failed).Map(_ => this with
         {
             PaymentStatus = PaymentStatus.Failed,
             PaymentMethod = method,
@@ -68,7 +70,7 @@ public record Payment : Aggregate<PaymentId>
 
 
     public Fin<Payment> MarkAsRefund(PaymentMethod method, DateTime date) =>
-        PaymentStatus.CanTransitionTo(PaymentStatus.Paid).Map(_ => this with
+        PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Paid).Map(_ => this with
         {
             PaymentStatus = PaymentStatus.Refunded,
             PaymentMethod = method,

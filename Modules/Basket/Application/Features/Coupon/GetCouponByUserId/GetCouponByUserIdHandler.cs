@@ -1,22 +1,40 @@
-﻿namespace Basket.Application.Features.Coupon.GetCouponByUserId;
+﻿using Shared.Application.Contracts.Carts.Results;
+using Shared.Presentation;
+
+namespace Basket.Application.Features.Coupon.GetCouponByUserId;
 
 
-public record GetCouponByUserIdCommand(Guid UserId) : ICommand<Fin<GetCouponByUserIdResult>>;
+public record GetCouponsByUserIdQuery(UserId UserId, int PageNumber = 1, int PageSize = 10) :
+    IQuery<Fin<PaginatedResult<CouponResult>>>, IPagination;
 
-public record GetCouponByUserIdResult(IEnumerable<CouponDto> Coupons, int count);
 
-internal class GetCouponByUserIdCommandHandler(BasketDbContext dbContext, IClock clock) : ICommandHandler<GetCouponByUserIdCommand, Fin<GetCouponByUserIdResult>>
+internal class GetCouponByUserIdQueryHandler(BasketDbContext dbContext)
+    : IQueryHandler<GetCouponsByUserIdQuery, Fin<PaginatedResult<CouponResult>>>
 {
-    public Task<Fin<GetCouponByUserIdResult>> Handle(GetCouponByUserIdCommand command,
+    public Task<Fin<PaginatedResult<CouponResult>>> Handle(GetCouponsByUserIdQuery query,
         CancellationToken cancellationToken)
     {
-        var db =
+        var db = GetEntitiesWithPagination<BasketDbContext,
+            Domain.Models.Coupon,
+            CouponResult,
+            GetCouponsByUserIdQuery>(
+            c => c.UserId == query.UserId,
+            query,
+            coupon => coupon.ToResult(),
+            options =>
+        {
+            options.AddPagination();
+            options = options with
+            {
+                PageNumber = query.PageNumber,
+                PageSize = query.PageSize,
+                AsNoTracking = true,
+            };
+            return options;
+        });
 
-            from cos in Db<BasketDbContext>.liftIO(async (ctx, e) =>
-                await ctx.Coupons
-                    .Where(c => c.UserId == UserId.From(command.UserId)).ToListAsync(e.Token))
-                //from _1 in when(cos is null, IO.fail<Unit>(NotFoundError.New($"User does not have coupon with id '{command.UserId}' not found")))
-            select new GetCouponByUserIdResult(cos.Select(co => co.ToDto()), cos.Count());
+
+
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

@@ -2,9 +2,9 @@
 
 namespace Basket.Application.EventHandlers;
 
-public class CartCreatedEventHandler(IPublishEndpoint endpoint) : INotificationHandler<CartCreatedEvent>
+public class CartCreatedEventHandler(IPublishEndpoint endpoint) : INotificationHandler<CartCreatedDomainEvent>
 {
-    public async Task Handle(CartCreatedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(CartCreatedDomainEvent notification, CancellationToken cancellationToken)
     {
         await endpoint.Publish(new CartCreatedIntegrationEvent(notification.CartId.Value, notification.UserId.Value), cancellationToken);
     }

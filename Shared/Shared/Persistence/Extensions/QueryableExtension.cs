@@ -6,31 +6,31 @@ public static class QueryableExtensions
 {
 
     public static IQueryable<TAggregate> WithQueryOptions<TAggregate>(this IQueryable<TAggregate> queryable,
-        Action<QueryOptions<TAggregate>>? fn)
+        Func<QueryOptions<TAggregate>, QueryOptions<TAggregate>>? fn)
         where TAggregate : class, IAggregate
     {
         if (fn is not null)
         {
-            var options = new QueryOptions<TAggregate>();
-            fn.Invoke(options);
+            var _options = new QueryOptions<TAggregate>();
+            var options = fn.Invoke(_options);
             foreach (var include in options.IncludeExpressions)
             {
                 queryable = queryable.Include(include);
             }
 
-            foreach (string s in options.Includes)
-            {
-                queryable = s switch
-                {
-                    var _ when string.Equals("variants", s, StringComparison.InvariantCultureIgnoreCase) => queryable
-                        .Include("Variants"),
-                    var _ when string.Equals("images", s, StringComparison.InvariantCultureIgnoreCase) => queryable
-                        .Include("ProductImages"),
-                    var _ when string.Equals("reviews", s, StringComparison.InvariantCultureIgnoreCase) => queryable
-                        .Include("Reviews"),
-                    _ => queryable
-                };
-            }
+            //foreach (string s in options.Includes)
+            //{
+            //    queryable = s switch
+            //    {
+            //        var _ when string.Equals("variants", s, StringComparison.InvariantCultureIgnoreCase) => queryable
+            //            .Include("Variants"),
+            //        var _ when string.Equals("images", s, StringComparison.InvariantCultureIgnoreCase) => queryable
+            //            .Include("ProductImages"),
+            //        var _ when string.Equals("reviews", s, StringComparison.InvariantCultureIgnoreCase) => queryable
+            //            .Include("Reviews"),
+            //        _ => queryable
+            //    };
+            //}
             foreach (var filter in options.FilterExpressions)
             {
                 queryable = queryable.Where(filter);
@@ -72,9 +72,9 @@ public record QueryOptions<TAggregate>
     public bool AsSplitQuery { get; set; }
     public bool AsNoTracking { get; set; }
     public int PageNumber { get; set; }
+    public int PageSize { get; set; }
 
     public bool WithPagination { get; set; }
-    public int PageSize { get; set; }
 
     public bool OrderAsc { get; set; }
     public bool OrderDesc { get; set; }
@@ -119,6 +119,11 @@ public record QueryOptions<TAggregate>
     public QueryOptions<TAggregate> AddSortDirDesc()
     {
         return this with { OrderAsc = false, OrderDesc = true };
+    }
+
+    public QueryOptions<TAggregate> AddPagination()
+    {
+        return this with { WithPagination = true };
     }
 
 }

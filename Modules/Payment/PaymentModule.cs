@@ -1,46 +1,46 @@
-﻿namespace Payment;
+﻿
+
+namespace Payment;
 public static class PaymentModule
 {
-    //public static IServiceCollection AddPaymentModule(this IServiceCollection services, IConfiguration configuration)
-    //{
-    //    services.AddMediatR(conf =>
-    //    {
-    //        conf.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-    //        conf.AddOpenBehavior(typeof(LoggingBehaviour<,>));
-    //    });
-    //    services.AddPaymentModuleServices(configuration);
-    //    services.AddScoped<IDataSeeder, PaymentDataSeeder>();
-    //    return services;
-    //}
+    public static IServiceCollection AddPaymentModule(this IServiceCollection services, IConfiguration configuration)
+    {
 
-    //public static IApplicationBuilder UsePaymentModule(this IApplicationBuilder app)
-    //{
-    //    app.UseMigration<PaymentDbContext>();
-    //    return app;
-    //}
+        services.AddPaymentModuleServices(configuration);
+        return services;
+    }
+
+    public static IApplicationBuilder UsePaymentModule(this IApplicationBuilder app)
+    {
+        return app;
+    }
 
 
-    //private static IServiceCollection AddPaymentModuleServices(this IServiceCollection services, IConfiguration configuration)
-    //{
-    //    services.AddDbContext<PaymentDbContext>((sp, options) =>
-    //    {
-    //        var utc = Optional(sp.GetService<GetUtcNow>()).Map(f => f).IfNone(() => DateTime.UtcNow);
-    //        var mediatr = Optional(sp.GetService<IMediator>()).IfNone(() => throw new InvalidOperationException("IMediator is not registered"));
+    private static IServiceCollection AddPaymentModuleServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDbContext<PaymentDbContext>((sp, options) =>
+        {
 
-    //        options.AddInterceptors(new AuditableEntityInterceptor(utc), new DispatchDomainEventInterceptor(mediatr));
-    //        options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
-    //            .EnableSensitiveDataLogging()
-    //            .EnableDetailedErrors();
-    //        options.LogTo(Log.Logger.Information,
-    //            Microsoft.Extensions.Logging.LogLevel.Information,
-    //            DbContextLoggerOptions.DefaultWithLocalTime);
-    //    });
-    //    return services;
-    //}
+            var mediatr = Optional(sp.GetService<IMediator>())
+                .IfNone(() => throw new InvalidOperationException("IMediator is not registered"));
+            var clock = Optional(sp.GetService<IClock>())
+                .IfNone(() => throw new InvalidOperationException("IClock is not registered"));
+            var userContext = Optional(sp.GetService<IUserContext>())
+                .IfNone(() => throw new InvalidOperationException("IUserContext is not registered"));
 
+            options.AddInterceptors(new AuditableEntityInterceptor(clock, userContext),
+                new DispatchDomainEventInterceptor(mediatr));
 
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
+                .EnableSensitiveDataLogging()
+                .EnableDetailedErrors();
 
-
+            options.LogTo(Log.Logger.Information,
+                Microsoft.Extensions.Logging.LogLevel.Information,
+                DbContextLoggerOptions.DefaultWithLocalTime);
+        });
+        return services;
+    }
 
 
 

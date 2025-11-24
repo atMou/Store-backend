@@ -1,13 +1,11 @@
-﻿using Basket.Application.Features.Coupon.GetCouponById;
+﻿namespace Basket.Presentation.Requests;
 
-namespace Basket.Presentation.Requests;
-
-public record GetCouponByIdCouponRequest
+public record GetCouponByIdRequest
 {
     public Guid CouponId { get; init; }
 
     public GetCouponByIdCommand ToCommand()
     {
-        return new GetCouponByIdCommand(CouponId);
+        return new GetCouponByIdCommand(Shared.Domain.ValueObjects.CouponId.From(CouponId));
     }
 }

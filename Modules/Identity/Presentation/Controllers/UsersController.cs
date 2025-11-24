@@ -1,10 +1,4 @@
-﻿using Identity.Application.Features.AddPhoneNumber;
-using Identity.Application.Features.AssignPermission;
-using Identity.Application.Features.AssignRole;
-using Identity.Application.Features.DeletePermission;
-using Identity.Application.Features.DeleteRole;
-using Identity.Application.Features.EmailVerification;
-using Identity.Application.Features.UpdateUserDetails;
+﻿
 
 using Role = Shared.Infrastructure.Enums.Role;
 
@@ -16,7 +10,7 @@ public class UsersController(ISender sender) : ControllerBase
 
 
     [HttpGet]
-    public async Task<ActionResult<UserDto>> Get([FromQuery] Guid userId)
+    public async Task<ActionResult<UserResult>> Get([FromQuery] Guid userId)
     {
         var result = await sender.Send(new GetUserByIdQuery(UserId.From(userId)));
 
@@ -115,7 +109,7 @@ public class UsersController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new AssignPermissionCommand
         {
-            UserId = request.UserId,
+            UserId = UserId.From(request.UserId),
             Permissions = request.Permissions
 
         });
@@ -129,7 +123,7 @@ public class UsersController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new AssignRoleCommand
         {
-            UserId = request.UserId,
+            UserId = UserId.From(request.UserId),
             Role = request.Role
 
         });
@@ -142,9 +136,9 @@ public class UsersController(ISender sender) : ControllerBase
     [Route("delete-role")]
     public async Task<ActionResult<Unit>> DeleteRole([FromBody] DeleteRoleRequest request)
     {
-        var result = await sender.Send(new DeleteRoleCommand
+        var result = await sender.Send(new DeleteUserRoleCommand
         {
-            UserId = request.UserId,
+            UserId = UserId.From(request.UserId),
             Role = request.Role
 
         });
@@ -159,7 +153,7 @@ public class UsersController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new DeletePermissionCommand()
         {
-            UserId = request.UserId,
+            UserId = UserId.From(request.UserId),
             Permissions = request.Permissions
 
         });

@@ -1,10 +1,12 @@
-﻿namespace Basket.Domain.Contracts;
+﻿using Shared.Application.Contracts.Carts.Results;
+
+namespace Basket.Domain.Contracts;
 
 public static class Extensions
 {
-    public static CartDto ToDto(this Models.Cart cart, IEnumerable<Coupon> coupons)
+    public static CartResult ToResult(this Cart cart, IEnumerable<Coupon> coupons)
     {
-        return new CartDto
+        return new CartResult
         {
             CartId = cart.Id.Value,
             UserId = cart.UserId.Value,
@@ -13,39 +15,38 @@ public static class Extensions
             TotalSub = cart.TotalSub.Value,
             Discount = cart.Discount.Value,
             TotalDiscounted = cart.TotalDiscounted.Value,
-            LineItems = cart.LineItems.ToDto(),
-            Coupons = coupons.ToDto()
+            LineItems = cart.LineItems.ToResult(),
+            Coupons = coupons.ToResult()
         };
     }
 
-    public static CouponDto ToDto(this Coupon coupon)
+    public static CouponResult ToResult(this Coupon coupon)
     {
-        return new CouponDto
+        return new CouponResult
         {
             Id = coupon.Id.Value,
             Code = coupon.Code,
-            Description = coupon.Description,
+            Description = coupon.Description.Value,
             DiscountValue = coupon.Discount.DiscountValue,
             MinimumPurchaseAmount = coupon.MinimumPurchaseAmount,
             DiscountType = coupon.Discount.DiscountType.ToString(),
             ExpiryDate = coupon.ExpiryDate.Value,
-            Status = coupon.Status.Name,
-            IsDeleted = coupon.IsDeleted,
+            Status = coupon.CouponStatus.Name,
             UserId = coupon.UserId?.Value,
             CartId = coupon.CartId?.Value,
 
         };
     }
 
-    public static IEnumerable<CouponDto> ToDto(this IEnumerable<Coupon> coupons)
+    public static IEnumerable<CouponResult> ToResult(this IEnumerable<Coupon> coupons)
     {
-        return coupons.Select(coupon => coupon.ToDto());
+        return coupons.Select(coupon => coupon.ToResult());
     }
 
 
-    public static LineItemDto ToDto(this LineItem lineItem)
+    public static LineItemResult ToResult(this LineItem lineItem)
     {
-        return new LineItemDto
+        return new LineItemResult
         {
             ProductId = lineItem.ProductId.Value,
             Slug = lineItem.Slug,
@@ -56,9 +57,9 @@ public static class Extensions
         };
     }
 
-    public static IEnumerable<LineItemDto> ToDto(this IEnumerable<LineItem> lineItems)
+    public static IEnumerable<LineItemResult> ToResult(this IEnumerable<LineItem> lineItems)
     {
-        return lineItems.Select(lineItem => lineItem.ToDto());
+        return lineItems.Select(lineItem => lineItem.ToResult());
     }
 
 

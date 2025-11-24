@@ -15,4 +15,13 @@ public record ProductImageId : IId
     {
         return new ProductImageId(value);
     }
+
+    public virtual bool Equals(ProductImageId? other)
+    {
+        return other is not null && Value.Equals(other.Value);
+    }
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
 }

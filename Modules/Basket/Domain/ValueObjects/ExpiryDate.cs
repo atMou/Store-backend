@@ -12,7 +12,7 @@ public record ExpiryDate
     public static Fin<ExpiryDate> From(DateTime repr, DateTime utcNow)
     {
         if (repr < utcNow)
-            return FinFail<ExpiryDate>(Error.New("Expiry date cannot be in the past."));
+            return FinFail<ExpiryDate>(InvalidOperationError.New("Expiry date cannot be in the past."));
 
         return new ExpiryDate(repr);
     }
@@ -24,8 +24,12 @@ public record ExpiryDate
         return new ExpiryDate(repr);
     }
 
-    public Fin<Unit> IsValid(DateTime utcNow)
+    public Fin<Unit> EnsureIsValid(DateTime utcNow)
     {
-        return Value > utcNow ? unit : FinFail<Unit>(Error.New("Expiry date cannot be in the past."));
+        return Value > utcNow ? unit : FinFail<Unit>(InvalidOperationError.New($"Expired at '{Value:yyyy-MM-dd}'"));
     }
+
+
+
+
 }

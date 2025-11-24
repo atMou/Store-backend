@@ -1,7 +1,5 @@
 ﻿using Basket.Application.Features.Cart.UpdateItemsPrice;
 
-using MediatR;
-
 using Microsoft.Extensions.Logging;
 
 using Shared.Messaging.Events;
@@ -15,19 +13,19 @@ internal class ProductPriceChangedIntegrationEventHandler(
 {
     public async Task Consume(ConsumeContext<ChangeCartItemsPriceIntegrationEvent> context)
     {
+        var command =
+            new UpdateCartItemsPriceCommand(ProductId.From(context.Message.ProductId), context.Message.NewPrice);
 
         var io =
-            from _1 in IO.lift(() => logger.LogInformation("Integration Event handled: {IntegrationEvent}", context.Message.GetType().Name))
-            let command = new UpdateCartItemsPriceCommand(ProductId.From(context.Message.ProductId), context.Message.NewPrice)
             from u in userContext.GetCurrentUser<IO>()
-            from a in IO.liftAsync(async _ => await sender.Send(command))
-            select a.Match(
-                result => { logger.LogInformation("SubTotal count of carts: {count} updated", result.updatedCount); },
-                  e =>
+            from res in IO.liftAsync(async _ => await sender.Send(command))
+            select res.Match(
+                result => { logger.LogInformation("SubTotal count of carts: {count} updated", result.UpdatedCount); },
+                  async e =>
                 {
                     logger.LogError("Error updating cart items price: {Error}", e);
-                    context.Publish(
-                       new FailedChangeCartItemsPriceIntegrationEvent(ProductId.From(context.Message.ProductId), e), context.CancellationToken);
+                    await context.Publish(
+                        new FailedChangeCartItemsPriceIntegrationEvent(ProductId.From(context.Message.ProductId), e), context.CancellationToken);
                 });
         await io.RunAsync(EnvIO.New(null, context.CancellationToken));
     }

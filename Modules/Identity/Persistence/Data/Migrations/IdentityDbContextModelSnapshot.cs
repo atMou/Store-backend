@@ -201,7 +201,7 @@ namespace Identity.Persistence.Data.Migrations
 
             modelBuilder.Entity("Identity.Domain.Models.User", b =>
                 {
-                    b.OwnsOne("Shared.Domain.ValueObjects.Address", "Address", b1 =>
+                    b.OwnsOne("Db.Domain.ValueObjects.Address", "Address", b1 =>
                         {
                             b1.Property<Guid>("UserId")
                                 .HasColumnType("uniqueidentifier");

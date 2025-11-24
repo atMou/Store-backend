@@ -30,19 +30,5 @@ public record ProductImage
         return ImageUrl.GetHashCode();
     }
 
-    //private static Fin<Unit> ValidateAltText(string altText)
-    //{
-    //    if (string.IsNullOrWhiteSpace(altText))
-    //    {
-    //        return FinFail<Unit>((Error)"Alt text is required.");
-    //    }
-
-    //    if (altText.Length > 100)
-    //    {
-    //        return FinFail<Unit>(Error.New("Alt text must be 100 characters or less."));
-    //    }
-
-    //    return FinSucc(unit);
-    //}
 
 }

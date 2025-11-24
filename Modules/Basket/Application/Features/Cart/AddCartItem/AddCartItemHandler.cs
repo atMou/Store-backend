@@ -9,20 +9,21 @@ public record AddLineItemCommand : ICommand<Fin<Unit>>
 
 internal class AddLineItemCommandHandler(
     ISender sender,
-    BasketDbContext dbContext,
-    ICartRepository cartRepository
+    BasketDbContext dbContext
 ) : ICommandHandler<AddLineItemCommand, Fin<Unit>>
 {
     public async Task<Fin<Unit>> Handle(AddLineItemCommand command,
         CancellationToken cancellationToken)
     {
-        var loadCart = from cart in Db<BasketDbContext>.liftIO(ctx =>
-                cartRepository.GetCartById(command.CartId, ctx, opts =>
-                {
-                    opts.AsSplitQuery = true;
-                    opts.AddInclude(cart => cart.LineItems);
-                }))
-                       select cart;
+        var loadCart = GetEntity<BasketDbContext, Domain.Models.Cart>(
+            cart => cart.Id == command.CartId,
+            opt =>
+            {
+                opt.AsSplitQuery = true;
+                opt.AddInclude(cart => cart.LineItems);
+                return opt;
+            },
+            NotFoundError.New($"Cart with Id {command.CartId.Value} not found."));
 
         var loadProduct = from product in Db<BasketDbContext>.liftIO(async (_, e) =>
                 await sender.Send(new GetProductByIdQuery(command.ProductId), e.Token))
@@ -40,11 +41,7 @@ internal class AddLineItemCommandHandler(
                 command.Quantity,
                 p.Price
             )))
-            from a in Db<BasketDbContext>.lift(ctx =>
-                {
-                    ctx.Carts.Entry(t.c).CurrentValues.SetValues(cart);
-                    return unit;
-                })
+            from _ in UpdateEntity<BasketDbContext, Domain.Models.Cart>(t.c, _ => cart)
             select unit;
 
 

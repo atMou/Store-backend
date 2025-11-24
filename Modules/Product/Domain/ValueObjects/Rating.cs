@@ -1,10 +1,13 @@
+using System.Numerics;
+
 using Product.Domain.Enums;
 
 namespace Product.Domain.ValueObjects;
 
-public record Rating
+public record Rating : IComparisonOperators<Rating, Rating, bool>
 {
     private Rating() { }
+
 
     public RatingCode Code { get; }
     public double Value { get; }
@@ -44,4 +47,36 @@ public record Rating
         Optional(_all.FirstOrDefault(r => Math.Abs(r.Value - value) < 2))
             .Match(r => r, () => None);
 
+
+    public virtual bool Equals(Rating? other)
+
+    {
+        return other is { } o &&
+               GetType() == o.GetType() && Math.Abs(Value - o.Value) < 2;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Value);
+    }
+
+    public static bool operator >(Rating left, Rating right)
+    {
+        return left.Value > right.Value;
+    }
+
+    public static bool operator >=(Rating left, Rating right)
+    {
+        return left.Value >= right.Value;
+    }
+
+    public static bool operator <(Rating left, Rating right)
+    {
+        return left.Value < right.Value;
+    }
+
+    public static bool operator <=(Rating left, Rating right)
+    {
+        return left.Value <= right.Value;
+    }
 }

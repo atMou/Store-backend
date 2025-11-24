@@ -116,7 +116,7 @@ namespace Basket.Persistence.Data.Migrations
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("minimum_purchase_amount");
 
-                    b.Property<string>("Status")
+                    b.Property<string>("CouponStatus")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
@@ -186,7 +186,7 @@ namespace Basket.Persistence.Data.Migrations
 
             modelBuilder.Entity("Basket.Domain.Models.Cart", b =>
                 {
-                    b.OwnsMany("Shared.Domain.ValueObjects.CouponId", "CouponIds", b1 =>
+                    b.OwnsMany("Db.Domain.ValueObjects.CouponId", "CouponIds", b1 =>
                         {
                             b1.Property<Guid>("id")
                                 .ValueGeneratedOnAdd()

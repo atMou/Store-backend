@@ -1,4 +1,4 @@
-// Shared.Messaging.Extensions/MassTransitExtensions.cs
+// Db.Messaging.Extensions/MassTransitExtensions.cs
 using System.Reflection;
 
 using MassTransit;

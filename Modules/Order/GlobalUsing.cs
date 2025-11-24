@@ -5,7 +5,6 @@ global using System.Reflection;
 global using System.Threading.Tasks;
 
 global using LanguageExt;
-global using LanguageExt.Common;
 
 global using MediatR;
 
@@ -16,6 +15,7 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
 
+global using Order.Application.Contracts;
 global using Order.Domain.Enums;
 global using Order.Domain.Models;
 global using Order.Domain.ValueObjects;
@@ -24,14 +24,19 @@ global using Order.Persistence.Data;
 global using Serilog;
 
 global using Shared.Application.Abstractions;
-global using Shared.Application.Behaviour;
-//global using MediatR;
 
 global using Shared.Domain.Abstractions;
+global using Shared.Domain.Contracts.Order;
+global using Shared.Domain.Errors;
 global using Shared.Domain.ValueObjects;
 global using Shared.Infrastructure.Authentication;
 global using Shared.Infrastructure.Clock;
 global using Shared.Persistence.Db.Monad;
+global using Shared.Persistence.Extensions;
 global using Shared.Persistence.Interceptors;
+global using Shared.Presentation;
 
 global using static LanguageExt.Prelude;
+global using static Shared.Persistence.Db.Monad.Db;
+
+global using Unit = LanguageExt.Unit;

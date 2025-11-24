@@ -1,3 +1,5 @@
+using Shared.Application.Contracts.Carts.Results;
+
 namespace Basket.Domain.Models;
 
 public record Cart : Aggregate<CartId>
@@ -9,7 +11,7 @@ public record Cart : Aggregate<CartId>
         UserId = userId;
         Tax = tax;
         ShipmentCost = shipmentCost;
-        AddDomainEvent(new CartCreatedEvent(Id, userId));
+        AddDomainEvent(new CartCreatedDomainEvent(Id, userId));
     }
 
     public UserId UserId { get; }
@@ -18,6 +20,7 @@ public record Cart : Aggregate<CartId>
     public Money TotalSub { get; private set; } = Money.Zero;
     public Money Discount { get; private set; } = Money.Zero;
     public Money ShipmentCost { get; private set; }
+
     public Money TotalDiscounted => Money.FromDecimal(Math.Max(0, TotalSub.Value - Discount.Value));
     public Money TaxValue => Tax * TotalDiscounted;
     public Money Total => TotalDiscounted + TaxValue;
@@ -40,15 +43,15 @@ public record Cart : Aggregate<CartId>
             Discount = Discount.Value,
             TotalDiscounted = TotalDiscounted.Value,
             CouponIds = CouponIds.Select(c => c.Value).ToList(),
-            LineItems = LineItems.Select(li => new LineItemDto
+            LineItems = LineItems.Select(li => new LineItemResult
             {
                 ProductId = li.ProductId.Value,
                 Quantity = li.Quantity
             }).ToList()
         });
-        IsCheckedOut = true;
 
-        return this;
+
+        return this with { IsCheckedOut = true };
     }
 
 

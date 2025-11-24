@@ -2,33 +2,27 @@
 
 public record AssignPermissionCommand : ICommand<Fin<Unit>>
 {
-    public Guid UserId { get; init; }
+    public UserId UserId { get; init; }
     public IEnumerable<string> Permissions { get; init; }
 }
 
 
 public class AssignPermissionCommandHandler(
-    IOptions<JwtOptions> options,
-    IClock clock,
-    IdentityDbContext dbContext,
-    IUserContext userContext)
+    IdentityDbContext dbContext)
     : ICommandHandler<AssignPermissionCommand, Fin<Unit>>
 {
     public Task<Fin<Unit>> Handle(AssignPermissionCommand command, CancellationToken cancellationToken)
     {
-        var db =
-            from user in Db<IdentityDbContext>.liftIO(async (ctx, e) =>
-                await ctx.Users.FirstOrDefaultAsync(user => user.Id == UserId.From(command.UserId), e.Token))
-            from _1 in when(user is null,
-                IO.fail<Unit>(NotFoundError.New($"User with id: '{command.UserId}' does not exists"))).As()
-
-            from userUpdated in IO.lift(() => user.AssignUserToPermissions([.. command.Permissions]))
-            from _2 in Db<IdentityDbContext>.lift(ctx =>
-                {
-                    ctx.Users.Entry(user).CurrentValues.SetValues(userUpdated);
-                    return unit;
-                })
-            select unit;
+        var db = GetUpdateEntityA<IdentityDbContext, User>(
+            user => user.Id == command.UserId,
+            NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
+            opt =>
+            {
+                opt.AddInclude(user => user.Permissions);
+                return opt;
+            },
+            user => user.AssignUserToPermissions([.. command.Permissions])
+        ).Map(_ => unit);
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 

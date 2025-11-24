@@ -1,6 +1,6 @@
 namespace Product.Domain.Models;
 
-public record Review : Entity<ReviewId>, IEqualityComparer<Review>
+public record Review : Entity<ReviewId>
 {
     private Review() : base(ReviewId.New)
     {
@@ -43,24 +43,15 @@ public record Review : Entity<ReviewId>, IEqualityComparer<Review>
             }).As();
     }
 
-    public bool Equals(Review? x, Review? y)
+
+    public virtual bool Equals(Review? other)
     {
-
-        return (x, y) switch
-        {
-            (null, null) => false,
-            (null, _) => false,
-            (_, null) => false,
-            var (_x, _y) when _x.GetType() != _y.GetType() => false,
-            var (_x, _y) when ReferenceEquals(_x, _y) => true,
-            var (_x, _y) when _x.Id.Value == _y.Id.Value => true,
-            _ => false
-        };
-
+        return other is not null && Id == other.Id;
     }
 
-    public int GetHashCode(Review obj)
+    public override int GetHashCode()
     {
-        return obj.Id.GetHashCode();
+        return Id.GetHashCode();
     }
+
 }

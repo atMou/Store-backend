@@ -1,4 +1,6 @@
 
+using Db.Errors;
+
 namespace Identity.Application.Features.Register;
 
 public record RegisterCommand(
@@ -15,15 +17,23 @@ internal class RegisterCommandHandler(
 {
     public async Task<Fin<RegisterCommandResult>> Handle(RegisterCommand command, CancellationToken cancellationToken)
     {
-        var db = from user in User.Create(command.CreateUserDto)
-                 from _ in Db<IdentityDbContext>.liftIO(ctx => userRepository.CheckIfUserExists(user.Email, ctx))
+        var dto = command.CreateUserDto;
+        var db =
+            from img in dto.Image.IsNotNull()
+                ? imageService.UploadImage(dto.Image!, $"{dto.FirstName}_{dto.LastName}")
+                : IO.pure(ImageUrl.FromUnsafe(""))
+            from res in AddEntity<
+                IdentityDbContext,
+                User,
+                CreateUserDto
+            >(user => user.Email == dto.Email,
+                ConflictError.New("User with email '{dto.Email}' already exists."),
+                dto,
+                User.Create,
+                user => user.HashPassword(user.Password),
+                user => user.SetAvatar(img))
+            select res;
 
-                 from image in Optional(command.CreateUserDto.Image).Match<IO<ImageUrl>>(file =>
-                        imageService.UploadImage(file, user.Id.ToString()), () => IO.pure<ImageUrl>(null!))
-                 let _0 = user.SetAvatar(image)
-                 let _1 = user.HashPassword(user.Password)
-                 from _2 in Db<IdentityDbContext>.liftIO(ctx => userRepository.AddUser(user, ctx))
-                 select user;
 
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseOnSuccess(u =>

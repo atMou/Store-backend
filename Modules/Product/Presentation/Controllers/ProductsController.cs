@@ -5,7 +5,8 @@ using Product.Application.Features.DeleteImages;
 using Product.Application.Features.DeleteProduct;
 using Product.Presentation.Requests;
 
-using Shared.Persistence.Data;
+using Shared.Application.Contracts.Product.Results;
+using Shared.Presentation;
 using Shared.Presentation.Extensions;
 
 namespace Product.Presentation.Controllers;
@@ -16,7 +17,7 @@ namespace Product.Presentation.Controllers;
 public class ProductsController(ISender sender) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<PaginatedResult<ProductDto>>> Get([FromQuery] GetProductsRequest request)
+    public async Task<ActionResult<PaginatedResult<ProductResult>>> Get([FromQuery] GetProductsRequest request)
     {
         var result = await sender.Send(request.ToQuery());
 
@@ -25,7 +26,7 @@ public class ProductsController(ISender sender) : ControllerBase
 
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDto>> Get([FromRoute] Guid id, [FromQuery] string[] include)
+    public async Task<ActionResult<ProductResult>> Get([FromRoute] Guid id, [FromQuery] string[] include)
     {
         var result = await sender.Send(new GetProductByIdQuery(ProductId.From(id), include));
 
@@ -54,7 +55,7 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
-    [HttpDelete("{id}")]
+    [HttpDelete]
     public async Task<ActionResult<Unit>> DeleteImages([FromBody] IEnumerable<Guid> ids)
     {
         var result = await sender.Send(new DeleteImagesCommand(ids.Select(guid => ProductImageId.From(guid))));
