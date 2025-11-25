@@ -61,3 +61,17 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+# Auto detect + Windows = CRLF, everything else = LF
+* text=auto eol=crlf
+
+# Force LF for all scripts (Husky, bash, sh, etc.)
+.husky/** text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.gitattributes text eol=lf
+*.gitignore text eol=lf
+
+# C# files
+*.cs diff=csharp text eol=crlf
+*.csproj text eol=crlf
+*.sln text eol=crlf
