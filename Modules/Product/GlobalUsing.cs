@@ -9,6 +9,7 @@ global using MediatR;
 
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
 //global using MediatR;
 
 global using Microsoft.EntityFrameworkCore;
@@ -17,9 +18,17 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 
 global using Product.Application.Events;
+global using Product.Application.Features.CreateProduct;
+global using Product.Application.Features.DeleteImages;
+global using Product.Application.Features.DeleteProduct;
+global using Product.Application.Features.GetAllBrands;
+global using Product.Application.Features.GetAllCategories;
+global using Product.Application.Features.GetAllColors;
+global using Product.Application.Features.GetAllSizes;
 global using Product.Domain.Contracts;
 global using Product.Domain.ValueObjects;
 global using Product.Persistence.Data;
+global using Product.Presentation.Requests;
 
 global using Serilog;
 
@@ -32,10 +41,11 @@ global using Shared.Domain.Validations;
 global using Shared.Domain.ValueObjects;
 global using Shared.Infrastructure.Authentication;
 global using Shared.Infrastructure.Clock;
-global using Shared.Messaging.Abstractions;
 global using Shared.Persistence.Db.Monad;
 global using Shared.Persistence.Extensions;
 global using Shared.Persistence.Interceptors;
+global using Shared.Presentation;
+global using Shared.Presentation.Extensions;
 
 global using SixLabors.ImageSharp;
 
@@ -46,6 +56,4 @@ global using Color = Product.Domain.ValueObjects.Color;
 global using Error = LanguageExt.Common.Error;
 global using Size = Product.Domain.ValueObjects.Size;
 global using Unit = LanguageExt.Unit;
-
-
 //global using Product = Product.Domain.Models.Product;

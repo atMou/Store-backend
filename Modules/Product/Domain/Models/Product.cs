@@ -1,3 +1,5 @@
+using Shared.Domain.Enums;
+
 namespace Product.Domain.Models;
 
 //add-migration init -OutputDir Persistence/Data/Migrations -context ProductDBContext -Project Product -StartUpProject Api
@@ -47,7 +49,8 @@ public record Product : Aggregate<ProductId>
     public Description Description { get; private init; }
     public Status Status { get; }
     public int Stock { get; private init; }
-    public string Availability { get; private set; }
+    public StockLevel StockLevel { get; private set; }
+
     public int TotalReviews { get; private init; }
     public int TotalSales { get; private init; }
     public double AverageRating { get; private init; }
@@ -104,6 +107,11 @@ public record Product : Aggregate<ProductId>
             p.AddDomainEvent(new ProductCreatedDomainEvent(p));
             return p;
         });
+    }
+
+    public Product UpdateStock(int stock, StockLevel stockLevel)
+    {
+        return this with { Stock = stock, StockLevel = stockLevel };
     }
 
     public Product MarkAsDeleted()

@@ -1,3 +1,5 @@
+using Basket.Domain.Events;
+
 namespace Basket.Application.Features.Cart.UpdateItemsPrice;
 
 public record UpdateCartItemsPriceCommand(ProductId ProductId, decimal NewPrice)
@@ -23,10 +25,10 @@ internal class UpdateCartItemPriceCommandHandler(
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseBiEvent(
                 res =>
-                    endpoint.Publish(new CartItemPriceUpdatedEvent(res.UpdatedCount, command.ProductId),
+                    endpoint.Publish(new CartItemPriceUpdatedDomainEvent(res.UpdatedCount, command.ProductId),
                         cancellationToken),
                 err =>
-                    endpoint.Publish(new CartItemUpdateFailEvent(command.ProductId, err), cancellationToken));
+                    endpoint.Publish(new CartItemUpdateFailDomainEvent(command.ProductId, err), cancellationToken));
     }
 
     public IO<int> UpdateCartItemPrice(ProductId productId, decimal newPrice, BasketDbContext ctx)

@@ -38,7 +38,21 @@ internal class CreateCartCommandHandler(
                         $"Cannot Create Cart for User '{command.UserId.Value}': User Has Cart with Id: '{result.CartId}'"));
                 }
 
-                return Domain.Models.Cart.Create(command.UserId, command.Tax, command.ShipmentCost);
+                if (!result.Addresses.Any())
+                {
+                    return FinFail<Domain.Models.Cart>(InvalidOperationError.New(
+                        $"Cannot Create Cart for User '{command.UserId.Value}': User Has No Addresses."));
+                }
+                var deliveryAddressResult = result.Addresses.FirstOrDefault(a => a.IsMain) ?? result.Addresses.First();
+
+                return Domain.Models.Cart.Create(command.UserId, command.Tax, command.ShipmentCost, new Address
+                {
+                    City = deliveryAddressResult.City,
+                    Street = deliveryAddressResult.Street,
+                    PostalCode = deliveryAddressResult.PostalCode,
+                    HouseNumber = deliveryAddressResult.HouseNumber,
+                    ExtraDetails = deliveryAddressResult?.ExtraDetails
+                });
             })
 
 

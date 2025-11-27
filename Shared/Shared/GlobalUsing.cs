@@ -23,7 +23,9 @@ global using Microsoft.Extensions.Options;
 global using SendGrid;
 global using SendGrid.Helpers.Mail;
 
+global using Shared.Application.Abstractions;
 global using Shared.Application.Behaviour;
+global using Shared.Application.Contracts.Order.Results;
 global using Shared.Domain.Abstractions;
 global using Shared.Domain.Errors;
 global using Shared.Domain.Validations;

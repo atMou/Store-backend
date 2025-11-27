@@ -1,4 +1,6 @@
-﻿using Shared.Messaging.Events;
+﻿using Basket.Domain.Events;
+
+using Shared.Application.Features.Cart.Events;
 
 namespace Basket.Application.EventHandlers;
 
@@ -14,9 +16,11 @@ internal class CartCheckedOutDomainEventHandler(IPublishEndpoint endpoint) : INo
             TotalSub = notification.TotalSub,
             Tax = notification.Tax,
             Discount = notification.Discount,
-            TotalDiscounted = notification.TotalDiscounted,
+            TotalAfterDiscounted = notification.TotalAfterDiscounted,
+            ShipmentCost = notification.ShipmentCost,
             CouponIds = notification.CouponIds,
-            LineItems = notification.LineItems
+            LineItems = notification.LineItems,
+            DeliveryAddress = notification.DeliveryAddress
         }, cancellationToken);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-using Identity.Domain.ValueObjects;
+using Order.Domain.Contracts;
 
 
 namespace Order.Domain.Models;
@@ -9,8 +9,20 @@ public record Order : Aggregate<OrderId>
 {
     private Order() : base(OrderId.New)
     {
+
     }
-    private Order(UserId userId, IEnumerable<OrderItem> orderItems, Money subtotal, Money total, Money tax, Money discount)
+    private Order(
+        UserId userId,
+        IEnumerable<OrderItem> orderItems,
+        decimal subtotal,
+        decimal total,
+        decimal tax,
+        decimal discount,
+        Address address,
+        decimal shipmentCost,
+        IEnumerable<CouponId> couponIds,
+        CartId cartId,
+        decimal totalAfterDiscounted)
         : base(OrderId.New)
     {
         UserId = userId;
@@ -18,28 +30,38 @@ public record Order : Aggregate<OrderId>
         Total = total;
         Tax = tax;
         Discount = discount;
+        ShippingAddress = address;
+        ShipmentCost = shipmentCost;
+        CouponIds = couponIds;
+        CartId = cartId;
+        TotalAfterDiscounted = totalAfterDiscounted;
         OrderItems = orderItems;
         TrackingCode = TrackingCode.Create();
 
     }
 
     public UserId UserId { get; private init; }
-    public Email Email { get; private init; }
-    public Phone Phone { get; private set; }
+    public CartId CartId { get; private init; }
     public ShipmentId? ShipmentId { get; private init; }
     public PaymentId? PaymentId { get; private init; }
-    public Money Subtotal { get; private init; }
-    public Money Tax { get; init; }
-    public Money Total { get; private init; }
-    public Money Discount { get; init; }
-    public TrackingCode TrackingCode { get; init; }
+    public string Email { get; private init; }
+    public string Phone { get; private set; }
+    public decimal Subtotal { get; private init; }
+    public decimal Tax { get; private init; }
+    public decimal Total { get; private init; }
+    public decimal Discount { get; private init; }
+    public decimal TotalAfterDiscounted { get; private init; }
+    public decimal ShipmentCost { get; private init; }
+    public string TransactionId { get; private init; }
+    public Address ShippingAddress { get; private init; } = null!;
+    public TrackingCode TrackingCode { get; private init; }
     public OrderStatus OrderStatus { get; private set; } = OrderStatus.Pending;
-    public IEnumerable<CouponId> CouponIds { get; init; } = [];
+    public IEnumerable<CouponId> CouponIds { get; private init; }
     public IEnumerable<OrderItem> OrderItems { get; private init; }
 
     public bool IsDeleted { get; private set; }
 
-    public string Notes { get; init; } = string.Empty;
+    public string Notes { get; private init; } = string.Empty;
 
     public DateTime? _paidAt
     {
@@ -98,6 +120,7 @@ public record Order : Aggregate<OrderId>
     }
     [NotMapped]
     public Option<DateTime> PaidAt { get; private set; } = Option<DateTime>.None;
+
     [NotMapped]
     public Option<DateTime> DeliveredAt { get; private set; } = Option<DateTime>.None;
     [NotMapped]
@@ -107,11 +130,34 @@ public record Order : Aggregate<OrderId>
     [NotMapped]
     public Option<DateTime> RefundedAt { get; private set; } = Option<DateTime>.None;
 
-    public static Fin<Order> Create(UserId userId, IEnumerable<OrderItem> orderItems, Money subtotal, Money total, Money tax, Money discount)
+    public static Fin<Order> Create(
+        CreateOrderDto dto)
     {
-        var items = orderItems.ToList();
-        return !items.Any() ? FinFail<Order>(InvalidOperationError.New("Order must contain at least one item."))
-            : new Order(userId, items, subtotal, total, tax, discount);
+        var items = dto.OrderItems.Select(item => OrderItem.Create(new CreateOrderItemDto()
+        {
+            ProductId = item.ProductId,
+            Slug = item.Slug,
+            Sku = item.Sku,
+            ImageUrl = item.ImageUrl,
+            Quantity = item.Quantity,
+            UnitPrice = item.UnitPrice,
+            LineTotal = item.LineTotal
+        })).AsIterable();
+
+        return items.Traverse(identity).Map(itms =>
+            new Order(
+                dto.UserId,
+                itms.AsEnumerable(),
+                dto.Subtotal,
+                dto.Total,
+                dto.Tax,
+                dto.Discount,
+                dto.DeliveryAddress,
+                dto.ShipmentCost,
+                dto.CouponIds,
+                dto.CartId,
+                dto.TotalAfterDiscounted
+                )).As();
     }
 
 

@@ -1,6 +1,4 @@
-﻿
-
-namespace Product.Application.Events;
+﻿namespace Product.Application.Events;
 internal record ProductCreatingFailEvent(Error e) : IntegrationEvent
 {
 }

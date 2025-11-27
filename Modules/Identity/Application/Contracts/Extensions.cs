@@ -1,4 +1,4 @@
-﻿using Shared.Application.Contracts.User.Results;
+﻿using Address = Identity.Domain.Models.Address;
 
 namespace Identity.Application.Contracts;
 
@@ -16,7 +16,7 @@ public static class Extensions
         Gender = user.Gender?.ToString(),
         IsVerified = user.IsEmailVerified,
         CartId = user.CartId?.Value,
-        Address = user.Address.ToResult(),
+        Addresses = user.Addresses.Select(a => a.ToResult()),
         Roles = user.Roles.Select(r => r.ToResult()),
         Permissions = user.Permissions.Select(p => p.Name),
         LikedProductIds = user.LikedProducts.Select(id => id.ProductId.Value),
@@ -29,7 +29,9 @@ public static class Extensions
         City = address.City,
         PostalCode = address.PostalCode,
         HouseNumber = address.HouseNumber,
-        ExtraDetails = address.ExtraDetails
+        ExtraDetails = address.ExtraDetails,
+        IsMain = address.IsMain
+
 
     };
 

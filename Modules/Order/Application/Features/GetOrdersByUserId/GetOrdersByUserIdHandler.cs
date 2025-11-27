@@ -1,11 +1,13 @@
-﻿namespace Order.Application.Features.GetOrdersByUserId;
+﻿using Shared.Application.Contracts.Order.Results;
+
+namespace Order.Application.Features.GetOrdersByUserId;
 
 public class GetOrdersByUserIdQuery : IQuery<Fin<PaginatedResult<OrderResult>>>, IPagination, IInclude
 {
     public UserId UserId { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 20;
-    public string[]? Include { get; init; }
+    public string? Include { get; init; }
 }
 
 internal class GetOrderByIdCommandHandler(OrderDBContext dbContext)
@@ -34,10 +36,13 @@ internal class GetOrderByIdCommandHandler(OrderDBContext dbContext)
         options.PageSize = query.PageSize;
         options.PageNumber = query.PageNumber;
 
-        if (query.Include is { Length: > 0 })
+        if (!string.IsNullOrEmpty(query.Include))
         {
             options.AsSplitQuery = true;
-            foreach (string se in query.Include)
+
+            var includes = query.Include.Split(',');
+
+            foreach (string se in includes.Distinct())
             {
                 if (string.Equals(se, "lineItems", StringComparison.OrdinalIgnoreCase))
                 {

@@ -1,14 +1,16 @@
+using Basket.Domain.Events;
+
 namespace Basket.Application.Features.Cart.CheckOut;
 
-public record CartCheckOutCommand(CartId CartId) : ICommand<Fin<Unit>>;
+public record CartCheckoutCommand(CartId CartId) : ICommand<Fin<Unit>>;
 
 internal class CheckoutCartCommandHandler(
     BasketDbContext dbContext,
     IUserContext userContext,
     IPublishEndpoint endpoint)
-    : ICommandHandler<CartCheckOutCommand, Fin<Unit>>
+    : ICommandHandler<CartCheckoutCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(CartCheckOutCommand command, CancellationToken cancellationToken)
+    public Task<Fin<Unit>> Handle(CartCheckoutCommand command, CancellationToken cancellationToken)
     {
         var db =
             from cart in GetEntity<BasketDbContext, Domain.Models.Cart>(
@@ -29,7 +31,7 @@ internal class CheckoutCartCommandHandler(
             select unit;
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
-            .RaiseOnFail(async error => await endpoint.Publish(new CartCheckoutFailedEvent(error), cancellationToken)
+            .RaiseOnFail(async error => await endpoint.Publish(new CartCheckoutFailedDomainEvent(error), cancellationToken)
             );
     }
 }

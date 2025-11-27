@@ -26,10 +26,24 @@ public static class Db
     }
     public static Db<Ctx, A> AddEntity<Ctx, A>(
         A entity)
+        where Ctx : DbContext where A : class, IAggregate
+    {
+
+        return
+            from _2 in Db<Ctx>.lift(ctx =>
+            {
+                ctx.Set<A>().Add(entity);
+                return unit;
+            })
+            select entity;
+    }
+    public static Db<Ctx, A> AddEntity<Ctx, A>(
+        Fin<A> ma)
         where Ctx : DbContext where A : class
     {
 
         return
+            from entity in ma
             from _2 in Db<Ctx>.lift(ctx =>
             {
                 ctx.Set<A>().Add(entity);
@@ -322,6 +336,29 @@ public static class Db
                select lstA;
     }
 
+    public static Db<Ctx, Unit> GetUpdateEntities<Ctx, A>(
+        Expression<Func<A, bool>> predicate,
+        Func<QueryOptions<A>, QueryOptions<A>>? queryOptions,
+        params Func<A, Fin<A>>[] updates)
+        where Ctx : DbContext
+        where A : class, IAggregate
+
+    {
+        var db = from lstA in Db<Ctx>.liftIO(async (ctx, e) =>
+                await ctx.Set<A>().WithQueryOptions(queryOptions).Where(predicate)
+                    .ToListAsync(e.Token))
+                 from x in lstA.AsIterable()
+                     .Traverse(a => updates.Aggregate(FinSucc(a),
+                         (current, func) => current.Bind(func))).As()
+                 let entities = x.AsEnumerable()
+                 from _2 in Db<Ctx>.lift(ctx =>
+                 {
+                     ctx.Set<A>().UpdateRange(entities);
+                     return unit;
+                 })
+                 select unit;
+        return db;
+    }
     public static Db<Ctx, List<A>> GetEntities<Ctx, A>(
         Expression<Func<A, bool>> predicate)
         where Ctx : DbContext

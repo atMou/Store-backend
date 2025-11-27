@@ -1,5 +1,6 @@
 ﻿using Order.Domain.ValueObjects;
 
+using Payment.Domain.Events;
 using Payment.Domain.ValueObjects;
 
 namespace Payment.Domain.Models;
@@ -11,70 +12,95 @@ public record Payment : Aggregate<PaymentId>
     private Payment() : base(PaymentId.New)
     {
     }
-    private Payment(OrderId orderId, UserId userId) : base(PaymentId.New)
+    private Payment(OrderId orderId, UserId userId, CartId cartId, decimal tax, decimal total) : base(PaymentId.New)
     {
         OrderId = orderId;
         UserId = userId;
+        CartId = cartId;
+        Tax = tax;
+        Total = total;
     }
     public OrderId OrderId { get; private init; }
     public UserId UserId { get; private init; }
-    public PaymentStatus PaymentStatus { get; private set; } = PaymentStatus.Pending;
-    public PaymentMethod PaymentMethod { get; private set; } = PaymentMethod.Unknown;
-    public string TransactionId { get; private set; }
-    public DateTime? _paidAt
-    {
-        get
-        {
-            return PaidAt.Match<DateTime?>(
-                date => date,
-                () => null
-            );
-        }
-        set => PaidAt = Optional(value);
-    }
-    public DateTime? _refundedAt
-    {
-        get
-        {
-            return RefundedAt.Match<DateTime?>(
-                date => date,
-                () => null
-            );
-        }
-        set => RefundedAt = Optional(value);
-    }
-    public Option<DateTime> PaidAt { get; private set; } = Option<DateTime>.None;
-    public Option<DateTime> RefundedAt { get; private set; } = Option<DateTime>.None;
+    public CartId CartId { get; private init; }
+    public decimal Tax { get; private init; }
+    public decimal Total { get; private init; }
+    public PaymentStatus PaymentStatus { get; private init; } = PaymentStatus.Pending;
+    public PaymentMethod PaymentMethod { get; private init; } = PaymentMethod.Unknown;
+    public string TransactionId { get; private init; }
+    public DateTime PaidAt { get; private init; }
+    public DateTime RefundedAt { get; private init; }
 
-    public static Payment Create(OrderId orderId, UserId userId)
+    public static Payment Create(OrderId orderId, UserId userId, CartId cartId, decimal total, decimal tax)
     {
-        return new Payment(orderId, userId);
+        return new Payment(orderId, userId, cartId, tax, total);
     }
-    public Fin<Payment> MarkAsPaid(PaymentMethod method, string transactionId, DateTime date) =>
-        PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Paid).Map(_ => this with
+    public Fin<Payment> MarkAsFulfilled(string method, string transactionId, DateTime date) =>
+      PaymentMethod.From(method).Bind(paymentMethod =>
+          PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Paid).Map(_ => this with
+          {
+              PaymentStatus = PaymentStatus.Paid,
+              PaymentMethod = paymentMethod,
+              TransactionId = transactionId,
+              PaidAt = date
+          }).Map(payment =>
+          {
+              AddDomainEvent(new PaymentFulfilledEvent
+              {
+                  PaymentId = payment.Id,
+                  OrderId = payment.OrderId,
+                  UserId = payment.UserId,
+                  CartId = payment.CartId,
+
+                  PaymentTransactionId = payment.TransactionId,
+                  PaymentPaidAt = payment.PaidAt,
+              });
+              return payment;
+          })
+      );
+
+    public Fin<Payment> MarkAsFailed(string method, string transactionId, DateTime date) =>
+        PaymentMethod.From(method).Bind(paymentMethod =>
+            PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Failed).Map(_ => this with
+            {
+                PaymentStatus = PaymentStatus.Failed,
+                PaymentMethod = paymentMethod,
+                TransactionId = transactionId,
+                PaidAt = date
+            })
+        ).Map(payment =>
         {
-            PaymentStatus = PaymentStatus.Paid,
-            PaymentMethod = method,
-            TransactionId = transactionId,
-            PaidAt = date
+            AddDomainEvent(new PaymentFailedEvent
+            {
+                PaymentId = payment.Id,
+                OrderId = payment.OrderId,
+                UserId = payment.UserId,
+                CartId = payment.CartId,
+                PaymentTransactionId = payment.TransactionId,
+                PaymentFailedAt = payment.PaidAt
+            });
+            return payment;
         });
 
 
-
-    public Fin<Payment> MarkAsFailed(PaymentMethod method, DateTime date) =>
-        PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Failed).Map(_ => this with
+    public Fin<Payment> MarkAsRefund(string method, DateTime date) =>
+        PaymentMethod.From(method).Bind(paymentMethod =>
+            PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Refunded).Map(_ => this with
+            {
+                PaymentStatus = PaymentStatus.Refunded,
+                PaymentMethod = paymentMethod,
+                RefundedAt = date
+            })
+        ).Map(payment =>
         {
-            PaymentStatus = PaymentStatus.Failed,
-            PaymentMethod = method,
-        });
-
-
-    public Fin<Payment> MarkAsRefund(PaymentMethod method, DateTime date) =>
-        PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Paid).Map(_ => this with
-        {
-            PaymentStatus = PaymentStatus.Refunded,
-            PaymentMethod = method,
-            RefundedAt = date
+            AddDomainEvent(new PaymentRefundedEvent
+            {
+                PaymentId = payment.Id,
+                OrderId = payment.OrderId,
+                UserId = payment.UserId,
+                PaymentRefundedAt = payment.RefundedAt
+            });
+            return payment;
         });
 
 }

@@ -48,7 +48,12 @@ public record Coupon : Aggregate<CouponId>
                 new Coupon(GenerateCode(), desc, exp, discount, minimumPurchaseAmount)).As();
     }
 
-
+    public Fin<Coupon> MarkAsRedeemed(DateTime utcNow)
+    {
+        return EnsureIsValid(utcNow).Bind(_ =>
+            CouponStatus.EnsureCanTransitionTo(CouponStatus.Redeemed)
+            .Map(__ => this with { CouponStatus = CouponStatus.Redeemed }));
+    }
 
     public Fin<Coupon> ApplyToCart(CartId cartId, UserId userId, DateTime utcNow)
     {
@@ -191,4 +196,6 @@ public record Coupon : Aggregate<CouponId>
             return new string(ar.Take(5).ToArray());
         }
     }
+
+
 }

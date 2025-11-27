@@ -1,5 +1,3 @@
-using Identity.Domain.ValueObjects;
-
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Order.Persistence.Data;
@@ -18,16 +16,17 @@ public class OrderEntityConfiguration : IEntityTypeConfiguration<Domain.Models.O
             )
             .HasColumnName("id");
 
-        builder.Property(p => p.UserId).HasConversion(id => id.Value, guid => UserId.From(guid)).HasColumnName("user_id");
+        builder.Property(o => o.CartId)
+            .HasConversion(id => id.Value, value => CartId.From(value))
+            .HasColumnName("cart_id");
+        builder.Property(p => p.UserId)
+            .HasConversion(id => id.Value, guid => UserId.From(guid))
+            .HasColumnName("user_id");
 
         builder.HasMany(o => o.OrderItems)
             .WithOne()
             .HasForeignKey("order_id")
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Property(o => o.Phone).HasConversion(phone => phone.Value, s => Phone.FromUnsafe(s)).HasColumnName("phone");
-
-        builder.Property(o => o.Email).HasConversion(email => email.Value, s => Email.FromUnsafe(s)).HasColumnName("email");
 
 
         builder.OwnsMany(x => x.CouponIds, b =>
@@ -42,15 +41,27 @@ public class OrderEntityConfiguration : IEntityTypeConfiguration<Domain.Models.O
         builder.Property(o => o.ShipmentId)
             .HasConversion(id => Optional(id).Match<Guid?>(shipmentId => shipmentId.Value, () => null),
                 guid => Optional(guid).Match<ShipmentId?>(ShipmentId.From, () => null)).HasColumnName("shipment_id");
+
         builder.Property(o => o.PaymentId)
             .HasConversion(id => Optional(id).Match<Guid?>(paymentId => paymentId.Value, () => null),
                 guid => Optional(guid).Match<PaymentId?>(PaymentId.From, () => null)).HasColumnName("payment_id");
 
-
-        builder.Property(o => o.Subtotal).HasConversion(m => m.Value, d => Money.FromDecimal(d)).HasColumnName("sub_total");
-        builder.Property(o => o.Total).HasConversion(m => m.Value, d => Money.FromDecimal(d)).HasColumnName("total");
-        builder.Property(o => o.Tax).HasConversion(m => m.Value, d => Money.FromDecimal(d)).HasColumnName("tax");
-        builder.Property(o => o.Discount).HasConversion(m => m.Value, d => Money.FromDecimal(d)).HasColumnName("discount");
+        builder.Property(o => o.Phone).HasColumnName("phone");
+        builder.Property(o => o.Email).HasColumnName("email");
+        builder.Property(o => o.Subtotal).HasColumnName("sub_total");
+        builder.Property(o => o.Total).HasColumnName("total");
+        builder.Property(o => o.Tax).HasColumnName("tax");
+        builder.Property(o => o.Discount).HasColumnName("discount");
+        builder.Property(o => o.TotalAfterDiscounted).HasColumnName("total_after_discounted");
+        builder.Property(o => o.ShipmentCost).HasColumnName("shipment_cost");
+        builder.OwnsOne(o => o.ShippingAddress, addressBuilder =>
+        {
+            addressBuilder.Property(a => a.Street).HasColumnName("address_street");
+            addressBuilder.Property(a => a.City).HasColumnName("address_city");
+            addressBuilder.Property(a => a.PostalCode).HasColumnName("address_postal_code");
+            addressBuilder.Property(a => a.HouseNumber).HasColumnName("address_house_number");
+            addressBuilder.Property(a => a.ExtraDetails).HasColumnName("address_extra_details");
+        });
 
         builder.Property(o => o.TrackingCode)
             .HasConversion(

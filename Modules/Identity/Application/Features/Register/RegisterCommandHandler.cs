@@ -10,7 +10,6 @@ public record RegisterCommandResult(string Message);
 
 internal class RegisterCommandHandler(
     IdentityDbContext dbContext,
-    IUserRepository userRepository,
     IPublishEndpoint endpoint,
     IImageService imageService
 ) : ICommandHandler<RegisterCommand, Fin<RegisterCommandResult>>
@@ -31,7 +30,7 @@ internal class RegisterCommandHandler(
                 dto,
                 User.Create,
                 user => user.HashPassword(user.Password),
-                user => user.SetAvatar(img))
+                user => user.AddAvatar(img))
             select res;
 
 

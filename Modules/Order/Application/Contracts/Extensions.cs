@@ -1,6 +1,4 @@
-﻿using Order.Application.Features.CreateOrder;
-
-using Shared.Domain.Contracts.Order;
+﻿using Shared.Application.Contracts.Order.Results;
 
 namespace Order.Application.Contracts;
 
@@ -13,14 +11,15 @@ public static class Extensions
             OrderId = order.Id.Value,
             OrderStatus = order.OrderStatus.Name,
             UserId = order.UserId.Value,
-            Subtotal = order.Subtotal.Value,
-            Total = order.Total.Value,
-            Tax = order.Tax.Value,
-            Discount = order.Discount.Value,
-            Email = order.Email.Value,
-            Phone = order.Phone?.Value,
+            Subtotal = order.Subtotal,
+            Total = order.Total,
+            Tax = order.Tax,
+            Discount = order.Discount,
+            Email = order.Email,
+            Phone = order.Phone,
             CouponIds = order.CouponIds.Select(c => c.Value),
             Notes = order.Notes,
+            ShippingAddress = order.ShippingAddress,
             TrackingCode = order.TrackingCode.Value,
             OrderItems = order.OrderItems.Select(item => new OrderItemResult()
             {

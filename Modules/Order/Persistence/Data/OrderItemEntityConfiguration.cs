@@ -22,15 +22,13 @@ public class OrderItemEntityConfiguration : IEntityTypeConfiguration<Domain.Mode
         builder.Property(o => o.Sku).HasColumnName("sku");
         builder.Property(o => o.ImageUrl).HasColumnName("image_url");
         builder.Property(o => o.Quantity).HasColumnName("quantity");
-        builder.Property(o => o.UnitPrice)
-            .HasConversion(money => money.Value, d => Money.FromDecimal(d))
-            .HasColumnName("unit_price");
+        builder.Property(o => o.UnitPrice).HasColumnName("unit_price");
 
 
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.CreatedBy).HasColumnName("created_by");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
         builder.Property(o => o.UpdatedBy).HasColumnName("updated_by");
-        builder.ToTable("OrderItemsDtos");
+        builder.ToTable("OrderItems");
     }
 }

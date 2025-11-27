@@ -1,17 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-using Product.Application.Features.CreateProduct;
-using Product.Application.Features.DeleteImages;
-using Product.Application.Features.DeleteProduct;
-using Product.Presentation.Requests;
-
-using Shared.Application.Contracts.Product.Results;
-using Shared.Presentation;
-using Shared.Presentation.Extensions;
-
+﻿
 namespace Product.Presentation.Controllers;
-
-
 [ApiController]
 [Route("[controller]")]
 public class ProductsController(ISender sender) : ControllerBase
@@ -23,6 +11,7 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
+
 
 
     [HttpGet("{id}")]
@@ -62,4 +51,38 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
+    [HttpGet("categories")]
+    public async Task<ActionResult<IEnumerable<string>>> GetCategories()
+    {
+        var result = await sender.Send(new GetAllCategoriesCommand());
+
+        return Ok(result);
+    }
+
+
+    [HttpGet("colors")]
+    public async Task<ActionResult<IEnumerable<string>>> GetColors()
+    {
+        var result = await sender.Send(new GetAllColorsCommand());
+
+        return Ok(result);
+    }
+
+    [HttpGet("sizes")]
+    public async Task<ActionResult<IEnumerable<string>>> GetSizes()
+    {
+        var result = await sender.Send(new GetAllSizesCommand());
+
+        return Ok(result);
+    }
+
+    [HttpGet("brands")]
+    public async Task<ActionResult<IEnumerable<string>>> GetBrands()
+    {
+        var result = await sender.Send(new GetAllBrandsCommand());
+
+        return Ok(result);
+    }
+
+
 }

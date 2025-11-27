@@ -6,7 +6,7 @@ namespace Identity.Application.Features.GetUserById;
 
 
 //public record GetUserByIdQuery(UserId UserId) : IQuery<Fin<GetUserByIdQueryResult>>;
-public class GetUserByIdQueryHandler(IUserRepository userRepository, IdentityDbContext dbContext)
+public class GetUserByIdQueryHandler(IdentityDbContext dbContext)
     : IQueryHandler<GetUserByIdQuery, Fin<UserResult>>
 {
 

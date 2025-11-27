@@ -143,13 +143,20 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
         builder.HasMany(u => u.RefreshTokens).WithOne().HasForeignKey(token => token.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.OwnsOne(u => u.Address, nb =>
-        {
-            nb.Property(a => a.City).HasColumnName("city").HasMaxLength(200);
-            nb.Property(a => a.Street).HasColumnName("street").HasMaxLength(200);
-            nb.Property(a => a.HouseNumber).HasColumnName("house_number");
-            //nb.Property(a => a.ZipCode).HasColumnName("zip_code");
-        });
+        builder
+            .HasMany(u => u.Addresses)
+            .WithOne()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        //    OwnsMany(u => u.Addresses, nb =>
+        //{
+        //    nb.Property(a => a.City).HasColumnName("city").HasMaxLength(200);
+        //    nb.Property(a => a.Street).HasColumnName("street").HasMaxLength(200);
+        //    nb.Property(a => a.HouseNumber).HasColumnName("house_number");
+        //    nb.Property(a => a.ExtraDetails).HasColumnName("extra_details").HasMaxLength(500);
+        //    nb.Property(a => a.IsMain).HasColumnName("is_main");
+        //    nb.Property(a => a.PostalCode).HasColumnName("postal_code");
+        //});
 
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");

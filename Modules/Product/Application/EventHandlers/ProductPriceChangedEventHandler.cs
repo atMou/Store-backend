@@ -2,7 +2,7 @@ using MassTransit;
 
 using Microsoft.Extensions.Logging;
 
-using Shared.Messaging.Events;
+using Shared.Application.Features.Cart.Events;
 
 namespace Product.Application.EventHandlers;
 

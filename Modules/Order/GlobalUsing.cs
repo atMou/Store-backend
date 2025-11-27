@@ -26,7 +26,6 @@ global using Serilog;
 global using Shared.Application.Abstractions;
 
 global using Shared.Domain.Abstractions;
-global using Shared.Domain.Contracts.Order;
 global using Shared.Domain.Errors;
 global using Shared.Domain.ValueObjects;
 global using Shared.Infrastructure.Authentication;

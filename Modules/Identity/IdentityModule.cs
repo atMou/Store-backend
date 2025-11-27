@@ -27,7 +27,6 @@ public static class IdentityModule
 
         services.AddAuthenticationServices();
         services.AddIdentityModuleServices(configuration);
-        services.AddScoped<IUserRepository, UserRepositories>();
         services.AddScoped<IJwtProvider, JwtProvider>();
         return services;
     }

@@ -2,11 +2,11 @@
 
 namespace Basket.Presentation.Requests;
 
-public record CartCheckOutRequest(Guid CartId)
+public record CartCheckoutRequest(Guid CartId)
 {
-    public CartCheckOutCommand ToCommand()
+    public CartCheckoutCommand ToCommand()
     {
-        return new CartCheckOutCommand(
+        return new CartCheckoutCommand(
             Shared.Domain.ValueObjects.CartId.From(CartId)
         );
     }

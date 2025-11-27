@@ -89,7 +89,7 @@ internal class CartEntityConfigurations : IEntityTypeConfiguration<Cart>
         builder.Property(c => c.UpdatedBy).HasColumnName("updated_by");
 
         builder.Ignore(c => c.TaxValue);
-        builder.Ignore(c => c.TotalDiscounted);
+        builder.Ignore(c => c.TotalAfterDiscounted);
         builder.Ignore(c => c.Total);
 
 

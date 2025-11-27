@@ -2,7 +2,7 @@
 
 namespace Basket.Presentation.Requests;
 
-public record AddCartItemRequest
+public record AddLineItemRequest
 {
     public Guid ProductId { get; init; }
     public int Quantity { get; init; }

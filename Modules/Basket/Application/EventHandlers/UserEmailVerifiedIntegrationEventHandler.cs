@@ -1,4 +1,5 @@
-﻿using Shared.Messaging.Events;
+﻿using Shared.Application.Features.Cart.Events;
+using Shared.Application.Features.User.Events;
 
 namespace Basket.Application.EventHandlers;
 

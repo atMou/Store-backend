@@ -24,7 +24,7 @@ public static class Extensions
             IsBestSeller = p.Status.IsBestSeller,
             IsTrending = p.Status.IsTrending,
             Stock = p.Stock,
-            Availability = p.Availability,
+            Availability = p.StockLevel.ToString(),
             TotalReviews = p.TotalReviews,
             TotalSales = p.TotalSales,
             RatingValue = p.Rating.Value,

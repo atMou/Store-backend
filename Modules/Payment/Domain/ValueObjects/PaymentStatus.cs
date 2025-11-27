@@ -1,9 +1,5 @@
 ﻿using Payment.Domain.Enums;
 
-using Shared.Domain.Errors;
-
-using Unit = LanguageExt.Unit;
-
 namespace Payment.Domain.ValueObjects;
 
 public record PaymentStatus

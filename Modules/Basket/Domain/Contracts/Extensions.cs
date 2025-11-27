@@ -14,7 +14,7 @@ public static class Extensions
             Total = cart.Total.Value,
             TotalSub = cart.TotalSub.Value,
             Discount = cart.Discount.Value,
-            TotalDiscounted = cart.TotalDiscounted.Value,
+            TotalDiscounted = cart.TotalAfterDiscounted.Value,
             LineItems = cart.LineItems.ToResult(),
             Coupons = coupons.ToResult()
         };

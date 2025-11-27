@@ -49,6 +49,11 @@ public record PaymentMethod
         _ = Unknown;
     }
 
+    public Fin<PaymentMethod> From(string repr) =>
+        _all.FirstOrDefault(s => s.Name.Equals(repr, StringComparison.OrdinalIgnoreCase)) is { } method
+            ? Fin<PaymentMethod>.Succ(method)
+            : Fin<PaymentMethod>.Fail(NotFoundError.New($"Payment method '{repr}' not found."));
+
 
     public static PaymentMethod FromUnsafe(string repr) =>
         _all.FirstOrDefault(s => s.Name.Equals(repr, StringComparison.OrdinalIgnoreCase)) ?? Unknown;

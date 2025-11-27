@@ -6,7 +6,7 @@ public record UpdateUserDetailsCommand : ICommand<Fin<Unit>>
     public IFormFile? Image { get; init; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
-    public Address? Address { get; init; }
+    public UpdateAddressDto? Address { get; init; }
     public string? Phone { get; init; }
     public string? Email { get; init; }
     public string? Password { get; init; }
@@ -20,12 +20,12 @@ public record UpdateUserDetailsCommand : ICommand<Fin<Unit>>
             Email = Email,
             FirstName = FirstName,
             LastName = LastName,
-            Address = Address,
+            AddressDto = Address,
             Age = Age,
             Gender = Gender,
             Password = Password,
             Phone = Phone,
-            UserId = UserId
+            UserId = UserId,
         };
     }
 }

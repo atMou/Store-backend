@@ -1,10 +1,10 @@
-
 namespace Identity.Domain.Models;
 
 public record User : Aggregate<UserId>
 {
-    private User() : base(UserId.New)
+    private User(Phone? phone) : base(UserId.New)
     {
+        Phone = phone;
     }
 
     private User(
@@ -14,6 +14,7 @@ public record User : Aggregate<UserId>
         Lastname lastname,
         Gender? gender,
         Age? age,
+        Phone? phone,
         Address address
     ) : base(UserId.New)
     {
@@ -23,8 +24,10 @@ public record User : Aggregate<UserId>
         LastName = lastname;
         Gender = gender;
         Age = age;
-        Address = address;
+        Phone = phone;
+        Addresses = [address];
     }
+
 
     public Email Email { get; private init; }
     public Phone? Phone { get; private init; }
@@ -53,27 +56,33 @@ public record User : Aggregate<UserId>
     public List<RefreshToken> RefreshTokens { get; private set; } = [];
 
     public CartId? CartId { get; private set; }
-    public Address Address { get; private init; }
+    public List<Address> Addresses { get; private init; }
     public bool IsDeleted { get; private set; }
 
     public static Fin<User> Create(
         CreateUserDto dto
     )
     {
+        var address = Address.Create(
+            dto.Street,
+            dto.City,
+            dto.PostalCode,
+            true,
+            dto.ExtraDetails,
+            dto.HouseNumber);
+        ;
         return (
                 Email.From(dto.Email),
                 Firstname.From(dto.FirstName),
                 Lastname.From(dto.LastName),
-
                 Helpers.ValidateNullable<Age, byte>(dto.Age),
                 Password.From(dto.Password),
                 Helpers.ValidateNullable<Gender, string>(dto.Gender),
-                ValidateAddresses(dto.City, dto.Street, dto.ZipCode, dto.HouseNumber, dto.ExtraDetails),
                 Helpers.ValidateNullable<Phone, string>(dto.Phone)
             )
-            .Apply((e, f, l, a, p, g, ad, ph) =>
+            .Apply((e, f, l, a, p, g, ph) =>
                 {
-                    var user = new User(e, p, f, l, g.ValueUnsafe(), a.ValueUnsafe(), ad)
+                    var user = new User(e, p, f, l, g.ValueUnsafe(), a.ValueUnsafe(), ph.ValueUnsafe(), address)
                         .GenerateEmailVerificationToken();
 
                     return user;
@@ -85,37 +94,44 @@ public record User : Aggregate<UserId>
     {
         return this with { PendingOrderIds = [.. PendingOrderIds, orderId] };
     }
+
     public User RemovePendingOrder(PendingOrderId orderId)
     {
         return this with { PendingOrderIds = PendingOrderIds.Where(id => id != orderId).ToList() };
     }
 
 
-
     public User MarkAsDeleted()
     {
         return this with { IsDeleted = true };
     }
+
     public Fin<User> HasNoPendingOrders()
     {
         return PendingOrderIds.Count > 0
             ? FinFail<User>(
-                InvalidOperationError.New($"User with id has '{PendingOrderIds.Count}' pending orders")) : this;
+                InvalidOperationError.New($"User with id has '{PendingOrderIds.Count}' pending orders"))
+            : this;
     }
 
-    public Fin<User> EnsureNotVerified() =>
-        IsEmailVerified ? FinFail<User>(InvalidOperationError.New("Email is already verified.")) : this;
+    public Fin<User> EnsureNotVerified()
+    {
+        return IsEmailVerified ? FinFail<User>(InvalidOperationError.New("Email is already verified.")) : this;
+    }
+
     public User AddRefreshToken(RefreshToken token, DateTime dateTime)
     {
         var u = RevokeTokens(dateTime, "New refresh token added");
         return u with { RefreshTokens = [.. RefreshTokens, token] };
     }
+
     public User RevokeTokens(DateTime dateTime, string reason)
     {
         var activeTokens = RefreshTokens.Where(token => !token.IsRevoked);
         var revoked = activeTokens.AsIterable().Map(token => token.Revoke(reason, dateTime));
         return this;
     }
+
     private static Fin<IEnumerable<Role>> ValidateRoles(IEnumerable<string> roles)
     {
         return roles.AsIterable()
@@ -150,13 +166,12 @@ public record User : Aggregate<UserId>
     }
 
 
-
-    public User SetCartId(CartId cartId)
+    public User AddCartId(CartId cartId)
     {
         return this with { CartId = cartId };
     }
 
-    public User SetAvatar(ImageUrl imageUrl)
+    public User AddAvatar(ImageUrl imageUrl)
     {
         return this with { Avatar = imageUrl };
     }
@@ -213,12 +228,12 @@ public record User : Aggregate<UserId>
                 updatedLikedProducts.Add(LikedProductId.Create(Id, productId));
             }
         }
+
         return this with { LikedProducts = updatedLikedProducts };
     }
 
     public Fin<User> VerifyConfirmationToken(Guid token, DateTime utcNow)
     {
-
         return ValidateToken().Map(_ => this with
         {
             IsEmailVerified = true,
@@ -226,11 +241,14 @@ public record User : Aggregate<UserId>
             EmailConfirmationExpiresAt = null
         });
 
-        Fin<Unit> ValidateToken() => token != EmailConfirmationToken
-            ? FinFail<Unit>(UnAuthorizedError.New("Invalid email verification token."))
-            : utcNow > EmailConfirmationExpiresAt
-                ? FinFail<Unit>(UnAuthorizedError.New("Email verification token has already expired"))
-                : FinSucc(unit);
+        Fin<Unit> ValidateToken()
+        {
+            return token != EmailConfirmationToken
+                ? FinFail<Unit>(UnAuthorizedError.New("Invalid email verification token."))
+                : utcNow > EmailConfirmationExpiresAt
+                    ? FinFail<Unit>(UnAuthorizedError.New("Email verification token has already expired"))
+                    : FinSucc(unit);
+        }
     }
 
     public Fin<User> VerifyPhone(string token, DateTime expiresAt)
@@ -242,11 +260,14 @@ public record User : Aggregate<UserId>
             PhoneConfirmationExpiresAt = null
         });
 
-        Fin<Unit> ValidateToken() => token != PhoneConfirmationToken
-            ? FinFail<Unit>(UnAuthorizedError.New("Invalid phone verification token."))
-            : expiresAt > PhoneConfirmationExpiresAt
-                ? FinFail<Unit>(UnAuthorizedError.New("Phone verification token has already expired"))
-                : FinSucc(unit);
+        Fin<Unit> ValidateToken()
+        {
+            return token != PhoneConfirmationToken
+                ? FinFail<Unit>(UnAuthorizedError.New("Invalid phone verification token."))
+                : expiresAt > PhoneConfirmationExpiresAt
+                    ? FinFail<Unit>(UnAuthorizedError.New("Phone verification token has already expired"))
+                    : FinSucc(unit);
+        }
     }
 
 
@@ -269,22 +290,34 @@ public record User : Aggregate<UserId>
             : this;
     }
 
-    private static Fin<Address> ValidateAddresses(string city, string street, uint zipCode, uint houseNumber,
-        string? extraDetails)
-    {
-        return new Address(city, street, zipCode, houseNumber, extraDetails);
-    }
 
-    private User SetAddress(Address address)
+
+    private Fin<User> AddAddress(UpdateAddressDto address)
     {
-        return this with { Address = address };
+        return Optional(Addresses.FirstOrDefault(a => a.Id.Value == address.AddressId))
+              .ToFin(NotFoundError.New($"Address with id: '{address.AddressId}' not found"))
+              .Map(existingAddress => existingAddress.Update(
+                  address.Street,
+                  address.City,
+                  address.PostalCode,
+                  address.IsMain,
+                  address.ExtraDetails,
+                  address.HouseNumber)).Map(a => this with
+                  {
+                      Addresses =
+                  [.. Addresses.Where(ad => ad.Id.Value != a.Id.Value).Append(a)]
+                  });
+
+    }
+    public User RemoveAddress(Address address)
+    {
+        return this with { Addresses = Addresses.Where(a => a != address).ToList() };
     }
 
     public Fin<User> Update(
         UpdateUserDto dto
     )
     {
-
         var validationSeq = Seq<Fin<User>>();
 
         if (dto.Email is not null)
@@ -309,30 +342,32 @@ public record User : Aggregate<UserId>
 
         if (dto.Password is not null)
         {
-
             validationSeq = validationSeq.Add(Password.From(dto.Password).Map(HashPassword));
-
         }
+
         if (dto.Gender is not null)
         {
             validationSeq = validationSeq.Add(Gender.From(dto.Gender).Map(g => this with { Gender = g }));
         }
-        if (dto.Address is not null)
+
+        if (dto.AddressDto is not null)
         {
-            validationSeq = validationSeq.Add(SetAddress(dto.Address));
+
+            validationSeq = validationSeq.Add(AddAddress(dto.AddressDto));
         }
+
         if (dto.Phone is not null)
         {
             validationSeq = validationSeq.Add(Phone.From(dto.Phone).Map(p => this with { Phone = p }));
         }
+
         if (dto.Image is not null)
         {
-            validationSeq = validationSeq.Add(SetAvatar(dto.Image));
+            validationSeq = validationSeq.Add(AddAvatar(dto.Image));
         }
+
         return validationSeq.Count == 0
-            ? (this)
+            ? this
             : validationSeq.Traverse(identity).Map(seq => seq.Last<Seq, User>().Match(user => user, () => this)).As();
-
     }
-
 }

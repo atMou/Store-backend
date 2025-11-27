@@ -1,3 +1,5 @@
+using Basket.Domain.Events;
+
 using Shared.Application.Contracts.Carts.Results;
 
 namespace Basket.Domain.Models;
@@ -5,31 +7,37 @@ namespace Basket.Domain.Models;
 public record Cart : Aggregate<CartId>
 {
 
-    private Cart(UserId userId, Tax tax, Money shipmentCost)
+    private Cart(UserId userId, Tax tax, Money shipmentCost, Address deliveryAddress)
         : base(CartId.New)
     {
         UserId = userId;
         Tax = tax;
         ShipmentCost = shipmentCost;
+        DeliveryAddress = deliveryAddress;
         AddDomainEvent(new CartCreatedDomainEvent(Id, userId));
     }
 
-    public UserId UserId { get; }
-    public Tax Tax { get; }
-    public bool IsCheckedOut { get; private set; }
+    public UserId UserId { get; private init; }
+    public Tax Tax { get; private init; }
     public Money TotalSub { get; private set; } = Money.Zero;
     public Money Discount { get; private set; } = Money.Zero;
-    public Money ShipmentCost { get; private set; }
-
-    public Money TotalDiscounted => Money.FromDecimal(Math.Max(0, TotalSub.Value - Discount.Value));
-    public Money TaxValue => Tax * TotalDiscounted;
-    public Money Total => TotalDiscounted + TaxValue;
+    public Money ShipmentCost { get; private set; } = Money.Zero;
+    public Address DeliveryAddress { get; set; } = null!;
+    public Money TotalAfterDiscounted => Money.FromDecimal(Math.Max(0, TotalSub.Value - Discount.Value));
+    public Money TaxValue => Tax * TotalAfterDiscounted;
+    public Money Total => TotalAfterDiscounted + TaxValue + ShipmentCost;
+    public bool IsCheckedOut { get; private set; }
+    public bool IsActive { get; private set; } = true;
     public IEnumerable<CouponId> CouponIds { get; private set; } = [];
-    public List<LineItem> LineItems { get; private set; } = [];
+    public List<LineItem> LineItems { get; private init; } = [];
 
 
-    public static Fin<Cart> Create(UserId userId, decimal tax, decimal shipmentCost) =>
-        Tax.From(tax).Map(tx => new Cart(userId, tx, shipmentCost));
+    public static Fin<Cart> Create(
+        UserId userId,
+        decimal tax,
+        decimal shipmentCost,
+        Address deliveryAddress) =>
+        Tax.From(tax).Map(tx => new Cart(userId, tx, shipmentCost, deliveryAddress));
 
     public Cart SetCartCheckedOut()
     {
@@ -41,8 +49,10 @@ public record Cart : Aggregate<CartId>
             TotalSub = TotalSub.Value,
             Tax = TaxValue.Value,
             Discount = Discount.Value,
-            TotalDiscounted = TotalDiscounted.Value,
+            TotalAfterDiscounted = TotalAfterDiscounted.Value,
             CouponIds = CouponIds.Select(c => c.Value).ToList(),
+            ShipmentCost = ShipmentCost.Value,
+            DeliveryAddress = DeliveryAddress,
             LineItems = LineItems.Select(li => new LineItemResult
             {
                 ProductId = li.ProductId.Value,
@@ -61,14 +71,31 @@ public record Cart : Aggregate<CartId>
             .Map(c => c with { Discount = Discount + discount });
     }
 
-    public Fin<(decimal RestDiscount, Cart Cart)> RemoveDiscount(decimal discount, CouponId couponId)
+    public Fin<Cart> SetIsActiveToFalse()
     {
-        var rest = Math.Abs((discount - (decimal)Discount));
-
-        return DeleteCouponId(couponId).Map(c => (rest, c with { Discount = Math.Min(0M, (Discount + discount)) }));
+        return IsActive is false ?
+            FinFail<Cart>(InvalidOperationError.New("Cart is already inactive.")) :
+           this with { IsActive = false };
+    }
+    public Fin<Cart> RemoveDiscount(decimal discount, CouponId couponId)
+    {
+        if (discount > Discount)
+        {
+            return FinFail<Cart>(InvalidOperationError.New($"Cannot remove more discount than applied."));
+        }
+        var restDiscount = Discount - discount;
+        return DeleteCouponId(couponId).Map(c =>
+        {
+            AddDomainEvent(new CouponRemovedFromCartDomainEvent(couponId));
+            return c with { Discount = restDiscount };
+        });
 
     }
 
+    public Cart ChangeDeliveryAddress(Address newAddress)
+    {
+        return this with { DeliveryAddress = newAddress };
+    }
     private List<LineItem> AddLineItem(LineItem item) =>
         LineItems.Select(li =>
             li.ProductId.Value == item.ProductId.Value
@@ -112,15 +139,15 @@ public record Cart : Aggregate<CartId>
         return lineItems.Aggregate(Money.Zero, (acc, li) => acc + li.LineTotal);
     }
 
-    private Fin<Cart> AddCouponId(CouponId couponId)
-    {
-        if (CouponIds.Any(cId => cId == couponId))
-        {
-            return Fin<Cart>.Fail(InvalidOperationError.New($"Coupon with id '{couponId}' is already in your cart."));
-        }
+    //private Fin<Cart> AddCouponId(CouponId couponId)
+    //{
+    //    if (CouponIds.Any(cId => cId == couponId))
+    //    {
+    //        return Fin<Cart>.Fail(InvalidOperationError.New($"Coupon with id '{couponId}' is already in your cart."));
+    //    }
 
-        return this with { CouponIds = [.. CouponIds, couponId] };
-    }
+    //    return this with { CouponIds = [.. CouponIds, couponId] };
+    //}
 
 
     private Fin<Cart> AddCouponIds(params CouponId[] couponIds)
@@ -154,8 +181,3 @@ public record Cart : Aggregate<CartId>
         return this;
     }
 }
-
-
-
-
-

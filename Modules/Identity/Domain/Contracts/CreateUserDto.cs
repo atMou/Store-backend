@@ -12,7 +12,8 @@ public record CreateUserDto
     public IEnumerable<string>? Roles { get; init; }
     public string City { get; init; } = null!;
     public string Street { get; init; } = null!;
-    public uint ZipCode { get; init; }
+    public uint PostalCode { get; init; }
     public uint HouseNumber { get; init; }
     public string? ExtraDetails { get; init; }
+
 }

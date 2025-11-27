@@ -15,7 +15,7 @@ public record GetProductsRequest
     public string? SortDir { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 20;
-    public string[] Include { get; init; } = [];
+    public string? Include { get; init; }
 
     public GetProductsQuery ToQuery() => new()
     {

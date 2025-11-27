@@ -1,4 +1,6 @@
-﻿namespace Identity.Application.EventHandlers;
+﻿using Shared.Application.Features.Cart.Events;
+
+namespace Identity.Application.EventHandlers;
 
 public record CartCreateIntegrationEventHandler(IdentityDbContext DbContext) : IConsumer<CartCreatedIntegrationEvent>
 {
@@ -10,7 +12,7 @@ public record CartCreateIntegrationEventHandler(IdentityDbContext DbContext) : I
         var db = from user in Db<IdentityDbContext>.liftIO(async ctx =>
                 await ctx.Users.FirstOrDefaultAsync(user => user.Id == UserId.From(userId)))
 
-                 let updatedUser = user.SetCartId(CartId.From(cartId))
+                 let updatedUser = user.AddCartId(CartId.From(cartId))
                  from a in Db<IdentityDbContext>.lift(ctx =>
                  {
                      ctx.Users.Entry(user).CurrentValues.SetValues(updatedUser);

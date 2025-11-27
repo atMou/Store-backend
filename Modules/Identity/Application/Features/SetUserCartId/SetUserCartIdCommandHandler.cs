@@ -9,7 +9,7 @@ public class SetUserCartIdCommandHandler(IdentityDbContext dbContext)
         var db = GetUpdateEntity<IdentityDbContext, User>(
             user => user.Id == UserId.From(command.UserId),
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
-                user => user.SetCartId(CartId.From(command.CartId))
+                user => user.AddCartId(CartId.From(command.CartId))
             );
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));

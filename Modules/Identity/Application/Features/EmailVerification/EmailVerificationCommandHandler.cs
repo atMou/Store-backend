@@ -1,6 +1,8 @@
 ﻿
 using Identity.Infrastructure.Authentication;
 
+using Shared.Application.Features.User.Events;
+
 namespace Identity.Application.Features.EmailVerification;
 
 public record EmailVerificationCommand(string Email, string Token) : ICommand<Fin<EmailVerificationCommandResult>>;

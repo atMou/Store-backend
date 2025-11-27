@@ -1,6 +1,5 @@
 ﻿global using System.Reflection;
 
-global using Basket.Application.Events;
 global using Basket.Application.Features.Cart.CreateCart;
 global using Basket.Application.Features.Coupon.ExpireCoupon;
 global using Basket.Application.Features.Coupon.GetCouponById;

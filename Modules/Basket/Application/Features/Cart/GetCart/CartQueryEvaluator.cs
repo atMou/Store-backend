@@ -3,7 +3,7 @@
 namespace Basket.Application.Features.Cart.GetCart;
 internal static class CartQueryEvaluator
 {
-    public static QueryOptions<Domain.Models.Cart> Evaluate(QueryOptions<Domain.Models.Cart> options, ICartQuery query)
+    public static QueryOptions<Domain.Models.Cart> Evaluate<TInclude>(QueryOptions<Domain.Models.Cart> options, TInclude query) where TInclude : IInclude
     {
         options = options with
         {
@@ -11,11 +11,12 @@ internal static class CartQueryEvaluator
 
         };
 
-        if (query.Include is { Length: > 0 })
+        if (!string.IsNullOrEmpty(query.Include))
         {
+            var includes = query.Include.Split(',');
             options = options with { AsSplitQuery = true };
 
-            foreach (string se in query.Include)
+            foreach (string se in includes.Distinct())
             {
                 if (string.Equals(se, "lineItems", StringComparison.OrdinalIgnoreCase))
                 {
@@ -34,7 +35,4 @@ internal static class CartQueryEvaluator
 
 }
 
-interface ICartQuery
-{
-    public string[]? Include { get; init; }
-}
+

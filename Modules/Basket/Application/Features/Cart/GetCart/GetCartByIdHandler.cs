@@ -4,10 +4,10 @@ namespace Basket.Application.Features.Cart.GetCart;
 
 
 
-public record GetCartByCartIdQuery : IQuery<Fin<CartResult>>, ICartQuery
+public record GetCartByCartIdQuery : IQuery<Fin<CartResult>>, IInclude
 {
     public CartId CartId { get; init; }
-    public string[]? Include { get; init; }
+    public string? Include { get; init; }
 }
 
 internal class GetCartByCartIdQueryHandler(
