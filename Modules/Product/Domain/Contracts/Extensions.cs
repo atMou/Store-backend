@@ -8,12 +8,8 @@ public static class Extensions
         return new ProductResult()
         {
             Id = p.Id.Value,
-            Sku = p.Sku.Value,
             Slug = p.Slug.Value,
             Brand = p.Brand.Name,
-            Size = p.Size.Name,
-            Color = p.Color.Name,
-            ColorHex = p.Color.Hex,
             Category = p.Category.Name,
             Discount = p.Discount?.Value,
             Price = p.Price.Value,
@@ -23,14 +19,12 @@ public static class Extensions
             IsFeatured = p.Status.IsFeatured,
             IsBestSeller = p.Status.IsBestSeller,
             IsTrending = p.Status.IsTrending,
-            Stock = p.Stock,
-            Availability = p.StockLevel.ToString(),
             TotalReviews = p.TotalReviews,
             TotalSales = p.TotalSales,
             RatingValue = p.Rating.Value,
             RatingDescription = p.Rating.Description,
-            Images = p.ProductImages.Select(pi => pi.ToResult()).ToArray(),
-            Variants = p.Variants.Select(v => v.ToVariantsResult()),
+            Images = p.Images.Select(pi => pi.ToResult()).ToArray(),
+            Variants = p.Variants.Select(v => v.ToResult()).ToArray(),
             Reviews = p.Reviews.Select(r => r.ToResult())
         };
     }
@@ -40,17 +34,18 @@ public static class Extensions
         return ps.Select(p => p.ToResult());
     }
 
-    public static ProductVariantResult ToVariantsResult(this Models.Product v)
+    public static ProductVariantsResult ToResult(this Variant v)
     {
-        return new ProductVariantResult()
+        return new ProductVariantsResult()
         {
             Id = v.Id.Value,
             Sku = v.Sku.Value,
             Size = v.Size.Name,
             Color = v.Color.Name,
             ColorHex = v.Color.Hex,
-            Price = v.Price.Value,
-            Stock = v.Stock
+            StockLevel = v.StockLevel.ToString(),
+            Images = v.Images.Select(pi => pi.ToResult()).ToArray(),
+
         };
     }
 
@@ -63,7 +58,8 @@ public static class Extensions
             ProductId = review.ProductId.Value,
             Comment = review.Comment.Value,
             Rating = review.Rating.Value,
-            RatingDescription = review.Rating.Description
+            RatingDescription = review.Rating.Description,
+            CreatedAt = review.CreatedAt
         };
     }
 
@@ -77,6 +73,13 @@ public static class Extensions
             IsMain = pi.IsMain
         };
     }
-
+    public static CategoryResult ToResult(this Category category)
+    {
+        return new CategoryResult
+        {
+            Name = category.Name,
+            Subcategories = category.Subcategories.Select(sub => sub.ToResult()).ToList()
+        };
+    }
 
 }

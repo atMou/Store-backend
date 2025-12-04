@@ -12,7 +12,7 @@ public class PaymentFulfilledIntegrationEventHandler(
 {
     public async Task Consume(ConsumeContext<PaymentFulfilledIntegrationEvent> context)
     {
-        var db = from cart in GetUpdateEntityA<BasketDbContext, Cart>(
+        var db = from cart in GetUpdateEntity<BasketDbContext, Cart>(
                 cart => cart.Id == context.Message.CartId,
                  NotFoundError.New($"Cart not found for ID: {context.Message.CartId}"),
 

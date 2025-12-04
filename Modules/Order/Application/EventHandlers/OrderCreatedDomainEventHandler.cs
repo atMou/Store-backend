@@ -12,7 +12,19 @@ public class OrderCreatedDomainEventHandler(IPublishEndpoint endpoint) : INotifi
     {
         await endpoint.Publish(new OrderCreatedIntegrationEvent()
         {
-            OrderDto = notification.OrderDto
+            UserId = notification.UserId,
+            OrderId = notification.OrderId,
+            OrderItemsDtos = notification.OrderItemsDtos,
+            TotalAfterDiscounted = notification.TotalAfterDiscounted,
+            Tax = notification.Tax,
+            CartId = notification.CartId,
+            Total = notification.Total,
+            Subtotal = notification.Subtotal,
+            Discount = notification.Discount,
+            Address = notification.Address,
+            CouponIds = notification.CouponIds,
+            ShipmentCost = notification.ShipmentCost
+
         }, cancellationToken);
     }
 }

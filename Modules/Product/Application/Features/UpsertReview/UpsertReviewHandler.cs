@@ -1,4 +1,5 @@
 using Product.Domain.Models;
+using Product.Persistence;
 
 using Shared.Infrastructure.Images;
 

@@ -8,7 +8,7 @@ using Shared.Application.Features.Inventory.Events;
 
 namespace Inventory.Application.EventHandlers;
 
-internal class ProductReservedDomainEventHandler(IPublishEndpoint endpoint) : INotificationHandler<ProductReservedDomainEvent>
+public class ProductReservedDomainEventHandler(IPublishEndpoint endpoint) : INotificationHandler<ProductReservedDomainEvent>
 {
     public async Task Handle(ProductReservedDomainEvent notification, CancellationToken cancellationToken)
     {

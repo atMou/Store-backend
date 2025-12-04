@@ -1,3 +1,5 @@
+using Product.Persistence;
+
 namespace Product.Application.Features.DeleteProduct;
 
 public record DeleteProductCommand(ProductId ProductId) : ICommand<Fin<Unit>>;

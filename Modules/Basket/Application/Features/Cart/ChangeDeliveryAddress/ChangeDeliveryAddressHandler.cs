@@ -23,6 +23,7 @@ internal class ChangeDeliveryAddressCommandHandler(
         var db = GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
             cart => cart.Id == command.CartId,
             NotFoundError.New($"Cart with Id '{command.CartId.Value}' was not found."),
+            null,
             cart => cart.ChangeDeliveryAddress(new Address
             {
                 Street = command.Street,
@@ -30,7 +31,7 @@ internal class ChangeDeliveryAddressCommandHandler(
                 PostalCode = command.PostalCode,
                 HouseNumber = command.HouseNumber,
                 ExtraDetails = command.ExtraDetails
-            }));
+            })).Map(_ => unit);
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

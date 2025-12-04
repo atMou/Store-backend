@@ -14,8 +14,9 @@ internal class DeleteCouponCommandHandler(BasketDbContext dbContext)
             GetUpdateEntity<BasketDbContext, Domain.Models.Coupon>(
                 coupon => coupon.Id == command.CouponId,
                 NotFoundError.New($"Coupon with id '{command.CouponId.Value} was not found'"),
+                null,
                 c => c.EnsureCanDelete().Map(co => co.MarkAsDeleted())
-                );
+                ).Map(_ => unit);
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

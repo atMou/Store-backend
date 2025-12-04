@@ -42,6 +42,7 @@ global using Shared.Persistence.Interceptors;
 global using Shared.Presentation.Extensions;
 
 global using static LanguageExt.Prelude;
+global using static Shared.Application.Contracts.Product.Constants;
 global using static Shared.Persistence.Db.Monad.Db;
 
 global using Permission = Shared.Infrastructure.Enums.Permission;

@@ -13,7 +13,7 @@ public class AssignPermissionCommandHandler(
 {
     public Task<Fin<Unit>> Handle(AssignPermissionCommand command, CancellationToken cancellationToken)
     {
-        var db = GetUpdateEntityA<IdentityDbContext, User>(
+        var db = GetUpdateEntity<IdentityDbContext, User>(
             user => user.Id == command.UserId,
             NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
             opt =>

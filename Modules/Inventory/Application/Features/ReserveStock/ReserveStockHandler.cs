@@ -18,7 +18,8 @@ internal class ReserveStockCommandHandler(InventoryDbContext dbContext) : IComma
         var db = GetUpdateEntity<InventoryDbContext, Domain.Models.Inventory>(
             inventory => inventory.ProductId == command.ProductId,
             NotFoundError.New($"Product with ID {command.ProductId} not found in inventory."),
-            (inventory) => inventory.Reserve(command.Quantity));
+            null,
+            (inventory) => inventory.Reserve(command.Quantity)).Map(_ => unit);
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

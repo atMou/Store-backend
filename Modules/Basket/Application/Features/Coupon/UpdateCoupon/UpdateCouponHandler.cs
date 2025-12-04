@@ -12,8 +12,9 @@ internal class UpdateCouponCommandHandler(BasketDbContext dbContext, IClock cloc
             GetUpdateEntity<BasketDbContext, Domain.Models.Coupon>(
                 coupon => coupon.Id == command.Dto.CouponId,
                     NotFoundError.New($"Coupon with id '{command.Dto.CouponId.Value} was not found'"),
+                null,
                 o => o.Update(command.Dto, clock.UtcNow)
-                );
+                ).Map(_ => unit);
 
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));

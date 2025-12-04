@@ -4,6 +4,8 @@ global using System.Reflection;
 global using LanguageExt;
 global using LanguageExt.Traits.Domain;
 global using LanguageExt.UnsafeValueAccess;
+//global using Product = Product.Domain.Models.Product;
+global using MassTransit;
 
 global using MediatR;
 
@@ -18,7 +20,6 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 
 global using Product.Application.Events;
-global using Product.Application.Features.CreateProduct;
 global using Product.Application.Features.DeleteImages;
 global using Product.Application.Features.DeleteProduct;
 global using Product.Application.Features.GetAllBrands;
@@ -27,7 +28,7 @@ global using Product.Application.Features.GetAllColors;
 global using Product.Application.Features.GetAllSizes;
 global using Product.Domain.Contracts;
 global using Product.Domain.ValueObjects;
-global using Product.Persistence.Data;
+global using Product.Persistence;
 global using Product.Presentation.Requests;
 
 global using Serilog;
@@ -50,10 +51,12 @@ global using Shared.Presentation.Extensions;
 global using SixLabors.ImageSharp;
 
 global using static LanguageExt.Prelude;
+global using static Shared.Application.Contracts.Product.Constants;
 global using static Shared.Persistence.Db.Monad.Db;
 
 global using Color = Product.Domain.ValueObjects.Color;
 global using Error = LanguageExt.Common.Error;
 global using Size = Product.Domain.ValueObjects.Size;
 global using Unit = LanguageExt.Unit;
-//global using Product = Product.Domain.Models.Product;
+
+

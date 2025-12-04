@@ -8,8 +8,10 @@ public static class QueryEvaluator
 
         options = options with
         {
+
             AsNoTracking = true,
             AsSplitQuery = true,
+            WithPagination = true,
             PageNumber = query.PageNumber,
             PageSize = query.PageSize
 
@@ -18,24 +20,37 @@ public static class QueryEvaluator
         if (!string.IsNullOrWhiteSpace(query.Brand))
             options = options.AddFilters(p => p.Brand.Name.Contains(query.Brand));
 
-
         if (!string.IsNullOrWhiteSpace(query.Category))
             options = options.AddFilters(p => p.Category.Name.Contains(query.Category));
 
         if (!string.IsNullOrWhiteSpace(query.Color))
-            options = options.AddFilters(p => p.Color.Name.Contains(query.Color));
+            options = options.AddFilters(p => p.Colors.Any(c => c.Name.Contains(query.Color)));
 
         if (!string.IsNullOrWhiteSpace(query.Size))
-            options = options.AddFilters(p => p.Size.Name.Contains(query.Size));
+            options = options.AddFilters(p => p.Sizes.Any(s => s.Name.Contains(query.Size)));
 
         if (!string.IsNullOrWhiteSpace(query.Search))
             options = options.AddFilters(p => p.Slug.Value.Contains(query.Search));
 
         if (query.MinPrice.HasValue)
-            options = options.AddFilters(p => p.Price.Value >= query.MinPrice.Value);
+            options = options.AddFilters(p => p.Price >= Money.FromDecimal(query.MinPrice));
 
         if (query.MaxPrice.HasValue)
-            options = options.AddFilters(p => p.Price.Value <= query.MaxPrice.Value);
+            options = options.AddFilters(p => p.Price <= Money.FromDecimal(query.MaxPrice));
+
+        if (query.IsNew.HasValue)
+            options = options.AddFilters(p => p.Status.IsNew == query.IsNew);
+
+        if (query.IsFeatured.HasValue)
+            options = options.AddFilters(p => p.Status.IsFeatured == query.IsFeatured);
+
+        if (query.IsTrending.HasValue)
+            options = options.AddFilters(p => p.Status.IsTrending == query.IsTrending);
+
+        if (query.IsBestSeller.HasValue)
+            options = options.AddFilters(p => p.Status.IsBestSeller == query.IsBestSeller);
+
+
 
         if (!string.IsNullOrEmpty(query.Include))
         {
@@ -43,14 +58,20 @@ public static class QueryEvaluator
 
             foreach (string se in includes.Distinct())
             {
-                if (string.Equals(se, "variants", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, Alternatives, StringComparison.OrdinalIgnoreCase))
                 {
-                    options = options.AddInclude(p => p.Variants);
+                    options = options.AddInclude(p => p.Alternatives);
                 }
 
-                if (string.Equals(se, "reviews", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, Reviews, StringComparison.OrdinalIgnoreCase))
                 {
                     options = options.AddInclude(p => p.Reviews);
+                }
+
+
+                if (string.Equals(se, Images, StringComparison.OrdinalIgnoreCase))
+                {
+                    options = options.AddInclude(p => p.Images);
                 }
 
             }
@@ -62,6 +83,7 @@ public static class QueryEvaluator
 
             options = sortBy switch
             {
+
                 "price" => options.AddOrderBy(p => p.Price.Value),
                 "brand" => options.AddOrderBy(p => p.Brand.Name),
                 "totalsales" => options.AddOrderBy(p => p.TotalSales),
@@ -69,6 +91,10 @@ public static class QueryEvaluator
                 "averagerating" => options.AddOrderBy(p => p.AverageRating),
                 _ => options
             };
+        }
+        else
+        {
+            options = options.AddOrderBy(p => p.Id);
         }
 
         if (!string.IsNullOrWhiteSpace(query.SortDir))

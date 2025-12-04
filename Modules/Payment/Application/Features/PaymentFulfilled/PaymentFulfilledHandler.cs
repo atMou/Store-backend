@@ -10,7 +10,7 @@ internal class PaymentFulfilledCommandHandler(IClock clock, PaymentDbContext dbC
 {
     public Task<Fin<Unit>> Handle(PaymentFulfilledCommand request, CancellationToken cancellationToken)
     {
-        return GetUpdateEntityA<PaymentDbContext, Domain.Models.Payment>(payment => payment.Id == request.PaymentId,
+        return GetUpdateEntity<PaymentDbContext, Domain.Models.Payment>(payment => payment.Id == request.PaymentId,
                 NotFoundError.New($"Payment with ID {request.PaymentId} not found."),
                 null,
                 payment => payment.MarkAsFulfilled(request.PaymentMethod, request.TransactionId, clock.UtcNow)

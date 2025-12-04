@@ -7,12 +7,12 @@ internal class OrderCreatedIntegrationEventHandler(ISender sender, ILogger<Order
 {
     public async Task Consume(ConsumeContext<OrderCreatedIntegrationEvent> context)
     {
-        var orderId = context.Message.OrderDto.OrderId;
-        var userId = context.Message.OrderDto.UserId;
+        var orderId = context.Message.OrderId;
+        var userId = context.Message.UserId;
         var results = await sender.Send(new AddPendingOrderCommand
         {
-            OrderId = orderId,
-            UserId = userId
+            OrderId = OrderId.From(orderId),
+            UserId = UserId.From(userId)
         });
 
         results.IfFail(err => logger.LogCritical("Failed to add pending order. {err}", err));

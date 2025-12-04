@@ -25,13 +25,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Shippment\Shipment.csproj" />
     <ProjectReference Include="..\..\Modules\Basket\Basket.csproj" />
     <ProjectReference Include="..\..\Modules\Identity\Identity.csproj" />
     <ProjectReference Include="..\..\Modules\Inventory\Inventory.csproj" />
     <ProjectReference Include="..\..\Modules\Order\Order.csproj" />
     <ProjectReference Include="..\..\Modules\Payment\Payment.csproj" />
     <ProjectReference Include="..\..\Modules\Product\Product.csproj" />
+    <ProjectReference Include="..\..\Modules\Shippment\Shipment.csproj" />
   </ItemGroup>
 
 </Project>

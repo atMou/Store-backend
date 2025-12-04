@@ -1,6 +1,6 @@
 ﻿namespace Identity.Application.EventHandlers;
 
-public class UserCreatedIntegrationEventHandler(IEmailService emailService, LinkGenerator link) : IConsumer<UserCreatedIntegrationEvent>
+public class UserCreatedIntegrationEventHandler(IEmailService emailService, LinkGenerator link, ILogger<UserCreatedIntegrationEventHandler> logger) : IConsumer<UserCreatedIntegrationEvent>
 {
     private static Lazy<FileIO> _fileIO => new(() => fileIO.Default);
 
@@ -22,7 +22,9 @@ public class UserCreatedIntegrationEventHandler(IEmailService emailService, Link
                      .Replace("{{VerificationLink}}",
                          BuildVerificationLink(
                              context.Message.Email,
-                             context.Message.VerificationToken.ToString()!))
+                             context.Message.VerificationToken.ToString()!,
+                                "/"
+                             ))
                      .Replace("{{UserEmail}}", context.Message.Email)
 
                  from response in emailService.Send<IO>(
@@ -33,16 +35,15 @@ public class UserCreatedIntegrationEventHandler(IEmailService emailService, Link
                      emailBody, context.CancellationToken)
                  select response;
 
-        var res = await io.RunAsync(EnvIO.New(null, context.CancellationToken));
-        var body = await res.Body.ReadAsStringAsync();
-        Console.WriteLine($"SENDGRID STATUS: {res.StatusCode}");
-        Console.WriteLine($"SENDGRID RESPONSE: {body}");
+        var res = await io.RunSafeAsync(EnvIO.New(null, context.CancellationToken));
+        res.IfFail(err => logger.LogError($"Error occurred while sending register email verification: {err}", err));
     }
 
 
-    public string BuildVerificationLink(string email, string token)
+    public string BuildVerificationLink(string email, string token, string returnUrl)
     {
-        return $"http://localhost:5046/users/verify?email={email}&RefreshToken={token}";
+        return $"http://localhost:3000/users/verify?email={email}&token={token}&returnUrl={Uri.EscapeDataString(returnUrl)}";
     }
+
 
 }

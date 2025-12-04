@@ -1,3 +1,5 @@
+using Product.Persistence;
+
 namespace Product.Application.Features.DeleteReview;
 
 public record DeleteReviewCommand(ProductId ProductId, ReviewId ReviewId)

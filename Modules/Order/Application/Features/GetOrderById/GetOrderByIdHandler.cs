@@ -9,13 +9,16 @@ internal class GetOrderByIdCommandHandler(OrderDBContext dbContext)
     public Task<Fin<OrderResult>> Handle(GetOrderByIdCommand command, CancellationToken cancellationToken)
     {
         var db =
-            from o in GetEntity<OrderDBContext, Domain.Models.Order>(order => order.Id == command.OrderId,
+            from o in GetEntity<OrderDBContext, Domain.Models.Order>(
+                order => order.Id == command.OrderId,
+                NotFoundError.New($"Order with Id {command.OrderId} was not found"),
                 opt =>
-            {
-                opt.AsNoTracking = true;
-                opt.AddInclude(o => o.OrderItems);
-                return opt;
-            }, NotFoundError.New($"Order with Id {command.OrderId} was not found"))
+                {
+                    opt.AsNoTracking = true;
+                    opt.AddInclude(o => o.OrderItems);
+                    return opt;
+                }
+            )
 
             select o.ToResult();
 

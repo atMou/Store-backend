@@ -1,6 +1,6 @@
 ﻿namespace Identity.Presentation.Requests;
 
-public record CreateUserRequest
+public record RegisterUserRequest
 {
     public string Email { get; init; } = null!;
     public string FirstName { get; init; } = null!;

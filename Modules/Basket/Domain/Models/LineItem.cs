@@ -11,7 +11,7 @@ public record LineItem
         Money unitPrice,
         string slug,
         string imageUrl,
-        int quantity)
+        int quantity, VariantId variantId)
 
     {
 
@@ -20,12 +20,14 @@ public record LineItem
         Slug = slug;
         ImageUrl = imageUrl;
         Quantity = quantity;
+        VariantId = variantId;
         UnitPrice = unitPrice;
 
     }
 
     public CartId CartId { get; private init; }
     public ProductId ProductId { get; private init; }
+    public VariantId VariantId { get; private init; }
     public string Slug { get; private init; } = string.Empty;
     public string ImageUrl { get; private init; }
     public int Quantity { get; private set; }
@@ -36,6 +38,7 @@ public record LineItem
     public static LineItem Create(
         ProductId ProductId,
         CartId CartId,
+        VariantId variantId,
         string Slug,
         string Sku,
         string ImageUrl,
@@ -49,7 +52,8 @@ public record LineItem
             Money.FromDecimal(UnitPrice),
             Slug,
             ImageUrl,
-            Quantity
+            Quantity,
+            variantId
         );
     }
 

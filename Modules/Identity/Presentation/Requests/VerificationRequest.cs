@@ -1,3 +1,3 @@
 ﻿namespace Identity.Presentation.Requests;
 
-public record VerificationRequest(string email, string token);
+public record VerificationRequest(string Email, string Token);

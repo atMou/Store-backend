@@ -1,30 +1,43 @@
-namespace Product.Domain.Enums;
 public enum CategoryCode
 {
     None,
-    // Top-level categories
-    MN, // Men
-    WM, // Women
-    KD, // Kids
-    FT, // Footwear
-    AC, // Accessories
-    SL, // Sale
+    Men,
+    Women,
+    Kids,
+    NewIn,
+    Trending,
+    Sale,
+    Sports,
+    Clothing,
+    Accessories,
+    Designer,
+    Brands,
+    Beauty,
 
-    // Men subcategories
-    MT, // MenTops
-    MB, // MenBottoms
-    MA, // MenActivewear
-    MX, // MenAccessories
+    Tops,
+    Bottoms,
+    Dresses,
+    Outerwear,
+    Sweaters,
+    Suits,
+    Activewear,
+    Underwear,
 
-    // Women subcategories
-    WT, // WomenTops
-    WB, // WomenBottoms
-    WD, // WomenDresses
-    WO, // WomenOuterwear
-    WX, // WomenAccessories
+    Shoes,
+    Footwear,
+    Handbags,
 
-    // Kids subcategories
-    KB, // KidsBoys
-    KG, // KidsGirls
-    KI  // KidsInfants
+    Blouses,
+    Lingerie,
+    Skirts,
+    Coats,
+
+    Toys,
+    Sleepwear,
+
+    Jackets,
+    TShirts,
+    Jeans,
+    Shorts,
+    Pants
 }

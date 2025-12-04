@@ -1,14 +1,15 @@
 ﻿
+using Identity.Application.Contracts;
 using Identity.Infrastructure.Authentication;
 
 using Shared.Application.Features.User.Events;
 
 namespace Identity.Application.Features.EmailVerification;
 
-public record EmailVerificationCommand(string Email, string Token) : ICommand<Fin<EmailVerificationCommandResult>>;
+public record EmailVerificationCommand(string Email, string Token) : ICommand<Fin<EmailVerificationResult>>;
 
-public record EmailVerificationCommandResult(RefreshToken RefreshToken, string AccessToken);
-public record EmailVerificationResponse(string AccessToken);
+public record EmailVerificationResult(UserResult UserResult, RefreshToken RefreshToken, string AccessToken);
+public record EmailVerificationResponse(UserResult UserResult, string AccessToken);
 
 internal class EmailVerificationCommandHandler(
     IJwtProvider jwtProvider,
@@ -16,9 +17,9 @@ internal class EmailVerificationCommandHandler(
     IPublishEndpoint endpoint,
     IClock clock,
     IOptions<JwtOptions> options
-) : ICommandHandler<EmailVerificationCommand, Fin<EmailVerificationCommandResult>>
+) : ICommandHandler<EmailVerificationCommand, Fin<EmailVerificationResult>>
 {
-    public Task<Fin<EmailVerificationCommandResult>> Handle(EmailVerificationCommand command,
+    public Task<Fin<EmailVerificationResult>> Handle(EmailVerificationCommand command,
         CancellationToken cancellationToken)
     {
         var db =
@@ -26,7 +27,7 @@ internal class EmailVerificationCommandHandler(
                 .Apply((guid, email) => (guid, email)).As()
 
 
-            from x in GetUpdateEntityA<IdentityDbContext, User, RefreshToken, string>(
+            from x in GetUpdateEntity<IdentityDbContext, User, RefreshToken, string>(
                 user => user.Email == t.email,
                 NotFoundError.New($"Please Verify Email your email and try again"),
                 (user => RefreshToken.Generate(user.Id, options.Value.Salt, clock.UtcNow),
@@ -39,14 +40,12 @@ internal class EmailVerificationCommandHandler(
 
             select (x.a, x.b, x.c);
 
-
-
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseOnSuccess(async tuple =>
                 {
                     await endpoint.Publish(new UserEmailVerifiedIntegrationEvent(tuple.a.Id.Value),
                         cancellationToken);
-                    return new EmailVerificationCommandResult(tuple.b, tuple.c);
+                    return new EmailVerificationResult(tuple.a.ToResult(), tuple.b, tuple.c);
                 }
             );
     }

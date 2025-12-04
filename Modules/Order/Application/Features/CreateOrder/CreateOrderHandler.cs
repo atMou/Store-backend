@@ -4,6 +4,7 @@ using MassTransit;
 
 using Order.Domain.Contracts;
 
+using Shared.Application.Contracts.Order.Dtos;
 using Shared.Application.Features.Order.Events;
 
 namespace Order.Application.Features.CreateOrder;
@@ -28,9 +29,34 @@ internal class CreateOrderCommandHandler(OrderDBContext dbContext, IPublishEndpo
             {
                 await endpoint.Publish(new OrderCreatedIntegrationEvent
                 {
-                    OrderDto = o.ToDto()
+                    UserId = o.UserId.Value,
+                    OrderId = o.Id.Value,
+                    CartId = o.CartId.Value,
+                    Total = o.Total,
+                    Subtotal = o.Subtotal,
+                    Discount = o.Discount,
+                    TotalAfterDiscounted = o.TotalAfterDiscounted,
+                    Tax = o.Tax,
+                    Address = o.ShippingAddress,
+                    CouponIds = o.CouponIds.Select(c => c.Value),
+                    ShipmentCost = o.ShipmentCost,
+                    OrderItemsDtos = o.OrderItems.Select(oi => new OrderItemDto
+                    {
+                        ProductId = oi.ProductId.Value,
+                        Quantity = oi.Quantity,
+                        UnitPrice = oi.UnitPrice,
+                        Slug = oi.Slug,
+                        ImageUrl = oi.ImageUrl,
+                        LineTotal = oi.LineTotal,
+                        Sku = oi.Sku,
+
+
+                    }).ToList(),
                 }, cancellationToken);
                 return unit;
             });
     }
+
+
+
 }

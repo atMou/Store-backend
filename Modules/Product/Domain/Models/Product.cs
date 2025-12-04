@@ -1,10 +1,8 @@
-using Shared.Domain.Enums;
-
 namespace Product.Domain.Models;
 
-//add-migration init -OutputDir Persistence/Data/Migrations -context ProductDBContext -Project Product -StartUpProject Api
-//add-migration init -OutputDir Persistence/Data/Migrations -context BasketDBContext -Project Basket -StartUpProject Api
-//add-migration init -OutputDir Persistence/Data/Migrations -context IdentityDBContext -Project Identity -StartUpProject Api
+//add-migration init -OutputDir Persistence/Migrations -context ProductDBContext -Project Product -StartUpProject Api
+//add-migration init -OutputDir Persistence/Migrations -context BasketDBContext -Project Basket -StartUpProject Api
+//add-migration init -OutputDir Persistence/Migrations -context IdentityDBContext -Project Identity -StartUpProject Api
 //add-migration init -OutputDir Persistence/Data/Migrations -context OrderDbContext -Project Order -StartUpProject Api
 public record Product : Aggregate<ProductId>
 {
@@ -14,53 +12,52 @@ public record Product : Aggregate<ProductId>
 
     private Product(
         Slug slug,
-        Sku sku,
         Brand brand,
-        Size size,
-        Color color,
         Category category,
         Description description,
         Money price,
         Money? newPrice,
         Discount discount
-    ) : base(ProductId.New())
+    //IEnumerable<Variant> variants
+    ) : this()
     {
         Slug = slug;
-        Sku = sku;
         Brand = brand;
-        Size = size;
-        Color = color;
         Category = category;
         Description = description;
         Price = price;
         NewPrice = newPrice;
         Discount = discount;
         Status = Status.New;
+        //Variants = variants;
     }
 
-    public Sku Sku { get; private init; }
     public Slug Slug { get; private init; }
     public Brand Brand { get; private init; }
-    public Size Size { get; private init; }
-    public Color Color { get; private init; }
     public Category Category { get; private init; }
     public Discount Discount { get; private init; }
     public Money Price { get; private init; }
     public Description Description { get; private init; }
     public Status Status { get; }
-    public int Stock { get; private init; }
-    public StockLevel StockLevel { get; private set; }
 
-    public int TotalReviews { get; private init; }
+    public int TotalReviews
+    {
+        get { return Reviews.Count(); }
+        private set { }
+    }
+
     public int TotalSales { get; private init; }
     public double AverageRating { get; private init; }
     public bool IsDeleted { get; private init; }
     public Money? NewPrice { get; private init; }
     public ProductId? ParentProductId { get; private init; }
     public Product? ParentProduct { get; private init; }
-    public List<Product> Variants { get; private init; } = [];
-    public List<Review> Reviews { get; private init; } = [];
-    public List<ProductImage> ProductImages { get; private set; } = [];
+    public IEnumerable<Product> Alternatives { get; private init; } = [];
+    public IEnumerable<Variant> Variants { get; private init; } = [];
+    public IEnumerable<Color> Colors => Variants.Select(v => v.Color);
+    public IEnumerable<Size> Sizes => Variants.Select(v => v.Size);
+    public IEnumerable<Review> Reviews { get; private init; } = [];
+    public IEnumerable<ProductImage> Images { get; private set; } = [];
 
 
     [NotMapped]
@@ -68,133 +65,200 @@ public record Product : Aggregate<ProductId>
         Rating.From(AverageRating)
             .Match(rating => rating, _ => Rating.None);
 
+    public virtual bool Equals(Product? other)
+    {
+        return other is not null && Id == other.Id;
+    }
+
     public static Fin<Product> Create(CreateProductDto dto)
     {
-
+        //var variants = dto.Variants.AsIterable().Traverse(v =>
+        //    Variant.Create(v.Color, v.Size, dto.Brand, dto.Category, v.Stock, v.StockLow,
+        //        v.StockMid, v.StockHigh, v.Attributes)).Map(vs => vs.AsEnumerable()).As();
         return (
                 Slug.From(dto.Slug),
                 Brand.FromCode(dto.Brand),
-                Size.FromCode(dto.Size),
-                Color.FromCode(dto.Color),
-                Category.FromCode(dto.Category),
+                Category.From(dto.Category),
                 Description.From(dto.Description),
                 Discount.From(dto.Price, dto.NewPrice)
-
-        ).Apply((slug, brand, size, color, category, description, discount) =>
-        {
-            var sku = Sku.From(
-                category.Code.ToString(),
-                color.Code.ToString(),
-                size.Code.ToString(),
-                brand.Code.ToString()
-            );
-            return new Product(
+            //variants
+            ).Apply((slug, brand, category, description, discount) => new Product(
                 slug,
-                sku,
                 brand,
-                size,
-                color,
                 category,
                 description,
                 dto.Price,
                 dto.NewPrice,
                 discount
-
-            );
-        }).As()
-        .Map(p =>
-        {
-            p.AddDomainEvent(new ProductCreatedDomainEvent(p));
-            return p;
-        });
+            )).As()
+            .Map(p =>
+            {
+                p.AddDomainEvent(new ProductCreatedDomainEvent(p));
+                return p;
+            });
     }
 
-    public Product UpdateStock(int stock, StockLevel stockLevel)
-    {
-        return this with { Stock = stock, StockLevel = stockLevel };
-    }
 
     public Product MarkAsDeleted()
     {
         return this with { IsDeleted = true };
     }
+
     private Fin<Product> UpdateSlug(string slug)
     {
         return Slug.From(slug).Map(s => this with { Slug = s });
     }
 
-    public Fin<Product> AddImages(params ImageResult[] imageDtos)
+    public Product AddImages(params ImageResult[] imageResult)
     {
-        return imageDtos.AsIterable().Traverse(dto => ProductImage.From(dto.Url, dto.AltText, dto.IsMain))
-            .Map(pis => this with { ProductImages = ProductImages.Concat(pis).ToList() }).As();
+        return this with
+        {
+            Images =
+            imageResult.Select(result => ProductImage.FromUnsafe(result.Url, result.AltText, result.IsMain))
+        };
+    }
+
+    public Product AddImages(VariantId variantId, params ImageResult[] imageResult)
+    {
+        var variant = Variants.FirstOrDefault(v => v.Id == variantId);
+        if (variant is null) return this;
+        return this with { Variants = [.. Variants, variant.AddImages(imageResult)] };
+    }
+
+
+    public Fin<Product> UpdateImages(params UpdateProductImageDto[] dtos)
+    {
+        var _dtos = Seq([.. dtos]);
+        var validationSeq = Seq<Fin<ProductImage>>();
+        var result = _dtos.Fold(validationSeq, (current, dto) =>
+        {
+            var productImage = Images.FirstOrDefault(img => img.Id == dto.ProductImageId);
+            return productImage is not null
+                ? current.Add(productImage.Update(dto.Url, dto.AltText, dto.IsMain))
+                : current.Add(ProductImage.From(dto.Url, dto.AltText, dto.IsMain));
+        });
+
+        return result.Traverse(identity)
+            .Map(imgs => this with { Images = imgs.AsEnumerable() }).As();
+    }
+
+    public Fin<Product> UpdateVariants(params UpdateVariantDto[] dtos)
+    {
+        var _dtos = Seq([.. dtos]);
+        var validationSeq = Seq<Fin<Variant>>(); // Update type to Fin<Variant>
+        var result = _dtos.Fold(validationSeq, (current, dto) =>
+        {
+            var variant = Variants.FirstOrDefault(v => v.Id == dto.VariantId);
+            return variant is not null
+                ? current.Add(variant.Update(dto, Category, Brand))
+                : current.Add(Variant.Create(
+                    new CreateVariantDto
+                    {
+                        Attributes = dto.Attributes.Select(uDto => new CreateAttributeDto
+                        {
+                            Name = uDto.Name,
+                            Description = uDto.Description
+                        }),
+                        Color = dto.Color,
+                        Stock = dto.Stock,
+                        StockLow = dto.StockLow,
+                        StockMid = dto.StockMid,
+                        StockHigh = dto.StockHigh,
+                        Size = dto.Size
+                    }, Brand.Name, Category.Name));
+        });
+
+        return result.Traverse(identity)
+            .Map(vs => this with { Variants = vs.AsEnumerable() }).As();
+    }
+
+
+    public Product AddVariants(IEnumerable<Variant> variants)
+    {
+        return this with { Variants = variants };
     }
 
     public Product DeleteImages(IEnumerable<ProductImageId> ids)
     {
-
-        return this with { ProductImages = ProductImages.Where(pi => !ids.Contains(pi.Id)).ToList() };
+        return this with { Images = Images.Where(pi => !ids.Contains(pi.Id)).ToList() };
     }
 
     private Fin<Product> UpdateCategory(string category)
     {
-        return Category.FromCode(category).Map(c => this with
+        return Category.From(category).Map(c => this with
         {
-            Category = c,
-            Sku = Sku.From(
-                c.Code.ToString(),
-                Color.Code.ToString(),
-                Size.Code.ToString(),
-                Brand.Code.ToString()
-            )
-        });
+            Category = c
+        }).Map(updatedProduct =>
+            updatedProduct with
+            {
+                Variants = Variants.Select(v => v.UpdateSkuForCategory(Brand, updatedProduct.Category)).ToList()
+            });
     }
 
-    private Fin<Product> UpdateSize(string size)
+    private Fin<Product> UpdateSize(string size, VariantId variantId)
     {
-        return Size.FromCode(size).Map(s => this with
-        {
-            Size = s,
-            Sku = Sku.From(
-                Category.Code.ToString(),
-                Color.Code.ToString(),
-                s.Code.ToString(),
-                Brand.Code.ToString()
-            )
-        });
+        return Optional(Variants.FirstOrDefault(v => v.Id == variantId))
+            .ToFin(NotFoundError.New($"Product variant with id {variantId} not found."))
+            .Bind(v => v.UpdateSize(size, Brand, Category)
+                .Map(updatedVariant =>
+                {
+                    var updatedVariants = Variants
+                        .Where(var => var.Id != variantId)
+                        .Append(updatedVariant)
+                        .ToList();
+                    return this with { Variants = updatedVariants };
+                })
+            );
     }
+
 
     private Fin<Product> UpdateBrand(string brand)
     {
         return Brand.FromCode(brand).Map(b => this with
         {
             Brand = b,
-            Sku = Sku.From(
-                Category.Code.ToString(),
-                Color.Code.ToString(),
-                Size.Code.ToString(),
-                b.Code.ToString()
-            )
+            Variants = Variants.Select(v => v.UpdateSkuForBrand(b, Category))
         });
     }
 
-    private Fin<Product> UpdateColor(string color)
+
+    private Fin<Product> UpdateColor(string color, VariantId variantId)
     {
-        return Color.FromCode(color).Map(c => this with
-        {
-            Color = c,
-            Sku = Sku.From(
-                Category.Code.ToString(),
-                c.Code.ToString(),
-                Size.Code.ToString(),
-                Brand.Code.ToString()
-            )
-        });
+        return Optional(Variants.FirstOrDefault(v => v.Id == variantId))
+            .ToFin(NotFoundError.New($"Product variant with id {variantId} not found."))
+            .Bind(v => v.UpdateColor(color, Brand, Category)
+                .Map(updatedVariant =>
+                {
+                    var updatedVariants = Variants
+                        .Where(var => var.Id != variantId)
+                        .Append(updatedVariant)
+                        .ToList();
+                    return this with { Variants = updatedVariants };
+                })
+            );
     }
+
 
     private Fin<Product> UpdateDescription(string description)
     {
         return Description.From(description).Map(d => this with { Description = d });
     }
+
+    public Fin<Product> UpdateStock(VariantId variantId, int stock, int? low = null, int? mid = null, int? high = null)
+    {
+        return Optional(Variants.FirstOrDefault(v => v.Id == variantId))
+            .ToFin(NotFoundError.New($"Product variant with id {variantId} not found."))
+            .Bind(v => v.UpdateStock(stock, low, mid, high))
+            .Map(updatedVariant =>
+            {
+                var updatedVariants = Variants
+                    .Where(var => var.Id != variantId)
+                    .Append(updatedVariant)
+                    .ToList();
+                return this with { Variants = updatedVariants };
+            });
+    }
+
 
     private Product UpdateTotalSales(int soldItems = 1)
     {
@@ -209,32 +273,38 @@ public record Product : Aggregate<ProductId>
         return this with { Price = Money.FromDecimal(price) };
     }
 
-    private Product AddVariants(params Product[] products)
+    private Product AddSimilarProducts(params Product[] products)
     {
-
         var newVariants = new List<Product>();
         foreach (var p in products)
         {
-            if (Variants.Exists(v => v.Id == p.Id)) continue;
+            if (Alternatives.FirstOrDefault(v => v.Id == p.Id) is not null)
+            {
+                continue;
+            }
+
             newVariants.Add(p);
         }
 
-        AddDomainEvent(new ProductVariantsAddedEvent(newVariants.Select(v => v.Id)));
-        return this with { Variants = Variants.Concat(newVariants).ToList() };
+        return this with { Alternatives = Alternatives.Concat(newVariants).ToList() };
     }
 
-    public Product RemoveVariants(params ProductId[] variantIds)
+    public Product RemoveSimilarProducts(params Product[] products)
     {
-        return this with { Variants = [.. Variants.Where(v => !variantIds.Contains(v.Id))] };
+        return this with { Alternatives = Alternatives.Where(v => !products.Contains(v)).ToList() };
     }
 
     public Product AddReview(Review review)
     {
         if (review.Rating <= Rating.Fair)
+        {
             AddDomainEvent(new ProductReviewAddedEvent(Id, review.UserId, review.Id, review.Rating));
+        }
+
         return this with
         {
             Reviews = Reviews.Append(review).ToList(),
+            AverageRating = CalculateRating(review.Rating, Reviews.Select(r => r.Rating))
         };
     }
 
@@ -242,7 +312,9 @@ public record Product : Aggregate<ProductId>
     {
         var oldReview = Reviews.FirstOrDefault(r => r.Id == review.Id);
         if (oldReview is null)
+        {
             return this;
+        }
 
         var updatedReviews = Reviews
             .Where(r => r.Id != review.Id)
@@ -251,7 +323,10 @@ public record Product : Aggregate<ProductId>
 
         return this with
         {
-            Reviews = updatedReviews
+            Reviews = updatedReviews,
+            AverageRating = updatedReviews.Any()
+                ? updatedReviews.Average(r => r.Rating.Value)
+                : 0
         };
     }
 
@@ -260,44 +335,83 @@ public record Product : Aggregate<ProductId>
         return this with
         {
             Reviews = Reviews.Where(r => r.Id != review.Id).ToList(),
+            AverageRating = Reviews.Count() > 1
+                ? Reviews.Average(r => r.Rating.Value)
+                : 0
         };
     }
 
+    private double CalculateRating(Rating rating, IEnumerable<Rating> ratings)
+    {
+        var rts = ratings.ToArray();
+        if (!rts.Any())
+        {
+            return rating.Value;
+        }
+
+        var totalRating = rts.Sum(r => r.Value) + rating.Value;
+        var averageRating = totalRating / (rts.Length + 1);
+        return averageRating;
+    }
+
     public Fin<Product> Update(
-        UpdateProductDto dto, List<Product> variants, List<ImageResult> imageDtos)
+        UpdateProductDto dto,
+        IEnumerable<Product> alternatives)
     {
         var validationSeq = Seq<Fin<Product>>();
 
         if (Slug.Value != dto.Slug)
+        {
             validationSeq = validationSeq.Add(UpdateSlug(dto.Slug));
+        }
+
         if (Brand.Code.ToString() != dto.Brand)
+        {
             validationSeq = validationSeq.Add(UpdateBrand(dto.Brand));
-        if (Color.Code.ToString() != dto.Color)
-            validationSeq = validationSeq.Add(UpdateColor(dto.Color));
-        if (Size.Code.ToString() != dto.Size)
-            validationSeq = validationSeq.Add(UpdateSize(dto.Size));
-        if (imageDtos.Any())
-            validationSeq = validationSeq.Add(AddImages([.. imageDtos]));
+        }
+
         if (Category.Code.ToString() != dto.Category)
+        {
             validationSeq = validationSeq.Add(UpdateCategory(dto.Category));
+        }
+
         if (Description.Value != dto.Description)
+        {
             validationSeq = validationSeq.Add(UpdateDescription(dto.Description));
+        }
+
+        if (dto.Variants.Any())
+        {
+            validationSeq = validationSeq.Add(UpdateVariants([.. dto.Variants]));
+        }
 
         if (Price.Value != dto.Price)
+        {
             UpdatePrice(dto.Price);
+        }
+
+        if (dto.ImageDtos.Any())
+        {
+            validationSeq = validationSeq.Add(UpdateImages([.. dto.ImageDtos]));
+        }
+
+        if (dto.AlternativesIds.Any())
+        {
+            AddSimilarProducts([.. alternatives]);
+        }
 
         Status.Update(dto.IsFeatured, dto.IsTrending, dto.IsBestSeller, dto.IsNew);
-        if (variants.Any()) AddVariants([.. variants]);
+
 
         if (validationSeq.IsEmpty)
+        {
             return this;
+        }
+
         return validationSeq.Traverse(identity)
-            .Map(seq => seq.Last.Match(p => p, () => this)).As();
+            .Map(seq => seq.Last.IfNone(() => this)).As();
     }
-    public virtual bool Equals(Product? other)
-    {
-        return other is not null && Id == other.Id;
-    }
+
     public override int GetHashCode()
     {
         return Id.GetHashCode();

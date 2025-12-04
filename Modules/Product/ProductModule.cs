@@ -1,5 +1,6 @@
 ﻿using MassTransit;
 
+using Product.Persistence;
 
 using Shared.Infrastructure.Images.Options;
 

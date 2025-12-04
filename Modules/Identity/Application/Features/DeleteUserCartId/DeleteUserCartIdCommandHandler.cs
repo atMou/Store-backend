@@ -13,7 +13,7 @@ public class DeleteUserCartIdCommandHandler(IdentityDbContext dbContext, IUserCo
     {
         var db =
             from _ in EnsureIsSameUserOrAdmin(command.UserId)
-            from user in GetUpdateEntityA<IdentityDbContext, User>(
+            from user in GetUpdateEntity<IdentityDbContext, User>(
                 user => user.Id == command.UserId,
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
                 null,

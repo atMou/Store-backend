@@ -4,24 +4,24 @@ using Db.Errors;
 namespace Identity.Application.Features.Register;
 
 public record RegisterCommand(
-    CreateUserDto CreateUserDto) : ICommand<Fin<RegisterCommandResult>>;
+    CreateUserDto CreateUserDto) : ICommand<Fin<RegisterResult>>;
 
-public record RegisterCommandResult(string Message);
+public record RegisterResult(string Message);
 
 internal class RegisterCommandHandler(
     IdentityDbContext dbContext,
     IPublishEndpoint endpoint,
     IImageService imageService
-) : ICommandHandler<RegisterCommand, Fin<RegisterCommandResult>>
+) : ICommandHandler<RegisterCommand, Fin<RegisterResult>>
 {
-    public async Task<Fin<RegisterCommandResult>> Handle(RegisterCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<RegisterResult>> Handle(RegisterCommand command, CancellationToken cancellationToken)
     {
         var dto = command.CreateUserDto;
         var db =
             from img in dto.Image.IsNotNull()
                 ? imageService.UploadImage(dto.Image!, $"{dto.FirstName}_{dto.LastName}")
                 : IO.pure(ImageUrl.FromUnsafe(""))
-            from res in AddEntity<
+            from res in AddEntityIfNotExists<
                 IdentityDbContext,
                 User,
                 CreateUserDto
@@ -38,7 +38,7 @@ internal class RegisterCommandHandler(
             .RaiseOnSuccess(u =>
             {
                 endpoint.Publish(new UserCreatedIntegrationEvent(u.Email.Value, u.EmailConfirmationToken, u.EmailConfirmationExpiresAt), cancellationToken);
-                return new RegisterCommandResult($"Please check your email: '{u.Email.Value}' to confirm registration");
+                return new RegisterResult($"Please check your email: '{u.Email.Value}' to confirm registration");
             });
 
     }

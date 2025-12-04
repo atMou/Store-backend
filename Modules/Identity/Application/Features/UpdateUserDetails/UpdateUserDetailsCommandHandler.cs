@@ -41,7 +41,7 @@ public class UpdateUserDetailsCommandHandler(
     public Task<Fin<Unit>> Handle(UpdateUserDetailsCommand command, CancellationToken cancellationToken)
     {
         var db =
-            from u in GetUpdateEntityA<IdentityDbContext, User>(
+            from u in GetUpdateEntity<IdentityDbContext, User>(
                 user => user.Id == command.UserId,
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
                 null,

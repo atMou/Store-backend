@@ -1,12 +1,9 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 
-using Db.Errors;
-
 using Microsoft.AspNetCore.Http;
 
 using Shared.Application.Contracts.Product.Results;
-using Shared.Domain.Validations;
 using Shared.Infrastructure.Images.Options;
 
 namespace Shared.Infrastructure.Images;
@@ -15,13 +12,12 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
 {
     private readonly CloudinarySettings _options = options.Value;
 
-    public IO<IEnumerable<ImageResult>> UploadProductImages(IFormFile[] files, bool[] isMain, string slug, string category,
-        string brand, string color)
+    public IO<IEnumerable<ImageResult>> UploadProductImages(IFormFile[] files, bool[] isMain, string slug, string category, string brand, string? color = null, string? size = null)
     {
         var index = 0;
         return files.AsIterable().Traverse(file =>
         {
-            var alt = $" {slug} {category} {brand} {color}";
+            var alt = $"{slug} {category} {brand} {color} {size}".Trim();
             var _isMain = isMain.ElementAtOrDefault(index);
 
             index++;

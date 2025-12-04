@@ -1,4 +1,5 @@
-﻿
+﻿using Product.Application.Features.CreateProduct;
+
 namespace Product.Presentation.Controllers;
 [ApiController]
 [Route("[controller]")]
@@ -13,29 +14,27 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
 
-
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductResult>> Get([FromRoute] Guid id, [FromQuery] string[] include)
+    public async Task<ActionResult<ProductResult>> Get([FromRoute] Guid id, [FromQuery] string include)
     {
         var result = await sender.Send(new GetProductByIdQuery(ProductId.From(id), include));
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
 
-
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<CreateProductResult>> Create([FromForm] CreateProductRequest request)
     {
         var result = await sender.Send(request.ToCommand());
-        return result.ToActionResult(res => Ok(res), "");
+        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
     [HttpPut]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<Unit>> Update([FromForm] UpdateProductRequest request)
     {
         var result = await sender.Send(request.ToCommand());
-        return result.ToActionResult(_ => Ok(), "");
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
     [HttpDelete("{id}")]
     public async Task<ActionResult<Unit>> Delete([FromRoute] Guid id)
@@ -52,13 +51,12 @@ public class ProductsController(ISender sender) : ControllerBase
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
     [HttpGet("categories")]
-    public async Task<ActionResult<IEnumerable<string>>> GetCategories()
+    public async Task<ActionResult<IEnumerable<CategoryResult>>> GetCategories()
     {
         var result = await sender.Send(new GetAllCategoriesCommand());
 
         return Ok(result);
     }
-
 
     [HttpGet("colors")]
     public async Task<ActionResult<IEnumerable<string>>> GetColors()

@@ -69,4 +69,9 @@ public record Color
             ? Optional(_all.FirstOrDefault(c => c.Code == colorCode)).Match(
                 c => c, () => Color.None)
             : None;
+
+    public static Fin<IEnumerable<Color>> FromCodes(IEnumerable<string> colors)
+    {
+        return colors.AsIterable().Traverse(c => FromName(c)).Map(it => it.AsEnumerable()).As();
+    }
 }

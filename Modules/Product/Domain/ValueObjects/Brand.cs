@@ -89,7 +89,7 @@ public record Brand
             : FinFail<Brand>((Error)$"Invalid brand code '{code}'");
     }
 
-    public static Fin<Brand> FromName(string name)
+    public static Fin<Brand> From(string name)
     {
         return Optional(_all.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             .ToFin((Error)$"Invalid brand name '{name}'");

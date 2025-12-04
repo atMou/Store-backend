@@ -2,7 +2,7 @@
 
 namespace Shared.Application.Features.Inventory.Events;
 
-public record ProductReservedIntegrationEvent(ProductId ProductId, int Stock, StockLevel StockLevel)
+public record ProductReservedIntegrationEvent(ProductId ProductId, int Stock, StockLevel StockLevel) : IntegrationEvent
 {
 
 }

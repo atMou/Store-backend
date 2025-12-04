@@ -16,7 +16,7 @@ public class UsersController(ISender sender) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<RegisterCommandResult>> Create([FromBody] CreateUserRequest request)
+    public async Task<ActionResult<RegisterResult>> Register([FromBody] RegisterUserRequest request)
     {
         var result = await sender.Send(request.ToCommand());
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
@@ -38,9 +38,8 @@ public class UsersController(ISender sender) : ControllerBase
             .Map(res =>
             {
                 this.AddRefreshTokenToCookies(res.RefreshToken.RawToken, res.RefreshToken.ExpiresAt);
-                return new LoginResponse(res.AccessToken);
+                return new LoginResponse(res.UserResult, res.AccessToken);
             });
-
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
 
@@ -62,12 +61,11 @@ public class UsersController(ISender sender) : ControllerBase
     [Route("verify")]
     public async Task<ActionResult<EmailVerificationResponse>> Verify([FromQuery] VerificationRequest request)
     {
-        var result = (await sender.Send(new EmailVerificationCommand(request.email, request.token))).Map(res =>
+        var result = (await sender.Send(new EmailVerificationCommand(request.Email, request.Token))).Map(res =>
         {
             this.AddRefreshTokenToCookies(res.RefreshToken.RawToken, res.RefreshToken.ExpiresAt);
-            return new EmailVerificationResponse(res.AccessToken);
+            return new EmailVerificationResponse(res.UserResult, res.AccessToken);
         });
-
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }

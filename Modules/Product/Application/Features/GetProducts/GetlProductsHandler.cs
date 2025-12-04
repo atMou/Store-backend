@@ -1,5 +1,3 @@
-using Shared.Presentation;
-
 namespace Product.Application.Features.GetProducts;
 
 public record GetProductsQuery : IQuery<Fin<PaginatedResult<ProductResult>>>, IPagination, IInclude
@@ -13,10 +11,13 @@ public record GetProductsQuery : IQuery<Fin<PaginatedResult<ProductResult>>>, IP
     public string? Search { get; init; }
     public string? OrderBy { get; init; }
     public string? SortDir { get; init; }
-    public int PageNumber { get; init; } = 1;
-    public int PageSize { get; init; } = 20;
+    public int PageNumber { get; init; }
+    public int PageSize { get; init; }
     public string? Include { get; init; }
-
+    public bool? IsFeatured { get; init; }
+    public bool? IsTrending { get; init; }
+    public bool? IsBestSeller { get; init; }
+    public bool? IsNew { get; init; }
 }
 
 public record GetProductsQueryResult(PaginatedResult<ProductResult> PaginatedResult);
@@ -31,6 +32,7 @@ internal class GetProductsQueryHandler(ProductDBContext dbContext)
             ProductResult, GetProductsQuery>(
             query,
             product => product.ToResult(),
+            null,
             options => QueryEvaluator.Evaluate(options, query)
         );
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));

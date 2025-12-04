@@ -9,8 +9,6 @@ public record UpdateProductRequest
     public bool[] IsMain { get; set; }
     public string Slug { get; init; }
     public string Brand { get; init; }
-    public string Color { get; init; }
-    public string Size { get; init; }
     public string Category { get; init; }
     public bool IsFeatured { get; init; }
     public bool IsNew { get; init; }
@@ -19,11 +17,9 @@ public record UpdateProductRequest
     public decimal Price { get; init; }
     public decimal NewPrice { get; init; }
     public string Description { get; init; }
-    //public int Stock { get; init; }
-    //public int LowStockThreshold { get; init; }
-    //public int MidStockThreshold { get; init; }
-    //public int HighStockThreshold { get; init; }
-    public ProductId[] VariantsIds { get; init; }
+    public IEnumerable<UpdateProductImageDto> ImageDtos { get; init; } = [];
+    public IEnumerable<ProductId> AlternativesIds { get; init; }
+    public IEnumerable<UpdateVariantDto> Variants { get; set; }
 
 
     public UpdateProductCommand ToCommand()
@@ -32,12 +28,10 @@ public record UpdateProductRequest
             new UpdateProductDto()
             {
                 ProductId = ProductId,
-                Images = Images,
+                ImageDtos = ImageDtos,
                 IsMain = IsMain,
                 Slug = Slug,
                 Brand = Brand,
-                Color = Color,
-                Size = Size,
                 Category = Category,
                 IsFeatured = IsFeatured,
                 IsNew = IsNew,
@@ -46,11 +40,10 @@ public record UpdateProductRequest
                 Price = Price,
                 NewPrice = NewPrice,
                 Description = Description,
-                //Stock = Stock,
-                //LowStockThreshold = LowStockThreshold,
-                //MidStockThreshold = MidStockThreshold,
-                //HighStockThreshold = HighStockThreshold,
-                VariantsIds = VariantsIds
+                AlternativesIds = AlternativesIds,
+                Variants = Variants,
+
+
 
             }
         );

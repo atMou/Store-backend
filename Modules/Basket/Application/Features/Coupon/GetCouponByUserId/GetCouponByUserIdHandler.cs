@@ -18,9 +18,9 @@ internal class GetCouponByUserIdQueryHandler(BasketDbContext dbContext)
             Domain.Models.Coupon,
             CouponResult,
             GetCouponsByUserIdQuery>(
-            c => c.UserId == query.UserId,
             query,
             coupon => coupon.ToResult(),
+            c => c.UserId == query.UserId,
             options =>
         {
             options.AddPagination();

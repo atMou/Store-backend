@@ -50,9 +50,13 @@ public record Size
         Optional(_all.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             .ToFin((Error)$"Invalid size name '{name}'");
 
-
     public static Size FromUnsafe(string code) =>
         Optional(_all.FirstOrDefault(s => s.Code.ToString() == code)).IfNone(() => None);
     public static IReadOnlyList<string> Sizes() =>
         _all.OrderBy(s => s.Order).Select(s => s.Code.ToString()).ToList();
+
+    public static Fin<IEnumerable<Size>> FromCodes(IEnumerable<string> sizes)
+    {
+        return sizes.AsIterable().Traverse(size => FromName(size)).Map(it => it.AsEnumerable()).As();
+    }
 }

@@ -13,8 +13,9 @@ internal class ExpireCouponCommandHandler(BasketDbContext dbContext, IClock cloc
         var db = GetUpdateEntity<BasketDbContext, Domain.Models.Coupon>(
          coupon => coupon.Id == command.CouponId,
          NotFoundError.New($"Coupon with id '{command.CouponId.Value} was not found'"),
+         null,
                 o => o.MarkAsExpired(clock.UtcNow)
-         );
+         ).Map(_ => unit);
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

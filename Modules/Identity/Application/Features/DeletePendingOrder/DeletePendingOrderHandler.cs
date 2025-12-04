@@ -8,7 +8,7 @@ internal class DeletePendingOrderHandler(IUserContext userContext, IdentityDbCon
     public Task<Fin<Unit>> Handle(DeletePendingOrderCommand command, CancellationToken cancellationToken)
     {
         var db = from userId in GetCurrentUserId()
-                 from a in GetUpdateEntityA<IdentityDbContext, User>(
+                 from a in GetUpdateEntity<IdentityDbContext, User>(
                      u => u.Id == userId,
                      NotFoundError.New($"User with id '{userId}' does not exist."),
                      opt =>

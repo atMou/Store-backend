@@ -1,5 +1,7 @@
 using System.Reflection;
 
+using Inventory;
+
 using MassTransit;
 
 using Microsoft.OpenApi.Models;
@@ -39,6 +41,7 @@ internal class Program
         var identityAssembly = typeof(IdentityModule).Assembly;
         var paymentAssembly = typeof(PaymentModule).Assembly;
         var shipmentAssembly = typeof(ShipmentModule).Assembly;
+        var inventoryAssembly = typeof(InventoryModule).Assembly;
 
         builder.Services.AddSharedModule(builder.Configuration);
         builder.Services.AddIdentityModule(builder.Configuration);
@@ -47,6 +50,7 @@ internal class Program
         builder.Services.AddOrderModule(builder.Configuration);
         builder.Services.AddShipmentModule(builder.Configuration);
         builder.Services.AddPaymentModule(builder.Configuration);
+        builder.Services.AddInventoryModule(builder.Configuration);
 
         builder.Services.AddMediatrWithAssemblies(
                 productAssembly,
@@ -54,7 +58,8 @@ internal class Program
                 identityAssembly,
                 orderAssembly,
                 paymentAssembly,
-                shipmentAssembly
+                shipmentAssembly,
+                inventoryAssembly
 );
 
 
@@ -64,6 +69,7 @@ internal class Program
             cfg.AddConsumers(basketAssembly);
             cfg.AddConsumers(productAssembly);
             cfg.AddConsumers(orderAssembly);
+            cfg.AddConsumers(inventoryAssembly);
 
 
             cfg.SetKebabCaseEndpointNameFormatter();
@@ -83,10 +89,12 @@ internal class Program
         });
 
         builder.Services.AddControllers()
+            .AddApplicationPart(inventoryAssembly)
             .AddApplicationPart(productAssembly)
             .AddApplicationPart(basketAssembly)
             .AddApplicationPart(identityAssembly)
-            .AddApplicationPart(orderAssembly).AddControllersAsServices();
+            .AddApplicationPart(orderAssembly)
+            .AddControllersAsServices();
 
 
         builder.Services.AddEndpointsApiExplorer();
@@ -137,6 +145,17 @@ internal class Program
         });
 
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("allow", policy =>
+            {
+                policy.WithOrigins("http://localhost:3000")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            });
+        });
+
         builder.Services.AddHttpClient("GeoIpClient", client =>
         {
             client.BaseAddress = new Uri("https://ipapi.co");
@@ -161,16 +180,24 @@ internal class Program
             // To serve Swagger UI at app root set RoutePrefix = string.Empty
             // c.RoutePrefix = string.Empty;
         });
+        // how to add cors policy
+
+        app.UseCors("allow");
 
         app.UseIdentityModule();
         app.UseProductModule();
         app.UseBasketModule();
         app.UseOrderModule();
+        app.UseShipmentModule();
+        app.UsePaymentModule();
+        app.UseInventoryModule();
         app.UseAuthentication();
         app.UseAuthorization();
 
 
         app.MapControllers();
+
+
 
         app.Use(async (ctx, next) =>
         {

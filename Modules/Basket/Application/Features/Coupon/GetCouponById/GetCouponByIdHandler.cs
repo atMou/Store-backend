@@ -13,12 +13,12 @@ internal class GetCouponByIdCommandHandler(BasketDbContext dbContext) : ICommand
     {
         var db = GetEntity<BasketDbContext, Domain.Models.Coupon>(
             c => c.Id == command.CouponId,
+            NotFoundError.New($"Coupon with id '{command.CouponId.Value} was not found'"),
             options =>
             {
                 options.AsNoTracking = true;
                 return options;
-            },
-            NotFoundError.New($"Coupon with id '{command.CouponId.Value} was not found'"))
+            })
             .Map(coupon => coupon.ToResult());
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));

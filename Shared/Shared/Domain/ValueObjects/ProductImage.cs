@@ -15,10 +15,25 @@ public record ProductImage
     public string AltText { get; private init; }
     public bool IsMain { get; private init; }
     public ProductId ProductId { get; set; }
+    public VariantId VariantId { get; set; }
 
     public static Fin<ProductImage> From(string url, string altText, bool IsMain)
     {
         return ImageUrl.From(url).Map(imageUrl => new ProductImage(imageUrl, altText, IsMain));
+    }
+
+    public static ProductImage FromUnsafe(string url, string altText, bool IsMain)
+    {
+        return new ProductImage(ImageUrl.FromUnsafe(url), altText, IsMain);
+    }
+    public Fin<ProductImage> Update(string url, string altText, bool isMain)
+    {
+        return ImageUrl.From(url).Map(imageUrl => this with
+        {
+            ImageUrl = imageUrl,
+            AltText = altText,
+            IsMain = isMain
+        });
     }
 
     public virtual bool Equals(ProductImage? other)

@@ -5,6 +5,7 @@ namespace Product.Application.Features.UpdateStock;
 public record UpdateStockCommand : ICommand<Fin<Unit>>
 {
     public ProductId ProductId { get; init; }
+    public VariantId VariantId { get; init; }
     public int Stock { get; init; }
     public StockLevel StockLevel { get; init; }
 }
@@ -15,8 +16,10 @@ internal class UpdateStockCommandHandler(ProductDBContext dbContext) : ICommandH
         return GetUpdateEntity<ProductDBContext, Domain.Models.Product>(
             p => p.Id == command.ProductId,
             NotFoundError.New($"Product with ID {command.ProductId} not found."),
-            p => p.UpdateStock(command.Stock, command.StockLevel)
-        ).RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+            null,
+            p => p.UpdateStock(command.VariantId, command.Stock)
+        ).Map(_ => unit).
+        RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }
 

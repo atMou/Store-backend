@@ -12,8 +12,8 @@
 
   <ItemGroup>
     <Folder Include="Domain\Enums\" />
+    <Folder Include="Domain\ValueObjects\" />
     <Folder Include="Infrastructure\" />
-    <Folder Include="Presentation\Controllers\" />
   </ItemGroup>
 
 </Project>

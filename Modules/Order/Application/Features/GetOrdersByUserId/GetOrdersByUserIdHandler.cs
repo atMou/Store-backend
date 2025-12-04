@@ -18,9 +18,9 @@ internal class GetOrderByIdCommandHandler(OrderDBContext dbContext)
         var db =
             from res in GetEntitiesWithPagination<OrderDBContext, Domain.Models.Order, OrderResult,
                 GetOrdersByUserIdQuery>(
-                order => order.UserId == query.UserId,
                 query,
                 o => o.ToResult(),
+                order => order.UserId == query.UserId,
                 opt => QueryEvaluator(opt, query)
             )
 

@@ -15,8 +15,9 @@ public class PaymentFulfilledIntegrationEventHandler(
         var db = GetUpdateEntity<OrderDBContext, Domain.Models.Order>(
             order => order.Id == context.Message.OrderId,
             NotFoundError.New($"Order with ID {context.Message.OrderId} not found"),
+            null,
             o => o.MarkAsPaid(context.Message.PaymentId, clock.UtcNow)
-        );
+        ).Map(_ => unit);
 
         var result = await db.RunAsync(dbContext, EnvIO.New(null, context.CancellationToken));
         result.IfFail(err => logger.LogError("Error marking order {orderId} as paid. {err}", context.Message.OrderId, err));

@@ -3,7 +3,7 @@
 public enum StockLevel
 {
     OutOfStock,
-    Low,
-    Medium,
-    High
+    LowStock,
+    MediumStock,
+    HighStock
 }

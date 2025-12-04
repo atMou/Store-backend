@@ -10,4 +10,5 @@ public record ProductVariantResult
     public string Color { get; set; } = null!;
     public string ColorHex { get; set; } = null!;
     public int Stock { get; set; }
+
 }

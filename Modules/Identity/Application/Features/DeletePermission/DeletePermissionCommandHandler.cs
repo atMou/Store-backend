@@ -13,7 +13,7 @@ public class DeletePermissionCommandHandler(IdentityDbContext dbContext)
     public Task<Fin<Unit>> Handle(DeletePermissionCommand command, CancellationToken cancellationToken)
     {
         var db =
-        GetUpdateEntityA<IdentityDbContext, User>(
+        GetUpdateEntity<IdentityDbContext, User>(
             user => user.Id == command.UserId,
             NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
             opt =>

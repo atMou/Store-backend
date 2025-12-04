@@ -20,8 +20,9 @@ internal class GetCartByCartIdQueryHandler(
         var loadCart =
         GetEntity<BasketDbContext, Domain.Models.Cart>(
             cart => cart.Id == query.CartId,
-            opt => CartQueryEvaluator.Evaluate(opt, query),
-            NotFoundError.New($"Cart not found for id {query.CartId.Value}."));
+            NotFoundError.New($"Cart not found for id {query.CartId.Value}."),
+            opt => QueryEvaluator.Evaluate(opt, query)
+            );
 
         var loadCoupons =
             GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == query.CartId);

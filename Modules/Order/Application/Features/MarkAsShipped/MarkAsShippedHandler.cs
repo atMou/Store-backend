@@ -18,7 +18,8 @@ internal class MarkAsShippedCommandHandler(OrderDBContext dbContext, IClock cloc
         var db = GetUpdateEntity<OrderDBContext, Domain.Models.Order>(
             order => order.Id == command.OrderId,
             NotFoundError.New($"Order with ID {command.OrderId} not found"),
-            o => o.MarkAsShipped(command.ShipmentId, clock.UtcNow));
+            null,
+            o => o.MarkAsShipped(command.ShipmentId, clock.UtcNow)).Map(_ => unit);
 
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

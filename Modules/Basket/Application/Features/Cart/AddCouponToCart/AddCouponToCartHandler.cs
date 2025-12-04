@@ -12,12 +12,12 @@ internal class AddCouponToCartCommandHandler(
         var loadCart =
             GetEntity<BasketDbContext, Domain.Models.Cart>(
                 cart => cart.Id == command.CartId,
+                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
                 opt =>
                 {
                     opt.AddInclude(cart => cart.CouponIds);
                     return opt;
-                },
-                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."));
+                });
 
         var loadCoupon = GetEntity<BasketDbContext, Domain.Models.Coupon>(
             coupon => coupon.Id == command.CouponId,

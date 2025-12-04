@@ -12,17 +12,17 @@ public class OrderCreatedIntegrationEventHandler(ISender sender, ILogger<OrderCr
 {
     public async Task Consume(ConsumeContext<OrderCreatedIntegrationEvent> context)
     {
-        var orderId = context.Message.OrderDto.OrderId;
-        var userId = context.Message.OrderDto.UserId;
-        var total = context.Message.OrderDto.TotalAfterDiscounted;
-        var tax = context.Message.OrderDto.Tax;
-        var cartId = context.Message.OrderDto.CartId;
+        var orderId = context.Message.OrderId;
+        var userId = context.Message.UserId;
+        var total = context.Message.TotalAfterDiscounted;
+        var tax = context.Message.Tax;
+        var cartId = context.Message.CartId;
 
         var results = await sender.Send(new PaymentStartCommand()
         {
-            OrderId = orderId,
-            UserId = userId,
-            CartId = cartId,
+            OrderId = OrderId.From(orderId),
+            UserId = UserId.From(userId),
+            CartId = CartId.From(cartId),
             Total = total,
             Tax = tax,
         });

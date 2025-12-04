@@ -24,7 +24,7 @@ public class RefreshTokenCommandHandler(
         var db =
 
             from email in Email.From(command.Email)
-            from res in GetUpdateEntityA<IdentityDbContext, User, RefreshToken, string>(
+            from res in GetUpdateEntity<IdentityDbContext, User, RefreshToken, string>(
                 user => user.Email == email,
                 NotFoundError.New($"User with´email '{email.Value}' does not exist."),
                 (

@@ -14,8 +14,9 @@ internal class MarkAsRefundedCommandHandler(OrderDBContext dbContext, IClock clo
         var db = GetUpdateEntity<OrderDBContext, Domain.Models.Order>(
             order => order.Id == command.OrderId,
             NotFoundError.New($"Order with ID {command.OrderId} not found"),
+            null,
             o => o.MarkAsRefunded(clock.UtcNow)
-            );
+            ).Map(_ => unit);
 
         return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

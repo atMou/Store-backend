@@ -1,12 +1,14 @@
 ﻿namespace Product.Application.Features.GetAllCategories;
-public record GetAllCategoriesCommand : ICommand<IEnumerable<string>>
+public record GetAllCategoriesCommand : ICommand<IEnumerable<CategoryResult>>
 {
 }
-internal class GetAllCategoriesCommandHandler : ICommandHandler<GetAllCategoriesCommand, IEnumerable<string>>
+internal class GetAllCategoriesCommandHandler : ICommandHandler<GetAllCategoriesCommand, IEnumerable<CategoryResult>>
 {
-    public Task<IEnumerable<string>> Handle(GetAllCategoriesCommand request, CancellationToken cancellationToken)
+    public Task<IEnumerable<CategoryResult>> Handle(GetAllCategoriesCommand request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(Brand.All.Select(c => c.Name));
+        var all = Category.All.Distinct();
+        var results = all.Select(c => c.ToResult()).ToList();
+        return Task.FromResult(results.AsEnumerable());
     }
-}
 
+}

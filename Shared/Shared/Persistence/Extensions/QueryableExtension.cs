@@ -1,6 +1,4 @@
-﻿using System.Linq.Expressions;
-
-namespace Shared.Persistence.Extensions;
+﻿namespace Shared.Persistence.Extensions;
 
 public static class QueryableExtensions
 {
@@ -18,19 +16,7 @@ public static class QueryableExtensions
                 queryable = queryable.Include(include);
             }
 
-            //foreach (string s in options.Includes)
-            //{
-            //    queryable = s switch
-            //    {
-            //        var _ when string.Equals("variants", s, StringComparison.InvariantCultureIgnoreCase) => queryable
-            //            .Include("Variants"),
-            //        var _ when string.Equals("images", s, StringComparison.InvariantCultureIgnoreCase) => queryable
-            //            .Include("ProductImages"),
-            //        var _ when string.Equals("reviews", s, StringComparison.InvariantCultureIgnoreCase) => queryable
-            //            .Include("Reviews"),
-            //        _ => queryable
-            //    };
-            //}
+
             foreach (var filter in options.FilterExpressions)
             {
                 queryable = queryable.Where(filter);
@@ -44,13 +30,14 @@ public static class QueryableExtensions
             {
                 queryable = queryable.AsSplitQuery();
             }
-            if (options is { OrderAsc: true, OrderByExpression: not null })
+
+            if (options.OrderByExpression is not null)
             {
-                queryable = queryable.OrderBy(options.OrderByExpression!);
-            }
-            else if (options is { OrderDesc: true, OrderByExpression: not null })
-            {
-                queryable = queryable.OrderByDescending(options.OrderByExpression!);
+                queryable = options.OrderAsc
+                    ? queryable.OrderBy(options.OrderByExpression)
+                    : options.OrderDesc
+                        ? queryable.OrderByDescending(options.OrderByExpression)
+                        : queryable;
             }
             if (!options.WithPagination) return queryable;
 
@@ -76,11 +63,12 @@ public record QueryOptions<TAggregate>
 
     public bool WithPagination { get; set; }
 
-    public bool OrderAsc { get; set; }
+    public bool OrderAsc { get; set; } = true;
     public bool OrderDesc { get; set; }
 
     internal List<Expression<Func<TAggregate, object>>> IncludeExpressions { get; private init; } = [];
     internal List<Expression<Func<TAggregate, bool>>> FilterExpressions { get; private init; } = [];
+    public Expression<Func<TAggregate, object>>? OrderByExpression { get; private set; }
 
     public QueryOptions<TAggregate> AddInclude(params Expression<Func<TAggregate, object>>[] includes)
     {
@@ -104,7 +92,6 @@ public record QueryOptions<TAggregate>
         return this with { FilterExpressions = filters };
     }
 
-    public Expression<Func<TAggregate, object>>? OrderByExpression { get; private set; }
 
 
     public QueryOptions<TAggregate> AddOrderBy(Expression<Func<TAggregate, object>> orderBy)

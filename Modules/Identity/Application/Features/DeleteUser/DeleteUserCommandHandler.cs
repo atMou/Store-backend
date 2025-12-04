@@ -9,7 +9,7 @@ public class SetUserCartIdCommandHandler(IOptions<JwtOptions> options, IClock cl
         var db =
 
             from _ in EnsureIsSameUserOrAdmin(UserId.From(command.UserId))
-            from _1 in GetUpdateEntityA<IdentityDbContext, User>(
+            from _1 in GetUpdateEntity<IdentityDbContext, User>(
                 user => user.Id == UserId.From(command.UserId),
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
                 opt =>

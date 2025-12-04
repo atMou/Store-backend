@@ -13,9 +13,14 @@ public record GetProductsRequest
     public string? Search { get; init; }
     public string? OrderBy { get; init; }
     public string? SortDir { get; init; }
-    public int PageNumber { get; init; } = 1;
-    public int PageSize { get; init; } = 20;
+    public int? PageNumber { get; init; }
+    public int? PageSize { get; init; }
     public string? Include { get; init; }
+    public bool? IsFeatured { get; init; }
+    public bool? IsTrending { get; init; }
+    public bool? IsBestSeller { get; init; }
+    public bool? IsNew { get; init; }
+
 
     public GetProductsQuery ToQuery() => new()
     {
@@ -28,8 +33,15 @@ public record GetProductsRequest
         Search = Search,
         OrderBy = OrderBy,
         SortDir = SortDir,
-        PageNumber = PageNumber,
-        PageSize = PageSize,
-        Include = Include
+        PageNumber = PageNumber ?? 1,
+        PageSize = PageSize ?? 20,
+        Include = Include,
+        IsFeatured = IsFeatured,
+        IsTrending = IsTrending,
+        IsBestSeller = IsBestSeller,
+        IsNew = IsNew
+
+
+
     };
 }

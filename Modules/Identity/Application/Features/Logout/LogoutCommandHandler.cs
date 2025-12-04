@@ -15,14 +15,14 @@ public class LogoutCommandHandler(IClock clock, IdentityDbContext dbContext) : I
             from x in GetUpdateEntity<IdentityDbContext, User>(
                 user => user.Email == e,
                 NotFoundError.New($"User with Email: '{command.Email}' is not available"),
-                user => user.RevokeTokens(clock.UtcNow, "Logout Action"),
-
                 opt =>
                 {
                     opt.AddInclude(user => user.RefreshTokens);
                     opt.AsSplitQuery = true;
                     return opt;
-                })
+                },
+                user => user.RevokeTokens(clock.UtcNow, "Logout Action")
+            )
             select unit;
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }

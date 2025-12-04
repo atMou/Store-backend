@@ -21,7 +21,7 @@ public static class Extensions
             CouponIds = order.CouponIds,
             OrderItemsDtos = order.OrderItems.Select(item => new OrderItemDto
             {
-                ProductId = item.ProductId,
+                ProductId = item.ProductId.Value,
                 Sku = item.Sku,
                 Slug = item.Slug,
                 ImageUrl = item.ImageUrl,

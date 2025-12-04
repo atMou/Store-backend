@@ -15,12 +15,12 @@ internal class CheckoutCartCommandHandler(
         var db =
             from cart in GetEntity<BasketDbContext, Domain.Models.Cart>(
                 cart => cart.Id == command.CartId,
+                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
                 opt =>
                 {
                     opt.AddInclude(cart => cart.LineItems);
                     return opt;
-                },
-                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."))
+                })
 
             from a in userContext.IsSameUser<IO>(cart.UserId,
                 UnAuthorizedError.New("You do not have permission to checkout this cart."))

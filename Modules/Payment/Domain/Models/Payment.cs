@@ -30,6 +30,7 @@ public record Payment : Aggregate<PaymentId>
     public string TransactionId { get; private init; }
     public DateTime PaidAt { get; private init; }
     public DateTime RefundedAt { get; private init; }
+    public DateTime FailedAt { get; private init; }
 
     public static Payment Create(OrderId orderId, UserId userId, CartId cartId, decimal total, decimal tax)
     {
@@ -59,14 +60,13 @@ public record Payment : Aggregate<PaymentId>
           })
       );
 
-    public Fin<Payment> MarkAsFailed(string method, string transactionId, DateTime date) =>
+    public Fin<Payment> MarkAsFailed(string method, DateTime date) =>
         PaymentMethod.From(method).Bind(paymentMethod =>
             PaymentStatus.EnsureCanTransitionTo(PaymentStatus.Failed).Map(_ => this with
             {
                 PaymentStatus = PaymentStatus.Failed,
                 PaymentMethod = paymentMethod,
-                TransactionId = transactionId,
-                PaidAt = date
+
             })
         ).Map(payment =>
         {
@@ -76,8 +76,6 @@ public record Payment : Aggregate<PaymentId>
                 OrderId = payment.OrderId,
                 UserId = payment.UserId,
                 CartId = payment.CartId,
-                PaymentTransactionId = payment.TransactionId,
-                PaymentFailedAt = payment.PaidAt
             });
             return payment;
         });

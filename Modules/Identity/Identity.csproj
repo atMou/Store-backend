@@ -18,9 +18,5 @@
       
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Presentation\Response\" />
-    </ItemGroup>
-
 
 </Project>

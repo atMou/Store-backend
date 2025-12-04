@@ -17,7 +17,7 @@ public class AddPhoneNumberCommandHandler(
     {
         var db =
             from phone in Phone.From(command.PhoneNumber)
-            from _ in GetUpdateEntityA<IdentityDbContext, User>(
+            from _ in GetUpdateEntity<IdentityDbContext, User>(
                 user => user.Id == command.UserId,
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
                 null,
