@@ -80,26 +80,23 @@ public record Brand
 
     public static Brand UnKnown => new(BrandCode.UNK, nameof(UnKnown), nameof(UnKnown));
 
-    // Lookups
-    public static Fin<Brand> FromCode(string code)
-    {
-        return Enum.TryParse<BrandCode>(code, out var brandCode)
-            ? Optional(_all.FirstOrDefault(b => b.Code == brandCode))
-                .ToFin((Error)$"Invalid brand code '{code}'")
-            : FinFail<Brand>((Error)$"Invalid brand code '{code}'");
-    }
 
     public static Fin<Brand> From(string name)
     {
         return Optional(_all.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            .ToFin((Error)$"Invalid brand name '{name}'");
+            .ToFin(ValidationError.New($"Invalid brand name '{name}'"));
     }
 
-    public static Brand FromUnsafe(string code)
+    public static IEnumerable<Brand> Like(IEnumerable<string> repr)
     {
-        return Enum.TryParse<BrandCode>(code, out var brandCode)
-            ? Optional(_all.FirstOrDefault(b => b.Code == brandCode))
-                .Match(b => b, () => UnKnown)
-            : UnKnown;
+        return _all.Where(brand => repr.Any(s => brand.Name.Contains(s)));
+    }
+
+    public static Brand FromUnsafe(string repr)
+    {
+        return
+            Optional(_all.FirstOrDefault(b => b.Name == repr))
+                .Match(b => b, () => UnKnown);
+
     }
 }

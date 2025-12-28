@@ -41,12 +41,12 @@ public record RefreshToken
     }
 
 
-    public Unit Revoke(string reason, DateTime dateTime)
+    public RefreshToken Revoke(string reason, DateTime dateTime)
     {
         RevokedAt = dateTime;
         RevokedReason = reason;
         IsRevoked = true;
-        return unit;
+        return this;
     }
     public virtual bool Equals(RefreshToken? other)
     {

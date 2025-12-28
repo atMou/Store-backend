@@ -15,8 +15,6 @@ public record Money
         Value = decimal.Round(amount, 2, MidpointRounding.AwayFromZero);
     }
 
-    public int Dollars => (int)Math.Truncate(Value);
-    public byte Cents => (byte)((Value - Math.Truncate(Value)) * 100);
 
     public static Money FromDecimal(decimal? amount)
     {

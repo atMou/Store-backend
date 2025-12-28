@@ -22,12 +22,12 @@ public record Coupon : Aggregate<CouponId>
     }
 
     public UserId? UserId { get; private set; }
-    public CartId? CartId { get; private init; }
+    public CartId? CartId { get; private set; }
     public string Code { get; private init; }
     public Discount Discount { get; private set; }
-    public Description Description { get; private init; }
+    public Description Description { get; private set; }
     public ExpiryDate ExpiryDate { get; private set; }
-    public decimal MinimumPurchaseAmount { get; private init; }
+    public decimal MinimumPurchaseAmount { get; private set; }
     public CouponStatus CouponStatus { get; private set; } = CouponStatus.Unknown;
     public bool IsDeleted { get; private set; }
 
@@ -41,7 +41,7 @@ public record Coupon : Aggregate<CouponId>
     )
     {
         return (
-                Description.From(description),
+                Description.From(10, 200, description),
                 ExpiryDate.From(expiryDate, currentDate),
                 Discount.From((discountType, discountValue)))
             .Apply((desc, exp, discount) =>
@@ -52,13 +52,23 @@ public record Coupon : Aggregate<CouponId>
     {
         return EnsureIsValid(utcNow).Bind(_ =>
             CouponStatus.EnsureCanTransitionTo(CouponStatus.Redeemed)
-            .Map(__ => this with { CouponStatus = CouponStatus.Redeemed }));
+            .Map(__ =>
+            {
+                CouponStatus = CouponStatus.Redeemed;
+                return this;
+            }));
     }
 
     public Fin<Coupon> ApplyToCart(CartId cartId, UserId userId, DateTime utcNow)
     {
         return (EnsureHasNoUser(), EnsureHasNoCart(), ExpiryDate.EnsureIsValid(utcNow))
-            .Apply((_, _, _) => this with { CartId = cartId, CouponStatus = CouponStatus.AppliedToCart })
+            .Apply((_, _, _) =>
+            {
+                CartId = cartId;
+                UserId = userId;
+                CouponStatus = CouponStatus.AppliedToCart;
+                return this;
+            })
             .As();
 
     }
@@ -67,10 +77,11 @@ public record Coupon : Aggregate<CouponId>
     {
         return (CouponStatus.EnsureCanTransitionTo(CouponStatus.AssignedToUser),
                 ExpiryDate.EnsureIsValid(utcNow), EnsureHasNoUser())
-                .Apply((_, _, _) => this with
+                .Apply((_, _, _) =>
                 {
-                    UserId = userId,
-                    CouponStatus = CouponStatus.AssignedToUser
+                    UserId = userId;
+                    CouponStatus = CouponStatus.AssignedToUser;
+                    return this;
                 }).As();
     }
 
@@ -97,15 +108,12 @@ public record Coupon : Aggregate<CouponId>
             ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."))
             : unit;
     }
-    public Fin<decimal> GetDiscountFromTotal(decimal total, DateTime utcNow)
-    {
-        return (EnsureHasACart(), EnsureHasAUser(), ExpiryDate.EnsureIsValid(utcNow))
-               .Apply((_, _, _) => Discount.Apply(total)).As();
-    }
 
     public Coupon MarkAsDeleted()
     {
-        return this with { IsDeleted = true, ExpiryDate = ExpiryDate.FromUnsafe(DateTime.UtcNow) };
+        IsDeleted = true;
+        ExpiryDate = ExpiryDate.FromUnsafe(DateTime.UtcNow);
+        return this;
     }
 
 
@@ -115,14 +123,19 @@ public record Coupon : Aggregate<CouponId>
         {
             return FinFail<Coupon>(NotFoundError.New($"Coupon with ID '{Id.Value}' is already expired."));
         }
-        return this with { CouponStatus = CouponStatus.Expired, ExpiryDate = ExpiryDate.FromUnsafe(utcNow) };
+
+        CouponStatus = CouponStatus.Expired;
+        ExpiryDate = ExpiryDate.FromUnsafe(utcNow);
+        return this;
     }
 
-
-    // should be called from outside when redeeming the coupon or when user add it to cart
     public Fin<Coupon> ChangeCouponStatus(CouponStatus status)
     {
-        return CouponStatus.EnsureCanTransitionTo(status).Map(_ => this with { CouponStatus = status });
+        return CouponStatus.EnsureCanTransitionTo(status).Map(_ =>
+        {
+            CouponStatus = status;
+            return this;
+        });
     }
 
 
@@ -132,37 +145,35 @@ public record Coupon : Aggregate<CouponId>
         return (EnsureHasNoCart(), EnsureHasNoUser()).Apply((_, _) => this).As();
     }
 
+    private Fin<Coupon> UpdateDescription(string repr)
+    {
+        return Description.From(10, 200, repr).Map(d =>
+        {
+            Description = d;
+            return this;
+        });
+    }
+    private Fin<Coupon> UpdateExpiryDate(DateTime dateTime, DateTime utcNow)
+    {
+        return ExpiryDate.From(dateTime, utcNow).Map(e =>
+        {
+            ExpiryDate = e;
+            return this;
+        });
+    }
     public Fin<Coupon> Update(UpdateCouponDto dto, DateTime utcNow)
     {
-        var validations = Seq<Fin<Coupon>>();
+        var fin = FinSucc(this);
         if (dto.Description is not null)
-            validations = validations.Add(
-                  Description.From(dto.Description).Map(d =>
-                      this with { Description = d }));
+            fin = fin.Bind(coupon => coupon.UpdateDescription(dto.Description));
+
         if (dto.ExpiryDate is not null)
-            validations = validations.Add(
-                Optional(dto.ExpiryDate).ToFin().Bind(ex => ExpiryDate.From(ex, utcNow).Map(e =>
-                    this with { ExpiryDate = e })));
-        if (dto.DiscountType is not null)
-            validations = validations.Add(
-                (Optional(dto.DiscountValue).ToFin(InvalidOperationError.New("Invalid discount value.")),
-                    Optional(dto.DiscountType).ToFin(InvalidOperationError.New("Invalid discount type.")))
-                .Apply((d, type) => (type, d))
-                .Bind(t => Discount.From((t.type, t.d)).Map(discount =>
-                    this with { Discount = discount })).As());
+            fin = fin.Bind(coupon => coupon.UpdateExpiryDate(dto.ExpiryDate.Value, utcNow));
 
         if (dto.Status is { } cs)
-            validations = validations.Add(CouponStatus.EnsureCanTransitionTo(cs).Map(_ => this with { CouponStatus = cs }));
+            fin = fin.Bind(coupon => coupon.ChangeCouponStatus(cs));
 
-        if (dto.MinimumPurchaseAmount is not null)
-            validations = validations.Add(
-                ValidateMinimumPurchaseAmount(dto.MinimumPurchaseAmount).Map(_ =>
-                    this with { MinimumPurchaseAmount = dto.MinimumPurchaseAmount.Value }));
-
-        return EnsureIsValid(utcNow).Bind(_ => validations
-            .Traverse(identity)
-            .Map(seq => seq.Last.Match(coupon => coupon, () => this))
-        );
+        return EnsureIsValid(utcNow).Bind(_ => fin);
     }
 
     private Fin<Unit> EnsureIsValid(DateTime datetime)
@@ -175,14 +186,6 @@ public record Coupon : Aggregate<CouponId>
 
 
     }
-
-    private Fin<decimal?> ValidateMinimumPurchaseAmount(decimal? minimumAmount)
-    {
-        return minimumAmount is null ? FinSucc(minimumAmount)
-            : minimumAmount < 0 ? FinFail<decimal?>(Error.New("Invalid minimum purchase amount."))
-            : minimumAmount;
-    }
-
 
     private static string GenerateCode()
     {

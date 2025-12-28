@@ -10,7 +10,7 @@ internal class InventoryEntityConfiguration : IEntityTypeConfiguration<Domain.Mo
         builder.Property(i => i.Id)
             .HasConversion(
                 id => id.Value,
-                value => ProductId.From(value))
+                value => InventoryId.From(value))
             .HasColumnName("inventory_id");
 
         builder.Property(i => i.ProductId)

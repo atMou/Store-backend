@@ -1,4 +1,4 @@
-﻿using Basket.Application.Features.Cart.DeleteCart;
+﻿using Basket.Application.Features.Cart.DeleteCartItem;
 using Basket.Application.Features.Cart.GetCart;
 
 using Shared.Application.Contracts.Carts.Results;
@@ -50,16 +50,31 @@ public class BasketsController(ISender sender) : ControllerBase
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult<Unit>> Delete([FromRoute] Guid id)
-    {
-        var result = await sender.Send(new DeleteCartCommand(CartId.From(id)));
-        return result.ToActionResult(_ => NoContent(), HttpContext.Request.Path);
-    }
+    //[HttpDelete("{id}")]
+    //public async Task<ActionResult<Unit>> Delete([FromRoute] Guid id)
+    //{
+    //    var result = await sender.Send(new DeleteCartCommand(CartId.From(id)));
+    //    return result.ToActionResult(_ => NoContent(), HttpContext.Request.Path);
+    //}
 
     [HttpPost]
     [Route("add-line-item")]
-    public async Task<ActionResult<Unit>> AddItem([FromBody] AddLineItemRequest request)
+    public async Task<ActionResult<Unit>> AddLineItem([FromBody] AddLineItemRequest request)
+    {
+        var result = await sender.Send(request.ToCommand());
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+    }
+    [HttpPost]
+    [Route("update-line-item")]
+    public async Task<ActionResult<Unit>> UpdateLineItem([FromBody] UpdateLineItemRequest request)
+    {
+        var result = await sender.Send(request.ToCommand());
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+    }
+
+    [HttpDelete]
+    [Route("delete-line-item")]
+    public async Task<ActionResult<Unit>> DeleteLineItem([FromBody] DeleteLineItemRequest request)
     {
         var result = await sender.Send(request.ToCommand());
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
@@ -76,3 +91,18 @@ public class BasketsController(ISender sender) : ControllerBase
 
 
 }
+
+public record DeleteLineItemRequest
+{
+    public Guid CartId { get; init; }
+    public Guid VariantId { get; init; }
+
+    public DeleteLineItemCommand ToCommand() =>
+        new DeleteLineItemCommand(
+            Shared.Domain.ValueObjects.VariantId.From(VariantId),
+            Shared.Domain.ValueObjects.CartId.From(CartId)
+        );
+
+}
+
+

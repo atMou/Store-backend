@@ -1,44 +1,44 @@
 ﻿namespace Shared.Domain.ValueObjects;
 
-public record ProductImage
+public record Image
 {
-    private ProductImage() { }
-    private ProductImage(ImageUrl imageUrl, string altText, bool isMain)
+    private Image() { }
+    private Image(ImageUrl imageUrl, string altText, bool isMain)
     {
         ImageUrl = imageUrl;
         AltText = altText;
         IsMain = isMain;
-        Id = ProductImageId.New;
+        Id = ImageId.New;
     }
-    public ProductImageId Id { get; private init; }
+    public ImageId Id { get; private init; }
     public ImageUrl ImageUrl { get; private init; }
-    public string AltText { get; private init; }
-    public bool IsMain { get; private init; }
+    public string AltText { get; private set; }
+    public bool IsMain { get; private set; }
     public ProductId ProductId { get; set; }
     public VariantId VariantId { get; set; }
 
-    public static Fin<ProductImage> From(string url, string altText, bool IsMain)
+    public static Fin<Image> From(string url, string publicId, string altText, bool IsMain)
     {
-        return ImageUrl.From(url).Map(imageUrl => new ProductImage(imageUrl, altText, IsMain));
+        return ImageUrl.From(url, publicId).Map(imageUrl => new Image(imageUrl, altText, IsMain));
     }
 
-    public static ProductImage FromUnsafe(string url, string altText, bool IsMain)
+    public static Image FromUnsafe(string url, string publicId, string altText, bool IsMain)
     {
-        return new ProductImage(ImageUrl.FromUnsafe(url), altText, IsMain);
+        return new Image(ImageUrl.FromUnsafe(url, publicId), altText, IsMain);
     }
-    public Fin<ProductImage> Update(string url, string altText, bool isMain)
+    public Image Update(string altText, bool isMain)
     {
-        return ImageUrl.From(url).Map(imageUrl => this with
+        if (altText != AltText || IsMain != isMain)
         {
-            ImageUrl = imageUrl,
-            AltText = altText,
-            IsMain = isMain
-        });
+            AltText = altText;
+            IsMain = isMain;
+        }
+        return this;
     }
 
-    public virtual bool Equals(ProductImage? other)
+    public virtual bool Equals(Image? other)
     {
-        return other is not null && ImageUrl == other.ImageUrl;
+        return other is not null && ImageUrl.Value == other.ImageUrl.Value;
     }
     public override int GetHashCode()
     {

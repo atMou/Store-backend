@@ -1,19 +1,15 @@
-﻿using Inventory.Domain.Events;
+﻿//using Inventory.Domain.Events;
 
-using MassTransit;
+//using MediatR;
 
-using MediatR;
+//namespace Inventory.Application.EventHandlers;
 
-using Shared.Application.Features.Inventory.Events;
+//public class ProductReservedDomainEventHandler(IPublishEndpoint endpoint) : INotificationHandler<ProductReservedDomainEvent>
+//{
+//    public async Task Handle(ProductReservedDomainEvent notification, CancellationToken cancellationToken)
+//    {
 
-namespace Inventory.Application.EventHandlers;
-
-public class ProductReservedDomainEventHandler(IPublishEndpoint endpoint) : INotificationHandler<ProductReservedDomainEvent>
-{
-    public async Task Handle(ProductReservedDomainEvent notification, CancellationToken cancellationToken)
-    {
-
-        await endpoint.Publish(new ProductReservedIntegrationEvent(notification.ProductId, notification.Qty, notification.StockLevel),
-            cancellationToken);
-    }
-}
+//        await endpoint.Publish(new ProductReservedIntegrationEvent(notification.ProductId, notification.Qty, notification.),
+//            cancellationToken);
+//    }
+//}

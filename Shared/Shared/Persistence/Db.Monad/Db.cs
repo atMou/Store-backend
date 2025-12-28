@@ -3,7 +3,6 @@ using LanguageExt;
 
 //using static LanguageExt.Prelude;
 
-[SuppressMessage("ReSharper", "InconsistentNaming")]
 
 public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A>
 {
@@ -89,8 +88,10 @@ public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A
     public Db<RT, B> Match<B>(Func<A, B> Succ, Func<Error, B> Fail) =>
         Map(Succ).Catch(Fail).As();
 
-    public Db<RT, A> IfFailDb(Func<Error, K<Db<RT>, A>> Fail) =>
+    public Db<RT, A> IfFail(Func<Error, K<Db<RT>, A>> Fail) =>
        this.Catch(Fail).As();
+    public Db<RT, A> IfFail(Func<Error, Db<RT, A>> Fail) =>
+        this.Catch(Fail).As();
     public Db<RT, A> IfFail(Func<Error, A> Fail) =>
         Match(Prelude.identity, Fail);
     public Db<RT, A> MapFail(Func<Error, Error> f) =>
@@ -98,13 +99,14 @@ public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A
     public Db<RT, B> BiMap<B>(Func<A, B> Succ, Func<Error, Error> Fail) =>
       Map(Succ).Catch(Fail).As();
 
-    public Db<RT, B> Select<B>(Func<A, B> f) =>
-        Map(f);
 
 
+
+    // Bindings
     public Db<RT, B> Bind<B>(Func<A, K<Db<RT>, B>> f) =>
         new(runDB.Bind(a => f(a).As().runDB));
-
+    public Db<RT, B> Bind<B>(Func<A, Db<RT, B>> f) =>
+        new(runDB.Bind(a => f(a).As().runDB));
     public Db<RT, B> Bind<B>(Func<A, IO<B>> f) =>
             Bind(a => Db<RT>.liftIO(f(a))).As();
 
@@ -116,6 +118,14 @@ public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A
 
     public Db<RT, A> Bind(Func<A, Fail<Error>> f) =>
         Bind(a => Fail(f(a).Value));
+
+
+    public Db<RT, A> BindFail(Func<Error, Db<RT, A>> f) =>
+        this | @catch(err => f(err));
+
+
+    public Db<RT, B> Select<B>(Func<A, B> f) =>
+        Map(f);
 
 
     public Db<RT, C> SelectMany<B, C>(Func<A, K<Db<RT>, B>> bind, Func<A, B, C> project) =>
@@ -206,8 +216,7 @@ public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A
         lhs.Catch(rhs).As();
 
 
-
-
-    public Fin<A> Run(RT rt) => runDB.Run(rt).As();
+    public Fin<A> Run(RT rt) => runDB.Run(rt);
+    public Fin<A> Run(RT rt, EnvIO envIo) => runDB.Run(rt, envIo);
 
 }

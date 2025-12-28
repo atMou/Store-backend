@@ -1,4 +1,6 @@
-﻿namespace Shared.Persistence.Db.Monad;
+﻿using Shared.Application.Contracts;
+
+namespace Shared.Persistence.Db.Monad;
 
 public static class Db
 {
@@ -24,6 +26,33 @@ public static class Db
     }
 
 
+    public static Db<Ctx, Unit> AddEntities<Ctx, A>(
+        IEnumerable<A> entities)
+        where Ctx : DbContext where A : class
+    {
+        return
+            from _2 in Db<Ctx>.lift(ctx =>
+            {
+                ctx.Set<A>().AddRange(entities);
+                return unit;
+            })
+            select unit;
+    }
+
+
+    public static Db<Ctx, Unit> AddEntities<Ctx, A>(
+        IEnumerable<Fin<A>> entities)
+        where Ctx : DbContext where A : class
+    {
+        return
+            from res in entities.AsIterable().Traverse(fn => fn).As()
+            from _2 in Db<Ctx>.lift(ctx =>
+            {
+                ctx.Set<A>().AddRange(res);
+                return unit;
+            })
+            select unit;
+    }
 
 
     public static Db<Ctx, A> AddEntity<Ctx, A, B>(
@@ -46,20 +75,18 @@ public static class Db
     public static Db<Ctx, A> AddEntity<Ctx, A, B>(
         B createDto,
         Func<B, Fin<A>> create,
-         Func<A, Seq<IO<A>>> update)
+        params Func<A, IO<A>>[] updates)
         where Ctx : DbContext where A : class
     {
         return
             (from res in create(createDto)
-             from seq in awaitAll(update(res).Map(io => io.Fork()))
-             from element in seq.Last.Match(a => IO.lift(() => a), IO.fail<A>(InvalidOperationError.New("Failed to create the entity.")))
+             from res2 in updates.AsIterable().Fold(IO.pure(res), (io, fn) => io.Bind(a => fn(a)))
              from _2 in Db<Ctx>.lift(ctx =>
              {
-
-                 ctx.Set<A>().Add(element);
+                 ctx.Set<A>().Add(res2);
                  return unit;
              })
-             select element).As();
+             select res2).As();
     }
 
 
@@ -67,7 +94,6 @@ public static class Db
         A entity)
         where Ctx : DbContext where A : class, IAggregate
     {
-
         return
             from _2 in Db<Ctx>.lift(ctx =>
             {
@@ -81,7 +107,6 @@ public static class Db
         Fin<A> ma)
         where Ctx : DbContext where A : class
     {
-
         return
             from entity in ma
             from _2 in Db<Ctx>.lift(ctx =>
@@ -104,10 +129,8 @@ public static class Db
                 await ctx.Set<A>().FirstOrDefaultAsync(predicate, e.Token))
                from _1 in when(a.IsNull(),
                    IO.fail<Unit>(error))
-
                let b = doFns.First(a)
                let c = doFns.Second(a)
-
                from updatedA in updates.Aggregate(FinSucc(a), (current, func) => current.Bind(a => func(a, b, c)))
                from _2 in Db<Ctx>.lift(ctx =>
                {
@@ -132,25 +155,22 @@ public static class Db
                 : Db<Ctx>.liftIO(async (ctx, e) =>
                     await ctx.Set<A>().WithQueryOptions(fn)
                         .FirstOrDefaultAsync(predicate, e.Token))
-
             from _1 in when(a.IsNull(),
                 IO.fail<Unit>(error))
             from updatedA in updates.Aggregate(FinSucc(a), (current, func) => current.Bind(func))
             from _2 in Db<Ctx>.lift(ctx =>
             {
-                ctx.Set<A>().Entry(a).CurrentValues.SetValues(updatedA);
+                ctx.Set<A>().Update(updatedA);
                 return unit;
             })
             select updatedA;
-
     }
 
     public static Db<Ctx, A> GetUpdateEntity<Ctx, A>(
         Expression<Func<A, bool>> predicate,
         NotFoundError error,
-        Func<QueryOptions<A>, QueryOptions<A>>? fn,
-         Func<A, Fin<A>> update1,
-        Func<A, Seq<IO<A>>> update2
+        Func<QueryOptions<A>, QueryOptions<A>>? fn = null,
+        params Func<A, A>[] updates
     )
         where Ctx : DbContext where A : class, IAggregate
     {
@@ -161,19 +181,43 @@ public static class Db
                 : Db<Ctx>.liftIO(async (ctx, e) =>
                     await ctx.Set<A>().WithQueryOptions(fn)
                         .FirstOrDefaultAsync(predicate, e.Token))
+            from _1 in when(a.IsNull(),
+                IO.fail<Unit>(error))
+            let updatedA = updates.AsIterable().Fold(a, (current, func) => func(current))
+            from _2 in Db<Ctx>.lift(ctx =>
+            {
+                ctx.Set<A>().Update(updatedA);
+                return unit;
+            })
+            select updatedA;
+    }
 
+    public static Db<Ctx, A> GetUpdateEntity<Ctx, A>(
+        Expression<Func<A, bool>> predicate,
+        NotFoundError error,
+        Func<QueryOptions<A>, QueryOptions<A>>? fn,
+        Func<A, Fin<A>> update1,
+        Func<A, IO<A>> update2
+    )
+        where Ctx : DbContext where A : class, IAggregate
+    {
+        return
+            from a in fn.IsNull()
+                ? Db<Ctx>.liftIO(async (ctx, e) =>
+                    await ctx.Set<A>().FirstOrDefaultAsync(predicate, e.Token))
+                : Db<Ctx>.liftIO(async (ctx, e) =>
+                    await ctx.Set<A>().WithQueryOptions(fn)
+                        .FirstOrDefaultAsync(predicate, e.Token))
             from _1 in when(a.IsNull(),
                 IO.fail<Unit>(error))
             from a1 in update1(a)
-            from seq in awaitAll(update2(a1).Map(io => io.Fork()))
-            from element in seq.Last.Match(a => IO.lift(() => a), IO.fail<A>(InvalidOperationError.New("Failed to create the entity.")))
+            from element in update2(a1)
             from _2 in Db<Ctx>.lift(ctx =>
             {
-                ctx.Set<A>().Entry(a).CurrentValues.SetValues(element);
+                ctx.Set<A>().Update(element);
                 return unit;
             })
             select element;
-
     }
 
     public static Db<Ctx, Unit> UpdateEntity<Ctx, A>(
@@ -192,14 +236,14 @@ public static class Db
 
     public static Db<Ctx, Unit> UpdateEntity<Ctx, A>(
         A entity,
-       params Func<A, A>[] updates)
+        params Func<A, A>[] updates)
         where Ctx : DbContext where A : class
     {
         var updatedA = updates.Aggregate(entity, (current, fn) => fn(current));
         return
             from _2 in Db<Ctx>.lift(ctx =>
             {
-                ctx.Set<A>().Entry(entity).CurrentValues.SetValues(updatedA);
+                ctx.Set<A>().Update(updatedA);
                 return unit;
             })
             select unit;
@@ -295,13 +339,13 @@ public static class Db
     }
 
 
-
     public static Db<Ctx, PaginatedResult<B>> GetEntitiesWithPagination<Ctx, A, B, TQuery>
     (
+        Expression<Func<A, bool>>? predicate,
+        Func<QueryOptions<A>, QueryOptions<A>>? fn,
         TQuery query,
-        Func<A, B> map,
-        Expression<Func<A, bool>>? predicate = null,
-        Func<QueryOptions<A>, QueryOptions<A>>? fn = null)
+        Func<A, B> map
+        )
         where Ctx : DbContext
         where A : class, IAggregate
         where TQuery : IPagination
@@ -321,7 +365,6 @@ public static class Db
                 };
                 return (Items: items, TotalCount: totalCount);
             })
-
                select new PaginatedResult<B>
                {
                    Items = result.Items.Select(map),
@@ -330,7 +373,4 @@ public static class Db
                    PageNumber = query.PageNumber
                };
     }
-
-
 }
-

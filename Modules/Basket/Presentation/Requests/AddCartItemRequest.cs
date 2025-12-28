@@ -5,8 +5,11 @@ namespace Basket.Presentation.Requests;
 public record AddLineItemRequest
 {
     public Guid ProductId { get; init; }
+    public Guid VariantId { get; init; }
     public int Quantity { get; init; }
     public Guid CartId { get; init; }
+
+
 
     public AddLineItemCommand ToCommand()
     {
@@ -14,7 +17,8 @@ public record AddLineItemRequest
         {
             ProductId = Shared.Domain.ValueObjects.ProductId.From(ProductId),
             Quantity = Quantity,
-            CartId = Shared.Domain.ValueObjects.CartId.From(CartId)
+            CartId = Shared.Domain.ValueObjects.CartId.From(CartId),
+            VariantId = Shared.Domain.ValueObjects.VariantId.From(VariantId)
         };
     }
 }

@@ -13,7 +13,7 @@ public static class Extensions
             Tax = cart.TaxValue.Value,
             Total = cart.Total.Value,
             TotalSub = cart.TotalSub.Value,
-            Discount = cart.Discount.Value,
+            Discount = cart.TotalDiscount,
             TotalDiscounted = cart.TotalAfterDiscounted.Value,
             LineItems = cart.LineItems.ToResult(),
             Coupons = coupons.ToResult()
@@ -49,6 +49,7 @@ public static class Extensions
         return new LineItemResult
         {
             ProductId = lineItem.ProductId.Value,
+            VariantId = lineItem.VariantId.Value,
             Slug = lineItem.Slug,
             ImageUrl = lineItem.ImageUrl,
             Quantity = lineItem.Quantity,

@@ -13,7 +13,6 @@
   <ItemGroup>
     <Folder Include="Domain\Enums\" />
     <Folder Include="Domain\ValueObjects\" />
-    <Folder Include="Infrastructure\" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@ internal class GetProductByIdQueryHandler(ProductDBContext dbContext)
     : IQueryHandler<GetProductByIdQuery, Fin<ProductResult>>
 {
 
-    public Task<Fin<ProductResult>> Handle(GetProductByIdQuery query,
+    public async Task<Fin<ProductResult>> Handle(GetProductByIdQuery query,
         CancellationToken cancellationToken)
     {
 
@@ -15,7 +15,7 @@ internal class GetProductByIdQueryHandler(ProductDBContext dbContext)
             )
             .Map(p => p.ToResult());
 
-        return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
 
     }
 }

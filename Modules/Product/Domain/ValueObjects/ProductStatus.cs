@@ -1,7 +1,7 @@
 namespace Product.Domain.ValueObjects;
 
 
-public record Status
+public sealed record Status
 {
     public bool IsFeatured { get; private init; }
     public bool IsTrending { get; private init; }
@@ -23,11 +23,15 @@ public record Status
             true
         );
 
-    public Status Update(bool? isFeatured, bool? isTrending, bool? isBestSeller, bool? isNew) =>
-        new(isFeatured: isFeatured ?? IsFeatured,
+    public Status Update(bool? isFeatured, bool? isTrending, bool? isBestSeller, bool? isNew)
+    {
+        return new Status(
+            isFeatured: isFeatured ?? IsFeatured,
             isTrending: isTrending ?? IsTrending,
             isBestSeller: isBestSeller ?? IsBestSeller,
             isNew: isNew ?? IsNew
         );
+    }
+
 
 }

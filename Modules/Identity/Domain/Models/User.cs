@@ -1,10 +1,11 @@
+using Identity.Domain.Events;
+
 namespace Identity.Domain.Models;
 
 public record User : Aggregate<UserId>
 {
-    private User(Phone? phone) : base(UserId.New)
+    private User() : base(UserId.New)
     {
-        Phone = phone;
     }
 
     private User(
@@ -29,14 +30,15 @@ public record User : Aggregate<UserId>
     }
 
 
-    public Email Email { get; private init; }
-    public Phone? Phone { get; private init; }
-    public Firstname FirstName { get; private init; }
-    public Lastname LastName { get; private init; }
-    public Age? Age { get; private init; }
+    public Email Email { get; private set; }
+    public Phone? Phone { get; private set; }
+    public Firstname FirstName { get; private set; }
+    public Lastname LastName { get; private set; }
+    public Age? Age { get; private set; }
     public ImageUrl? Avatar { get; private set; }
-    public Gender? Gender { get; private init; }
-    public Guid? EmailConfirmationToken { get; private set; }
+    public Gender? Gender { get; private set; }
+    public string? EmailConfirmationToken { get; private set; }
+    public string? EmailConfirmationCode { get; private set; }
     public string? PhoneConfirmationToken { get; private set; }
     public DateTime? EmailConfirmationExpiresAt { get; private set; }
     public DateTime? PhoneConfirmationExpiresAt { get; private set; }
@@ -45,23 +47,21 @@ public record User : Aggregate<UserId>
     [NotMapped] public Password Password { get; }
     public string HashedPassword { get; private set; }
     public bool IsEmailVerified { get; private set; }
-    public bool IsPhoneVerified { get; set; }
+    public bool IsPhoneVerified { get; private set; }
 
-    public List<LikedProductId> LikedProducts { get; private init; } = [];
-    public List<PendingOrderId> PendingOrderIds { get; private set; } = [];
+    public ICollection<LikedProductId> LikedProductIds { get; private set; } = [];
+    public ICollection<PendingOrderId> PendingOrderIds { get; private set; } = [];
     public List<Role> Roles { get; private set; } = [];
 
 
     public List<Permission> Permissions { get; private set; } = [];
-    public List<RefreshToken> RefreshTokens { get; private set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
+    public ICollection<Address> Addresses { get; private set; }
 
     public CartId? CartId { get; private set; }
-    public List<Address> Addresses { get; private init; }
     public bool IsDeleted { get; private set; }
 
-    public static Fin<User> Create(
-        CreateUserDto dto
-    )
+    public static Fin<User> Create(CreateUserDto dto, DateTime utcNow)
     {
         var address = Address.Create(
             dto.Street,
@@ -83,7 +83,7 @@ public record User : Aggregate<UserId>
             .Apply((e, f, l, a, p, g, ph) =>
                 {
                     var user = new User(e, p, f, l, g.ValueUnsafe(), a.ValueUnsafe(), ph.ValueUnsafe(), address)
-                        .GenerateEmailVerificationToken();
+                        .GenerateEmailVerificationToken(utcNow);
 
                     return user;
                 }
@@ -92,18 +92,21 @@ public record User : Aggregate<UserId>
 
     public User AddPendingOrder(PendingOrderId orderId)
     {
-        return this with { PendingOrderIds = [.. PendingOrderIds, orderId] };
+
+        PendingOrderIds = [.. PendingOrderIds, orderId]; return this;
     }
 
     public User RemovePendingOrder(PendingOrderId orderId)
     {
-        return this with { PendingOrderIds = PendingOrderIds.Where(id => id != orderId).ToList() };
+        PendingOrderIds = PendingOrderIds.Where(id => id != orderId).ToList();
+        return this;
     }
 
 
     public User MarkAsDeleted()
     {
-        return this with { IsDeleted = true };
+        IsDeleted = true;
+        return this;
     }
 
     public Fin<User> HasNoPendingOrders()
@@ -121,14 +124,15 @@ public record User : Aggregate<UserId>
 
     public User AddRefreshToken(RefreshToken token, DateTime dateTime)
     {
-        var u = RevokeTokens(dateTime, "New refresh token added");
-        return u with { RefreshTokens = [.. RefreshTokens, token] };
+        var user = RevokeTokens(dateTime, "New refresh token added");
+        RefreshTokens = [.. user.RefreshTokens, token];
+        return user;
     }
 
     public User RevokeTokens(DateTime dateTime, string reason)
     {
-        var activeTokens = RefreshTokens.Where(token => !token.IsRevoked);
-        var revoked = activeTokens.AsIterable().Map(token => token.Revoke(reason, dateTime));
+        var (revoked, active) = RefreshTokens.AsIterable().Partition(token => token.IsRevoked);
+        RefreshTokens = [.. active.Map(token => token.Revoke(reason, dateTime)), .. revoked];
         return this;
     }
 
@@ -141,22 +145,43 @@ public record User : Aggregate<UserId>
 
     public Fin<User> AssignUserToRoles(params string[] roles)
     {
-        return ValidateRoles(roles).Map(rs => this with { Roles = rs.ToList() });
+        return ValidateRoles(roles).Map(rs =>
+        {
+            Roles = rs.ToList();
+            return this;
+        });
+    }
+
+    public User AssignUserToRoles(params Role[] roles)
+    {
+        return this with { Roles = roles.ToList() };
     }
 
     public Fin<User> AssignUserToPermissions(params string[] permissions)
     {
-        return ValidatePermissions(permissions).Map(ps => this with { Permissions = ps.ToList() });
+        return ValidatePermissions(permissions).Map(ps =>
+        {
+            Permissions = ps.ToList();
+            return this;
+        });
     }
 
     public Fin<User> DeletePermissions(params string[] permissions)
     {
-        return ValidatePermissions(permissions).Map(ps => this with { Permissions = Permissions.Except(ps).ToList() });
+        return ValidatePermissions(permissions).Map(ps =>
+        {
+            Permissions = Permissions.Except(ps).ToList();
+            return this;
+        });
     }
 
     public Fin<User> DeleteRoles(params string[] roles)
     {
-        return ValidateRoles(roles).Map(rs => this with { Roles = Roles.Except(rs).ToList() });
+        return ValidateRoles(roles).Map(rs =>
+        {
+            Roles = Roles.Except(rs).ToList();
+            return this;
+        });
     }
 
     private Fin<IEnumerable<Permission>> ValidatePermissions(params string[] permissions)
@@ -168,39 +193,42 @@ public record User : Aggregate<UserId>
 
     public User AddCartId(CartId cartId)
     {
-        return this with { CartId = cartId };
+        CartId = cartId;
+        return this;
     }
 
     public User AddAvatar(ImageUrl imageUrl)
     {
-        return this with { Avatar = imageUrl };
+        Avatar = imageUrl;
+        return this;
     }
 
     public User DeleteCartId()
     {
-        return this with { CartId = null };
+        CartId = null;
+        return this;
     }
 
-    public User SetPhone(Phone phone, DateTime utcNow)
+    public User AddPhone(Phone phone, DateTime utcNow)
     {
         var token = Helpers.GenerateCode(6);
         AddDomainEvent(new PhoneNumberAddedDomainEvent(phone, token));
 
-        return this with
-        {
-            Phone = phone,
-            PhoneConfirmationToken = token,
-            PhoneConfirmationExpiresAt = utcNow.AddMinutes(30)
-        };
+
+        Phone = phone;
+        PhoneConfirmationToken = token;
+        PhoneConfirmationExpiresAt = utcNow.AddMinutes(30);
+        return this;
     }
 
-    public User GenerateEmailVerificationToken()
+    public User GenerateEmailVerificationToken(DateTime utcNow)
     {
-        return this with
-        {
-            EmailConfirmationToken = Guid.NewGuid(),
-            EmailConfirmationExpiresAt = DateTime.UtcNow.AddMinutes(30)
-        };
+
+        EmailConfirmationCode = Helpers.GenerateCodeNumber(6);
+        EmailConfirmationToken = Guid.NewGuid().ToString();
+        EmailConfirmationExpiresAt = utcNow.AddMinutes(30);
+        return this;
+
     }
 
     public User GeneratePhoneVerificationToken()
@@ -215,49 +243,53 @@ public record User : Aggregate<UserId>
 
     public User ToggleLikedProducts(params ProductId[] productIds)
     {
-        var updatedLikedProducts = LikedProducts.ToList();
-        foreach (var productId in productIds)
+        var (existing, nonExisting) = productIds.AsIterable().Partition(pId => LikedProductIds.Any(lpid => pId == lpid.ProductId));
+
+        if (existing.Any())
         {
-            var existingProduct = updatedLikedProducts.FirstOrDefault(p => p.ProductId == productId);
-            if (existingProduct.IsNotNull())
-            {
-                updatedLikedProducts = updatedLikedProducts.Where(lpid => lpid.ProductId != productId).ToList();
-            }
-            else
-            {
-                updatedLikedProducts.Add(LikedProductId.Create(Id, productId));
-            }
+            LikedProductIds = LikedProductIds
+                .Where(lpid => !existing.Contains<Iterable, ProductId>(lpid.ProductId))
+                .ToList();
         }
 
-        return this with { LikedProducts = updatedLikedProducts };
+        if (nonExisting.Any())
+        {
+            LikedProductIds = [.. LikedProductIds, .. nonExisting.Select(id => LikedProductId.Create(Id, id))];
+        }
+
+        return this;
     }
 
-    public Fin<User> VerifyConfirmationToken(Guid token, DateTime utcNow)
+    public Fin<User> VerifyConfirmationToken(string? code, DateTime utcNow)
     {
-        return ValidateToken().Map(_ => this with
+        return ValidateToken().Map(_ =>
         {
-            IsEmailVerified = true,
-            EmailConfirmationToken = null,
-            EmailConfirmationExpiresAt = null
+            IsEmailVerified = true;
+            EmailConfirmationToken = null;
+            EmailConfirmationCode = null;
+            EmailConfirmationExpiresAt = null;
+
+            return this;
         });
 
         Fin<Unit> ValidateToken()
         {
-            return token != EmailConfirmationToken
-                ? FinFail<Unit>(UnAuthorizedError.New("Invalid email verification token."))
-                : utcNow > EmailConfirmationExpiresAt
-                    ? FinFail<Unit>(UnAuthorizedError.New("Email verification token has already expired"))
-                    : FinSucc(unit);
+            return utcNow > EmailConfirmationExpiresAt
+                    ? FinFail<Unit>(UnAuthorizedError.New("Email confirmation token has already expired"))
+                    : code == EmailConfirmationToken || code == EmailConfirmationCode
+                        ? FinSucc(unit)
+                    : FinFail<Unit>(UnAuthorizedError.New("Invalid email confirmation code."));
         }
     }
 
     public Fin<User> VerifyPhone(string token, DateTime expiresAt)
     {
-        return ValidateToken().Map(_ => this with
+        return ValidateToken().Map(_ =>
         {
-            IsPhoneVerified = true,
-            PhoneConfirmationToken = null,
-            PhoneConfirmationExpiresAt = null
+            IsPhoneVerified = true;
+            PhoneConfirmationToken = null;
+            PhoneConfirmationExpiresAt = null;
+            return this;
         });
 
         Fin<Unit> ValidateToken()
@@ -274,11 +306,8 @@ public record User : Aggregate<UserId>
     public User HashPassword(Password password)
     {
         var hasher = new PasswordHasher<User>();
-
-        return this with
-        {
-            HashedPassword = hasher.HashPassword(this, password.Value)
-        };
+        HashedPassword = hasher.HashPassword(this, password.Value);
+        return this;
     }
 
     public Fin<User> VerifyPassword(string password)
@@ -302,72 +331,122 @@ public record User : Aggregate<UserId>
                   address.PostalCode,
                   address.IsMain,
                   address.ExtraDetails,
-                  address.HouseNumber)).Map(a => this with
-                  {
-                      Addresses =
-                  [.. Addresses.Where(ad => ad.Id.Value != a.Id.Value).Append(a)]
-                  });
+                  address.HouseNumber)).Map(a =>
+              {
+                  Addresses =
+                      [.. Addresses.Where(ad => ad.Id.Value != a.Id.Value).Append(a)];
+                  return this;
+              });
 
     }
     public User RemoveAddress(Address address)
     {
-        return this with { Addresses = Addresses.Where(a => a != address).ToList() };
+        Addresses = Addresses.Where(a => a != address).ToList();
+        return this;
     }
 
+    private Fin<User> UpdateEmail(string repr)
+    {
+        return Email.From(repr).Map(e =>
+          {
+              Email = e;
+              return this;
+          });
+
+    }
+    private Fin<User> UpdateFirstName(string repr)
+    {
+        return Firstname.From(repr).Map(e =>
+        {
+            FirstName = e;
+            return this;
+        });
+    }
+
+    private Fin<User> UpdateLastName(string repr)
+    {
+        return Lastname.From(repr).Map(e =>
+        {
+            LastName = e;
+            return this;
+        });
+    }
+
+    private Fin<User> UpdateGender(string repr)
+    {
+        return Gender.From(repr).Map(e =>
+        {
+            Gender = e;
+            return this;
+        });
+    }
+
+    private Fin<User> UpdatePassword(string repr)
+    {
+        return Password.From(repr).Map(e =>
+        {
+            HashPassword(e);
+            return this;
+        });
+    }
+    private Fin<User> UpdateAge(byte repr)
+    {
+        return Age.From(repr).Map(e =>
+        {
+            Age = e;
+            return this;
+        });
+    }
+
+
     public Fin<User> Update(
-        UpdateUserDto dto
+        UpdateUserDto dto, IClock clock
     )
     {
-        var validationSeq = Seq<Fin<User>>();
+        var fin = FinSucc(this);
 
         if (dto.Email is not null)
         {
-            validationSeq = validationSeq.Add(Email.From(dto.Email).Map(e => this with { Email = e }));
+            fin = fin.Bind(u => u.UpdateEmail(dto.Email));
         }
 
         if (dto.FirstName is not null)
         {
-            validationSeq = validationSeq.Add(Firstname.From(dto.FirstName).Map(f => this with { FirstName = f }));
+            fin = fin.Bind(u => u.UpdateFirstName(dto.FirstName));
         }
 
         if (dto.LastName is not null)
         {
-            validationSeq = validationSeq.Add(Lastname.From(dto.LastName).Map(l => this with { LastName = l }));
+            fin = fin.Bind(u => u.UpdateLastName(dto.LastName));
         }
 
         if (dto.Age is not null)
         {
-            validationSeq = validationSeq.Add(Age.From(dto.Age.Value).Map(a => this with { Age = a }));
+            fin = fin.Bind(u => u.UpdateAge(dto.Age.Value));
         }
 
         if (dto.Password is not null)
         {
-            validationSeq = validationSeq.Add(Password.From(dto.Password).Map(HashPassword));
+            fin = fin.Bind(u => u.UpdatePassword(dto.Password));
         }
 
         if (dto.Gender is not null)
         {
-            validationSeq = validationSeq.Add(Gender.From(dto.Gender).Map(g => this with { Gender = g }));
+            fin = fin.Bind(u => u.UpdateGender(dto.Gender));
         }
 
         if (dto.AddressDto is not null)
         {
 
-            validationSeq = validationSeq.Add(AddAddress(dto.AddressDto));
+            fin = fin.Bind(u => u.AddAddress(dto.AddressDto));
         }
 
         if (dto.Phone is not null)
         {
-            validationSeq = validationSeq.Add(Phone.From(dto.Phone).Map(p => this with { Phone = p }));
+            fin = fin.Bind(user => Phone.From(dto.Phone)
+                .Map(phone => user.AddPhone(phone, clock.UtcNow)));
         }
+        return fin;
 
-        if (dto.Image is not null)
-        {
-            validationSeq = validationSeq.Add(AddAvatar(dto.Image));
-        }
-
-        return validationSeq.Count == 0
-            ? this
-            : validationSeq.Traverse(identity).Map(seq => seq.Last<Seq, User>().Match(user => user, () => this)).As();
     }
 }

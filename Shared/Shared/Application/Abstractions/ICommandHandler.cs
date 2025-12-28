@@ -3,13 +3,13 @@ namespace Shared.Application.Abstractions;
 using Unit = LanguageExt.Unit;
 
 public interface ICommandHandler<in TCommand> : ICommandHandler<TCommand, Unit>
-    where TCommand : ICommand<Unit>
+	where TCommand : ICommand<Unit>
 {
 }
 
 public interface ICommandHandler<in TCommand, TResponse>
-    : IRequestHandler<TCommand, TResponse>
-    where TCommand : ICommand<TResponse>
-    where TResponse : notnull
+	: IRequestHandler<TCommand, TResponse>
+	where TCommand : ICommand<TResponse>
+	where TResponse : notnull
 {
 }

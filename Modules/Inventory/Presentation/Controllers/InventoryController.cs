@@ -12,19 +12,19 @@ namespace Inventory.Presentation.Controllers;
 public class InventoriesController(ISender sender) : ControllerBase
 {
 
-    [HttpPost]
-    public async Task<ActionResult<Unit>> Create([FromBody] CreateStockRequest request)
-    {
-        var result = await sender.Send(request.ToCommand());
+	[HttpPost]
+	public async Task<ActionResult<Unit>> Create([FromBody] CreateStockRequest request)
+	{
+		var result = await sender.Send(request.ToCommand());
 
-        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
-    }
+		return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+	}
 
-    [HttpGet]
-    public ActionResult<string> Get()
-    {
-        return Ok("Got ir");
-    }
+	[HttpGet]
+	public ActionResult<string> Get()
+	{
+		return Ok("Got ir");
+	}
 
 
 

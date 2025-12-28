@@ -11,7 +11,7 @@ public class AssignRoleCommandHandler(
     IdentityDbContext dbContext)
     : ICommandHandler<AssignRoleCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(AssignRoleCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(AssignRoleCommand command, CancellationToken cancellationToken)
     {
         var db = GetUpdateEntity<IdentityDbContext, User>(
               user => user.Id == command.UserId,
@@ -24,7 +24,7 @@ public class AssignRoleCommandHandler(
               user => user.AssignUserToRoles(command.Role)
           ).Map(_ => unit);
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

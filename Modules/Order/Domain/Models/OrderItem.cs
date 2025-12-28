@@ -5,6 +5,7 @@ public record OrderItem : Entity<OrderItemId>
 {
     private OrderItem(
         ProductId productId,
+        VariantId variantId,
         string slug,
         string sku,
         string imageUrl,
@@ -15,6 +16,8 @@ public record OrderItem : Entity<OrderItemId>
     ) : base(OrderItemId.New)
     {
         ProductId = productId;
+
+        VariantId = variantId;
         Slug = slug;
         Sku = sku;
         ImageUrl = imageUrl;
@@ -23,6 +26,7 @@ public record OrderItem : Entity<OrderItemId>
         LineTotal = lineTotal;
     }
     public ProductId ProductId { get; init; }
+    public VariantId VariantId { get; init; }
     public string Slug { get; init; }
     public string Sku { get; init; }
     public string ImageUrl { get; init; }
@@ -35,7 +39,7 @@ public record OrderItem : Entity<OrderItemId>
         if (dto.Quantity <= 0)
             return FinFail<OrderItem>(InvalidOperationError.New("Quantity must be greater than zero."));
 
-        return new OrderItem(dto.ProductId, dto.Slug, dto.Sku, dto.ImageUrl, dto.Quantity, dto.UnitPrice, dto.LineTotal);
+        return new OrderItem(dto.ProductId, dto.VariantId, dto.Slug, dto.Sku, dto.ImageUrl, dto.Quantity, dto.UnitPrice, dto.LineTotal);
     }
 }
 

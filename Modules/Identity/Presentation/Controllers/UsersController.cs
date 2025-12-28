@@ -1,4 +1,4 @@
-﻿using Role = Shared.Infrastructure.Enums.Role;
+﻿using Identity.Application.Features.GetUser;
 
 namespace Identity.Presentation.Controllers;
 [ApiController]
@@ -7,20 +7,32 @@ public class UsersController(ISender sender) : ControllerBase
 {
 
 
-    [HttpGet]
-    public async Task<ActionResult<UserResult>> Get([FromQuery] Guid userId)
+    [HttpGet("profile")]
+    public async Task<ActionResult<UserResult>> Get([FromBody] Guid userId)
     {
         var result = await sender.Send(new GetUserByIdQuery(UserId.From(userId)));
-
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<RegisterResult>> Register([FromBody] RegisterUserRequest request)
+    [HttpGet("me")]
+    public async Task<ActionResult<UserResult>> Get()
     {
-        var result = await sender.Send(request.ToCommand());
+        var result = await sender.Send(new GetLoggedInUserQuery());
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
+
+
+    [HttpGet("check-user-email")]
+    public async Task<ActionResult<Unit>> CheckUserEmail([FromQuery] string email)
+    {
+        var result = await sender.Send(new GetUserByEmailQuery()
+        {
+            Email = email
+        });
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+    }
+
+
 
     [HttpPut("update/{id}")]
     public async Task<ActionResult<Unit>> Update([FromRoute] Guid id, [FromForm] UpdateUserRequest request)
@@ -30,60 +42,6 @@ public class UsersController(ISender sender) : ControllerBase
     }
 
 
-    [HttpPost]
-    [Route("login")]
-    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
-    {
-        var result = (await sender.Send(new LoginCommand(request.Email, request.Password)))
-            .Map(res =>
-            {
-                this.AddRefreshTokenToCookies(res.RefreshToken.RawToken, res.RefreshToken.ExpiresAt);
-                return new LoginResponse(res.UserResult, res.AccessToken);
-            });
-        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
-    }
-
-    [HttpPost]
-    [Route("logout")]
-    public async Task<ActionResult<LogoutResponse>> Logout([FromBody] LogoutRequest request)
-    {
-        var result = (await sender.Send(new LogoutCommand(request.Email)))
-            .Map(res =>
-            {
-                this.RemoveRefreshTokenFromCookies();
-                return new LogoutResponse();
-            });
-
-        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
-    }
-
-    [HttpGet]
-    [Route("verify")]
-    public async Task<ActionResult<EmailVerificationResponse>> Verify([FromQuery] VerificationRequest request)
-    {
-        var result = (await sender.Send(new EmailVerificationCommand(request.Email, request.Token))).Map(res =>
-        {
-            this.AddRefreshTokenToCookies(res.RefreshToken.RawToken, res.RefreshToken.ExpiresAt);
-            return new EmailVerificationResponse(res.UserResult, res.AccessToken);
-        });
-
-        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
-    }
-
-
-    [HttpPost]
-    [Route("refresh")]
-    public async Task<ActionResult<RefreshTokenResponse>> Refresh([FromQuery] RefreshTokenRequest request)
-    {
-        var refreshToken = this.GetRefreshTokenFromCookies();
-        var result = (await sender.Send(new RefreshTokenCommand(refreshToken, request.Email))).Map(res =>
-        {
-            this.AddRefreshTokenToCookies(res.RefreshToken.RawToken, res.RefreshToken.ExpiresAt);
-            return new RefreshTokenResponse(res.AccessToken);
-        });
-
-        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
-    }
 
     [HttpPost]
     [Route("add-phone")]
@@ -97,66 +55,16 @@ public class UsersController(ISender sender) : ControllerBase
 
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
-
+    [Authorize]
     [HttpPost]
-    [HasRole(Role.Admin)]
-    [Route("assign-permission")]
-    public async Task<ActionResult<Unit>> AssignPermission([FromBody] AssignPermissionRequest request)
+    [Route("toggle-liked-products")]
+    public async Task<ActionResult<Unit>> ToggleLike([FromBody] ToggleLikeRequest request)
     {
-        var result = await sender.Send(new AssignPermissionCommand
-        {
-            UserId = UserId.From(request.UserId),
-            Permissions = request.Permissions
-
-        });
+        var result = await sender.Send(request.ToCommand());
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
-    [HttpPost]
-    [HasRole(Role.Admin)]
-    [Route("assign-role")]
-    public async Task<ActionResult<Unit>> AssignRole([FromBody] AssignRoleRequest request)
-    {
-        var result = await sender.Send(new AssignRoleCommand
-        {
-            UserId = UserId.From(request.UserId),
-            Role = request.Role
-
-        });
-
-        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
-    }
-
-    [HttpDelete]
-    [HasRole(Role.Admin)]
-    [Route("delete-role")]
-    public async Task<ActionResult<Unit>> DeleteRole([FromBody] DeleteRoleRequest request)
-    {
-        var result = await sender.Send(new DeleteUserRoleCommand
-        {
-            UserId = UserId.From(request.UserId),
-            Role = request.Role
-
-        });
-
-        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
-    }
-
-    [HttpDelete]
-    [HasRole(Role.Admin)]
-    [Route("delete-permission")]
-    public async Task<ActionResult<Unit>> DeletePermission([FromBody] DeletePermissionRequest request)
-    {
-        var result = await sender.Send(new DeletePermissionCommand()
-        {
-            UserId = UserId.From(request.UserId),
-            Permissions = request.Permissions
-
-        });
-
-        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
-    }
-
 
 
 }
+

@@ -38,6 +38,7 @@ public class UpdateUserDetailsCommandHandler(
     IUserContext userContext)
     : ICommandHandler<UpdateUserDetailsCommand, Fin<Unit>>
 {
+
     public Task<Fin<Unit>> Handle(UpdateUserDetailsCommand command, CancellationToken cancellationToken)
     {
         var db =
@@ -45,18 +46,20 @@ public class UpdateUserDetailsCommandHandler(
                 user => user.Id == command.UserId,
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
                 null,
-                user => user.Update(command.ToDto()))
-            from img in UploadImage(command.Image, u.FirstName.Value, u.LastName.Value)
-            from _ in UpdateEntity<IdentityDbContext, User>(u, user => user.Update(new UpdateUserDto() { Image = img }))
+                user => user.Update(command.ToDto(), clock))
+            from img in UploadImage(command.Image, u).Map(u.AddAvatar)
             select unit;
 
         return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
-    private IO<ImageUrl> UploadImage(IFormFile? Imag, string firstname, string lastname)
+    private IO<ImageUrl> UploadImage(IFormFile? Imag, User user)
     {
-        return Imag.IsNotNull()
-            ? imageService.UploadImage(Imag!, $"{firstname}_{lastname}")
-            : IO.pure(ImageUrl.FromUnsafe(""));
+        return from x in user.Avatar?.PublicId is not null && Imag.IsNotNull() ?
+                imageService.DeleteImagesAsync([user.Avatar.PublicId]) :
+                IO.pure(Unit.Default)
+               from y in Imag.IsNotNull() ? imageService.UploadImage(Imag!, $"{user.FirstName.Value}_{user.LastName.Value}") :
+                  IO.pure(ImageUrl.FromUnsafe("", ""))
+               select y;
 
     }
 }

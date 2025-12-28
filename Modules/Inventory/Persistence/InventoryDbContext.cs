@@ -10,7 +10,7 @@ public class InventoryDbContext(DbContextOptions<InventoryDbContext> options) : 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
+        modelBuilder.Ignore<VariantId>();
         modelBuilder.HasDefaultSchema("inventory");
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);

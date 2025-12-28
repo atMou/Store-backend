@@ -13,7 +13,7 @@ public class AddPhoneNumberCommandHandler(
     IdentityDbContext dbContext)
     : ICommandHandler<AddPhoneNumberCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(AddPhoneNumberCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(AddPhoneNumberCommand command, CancellationToken cancellationToken)
     {
         var db =
             from phone in Phone.From(command.PhoneNumber)
@@ -21,12 +21,12 @@ public class AddPhoneNumberCommandHandler(
                 user => user.Id == command.UserId,
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
                 null,
-                user => user.SetPhone(phone, clock.UtcNow)
+                user => user.AddPhone(phone, clock.UtcNow)
             )
 
             select unit;
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

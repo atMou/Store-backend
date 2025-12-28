@@ -8,7 +8,7 @@ public record AssignCouponToUserCommand(UserId UserId, CouponId CouponId) : ICom
 internal class AssignCouponToUserCommandHandler(BasketDbContext dbContext, ISender sender, IClock clock)
     : ICommandHandler<AssignCouponToUserCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(AssignCouponToUserCommand command,
+    public async Task<Fin<Unit>> Handle(AssignCouponToUserCommand command,
         CancellationToken cancellationToken)
     {
         var loadUser = Db<BasketDbContext>.liftIO(async (_, e) =>
@@ -26,7 +26,7 @@ internal class AssignCouponToUserCommandHandler(BasketDbContext dbContext, ISend
                 u.Bind(ud => c.AssignToUser(UserId.From(ud.Id), DateTime.UtcNow)))
                  select unit;
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 }

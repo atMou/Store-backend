@@ -38,16 +38,6 @@ namespace Product.Persistence.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("brand");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("category");
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("color");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
@@ -74,35 +64,12 @@ namespace Product.Persistence.Migrations
                         .HasColumnName("new_price");
 
                     b.Property<Guid?>("ParentProductId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("parent_product_id");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("price");
-
-                    b.Property<string>("Size")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("size");
-
-                    b.Property<string>("Sku")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("sku");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("slug");
-
-                    b.Property<int>("Stock")
-                        .HasColumnType("int")
-                        .HasColumnName("stock");
-
-                    b.Property<string>("StockLevel")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("stock_level");
 
                     b.Property<int>("TotalReviews")
                         .HasColumnType("int")
@@ -126,19 +93,11 @@ namespace Product.Persistence.Migrations
 
                     b.HasIndex("Brand");
 
-                    b.HasIndex("Category");
-
-                    b.HasIndex("Color");
-
                     b.HasIndex("Discount");
 
                     b.HasIndex("ParentProductId");
 
                     b.HasIndex("Price");
-
-                    b.HasIndex("Size");
-
-                    b.HasIndex("Slug");
 
                     b.HasIndex("TotalReviews");
 
@@ -192,12 +151,166 @@ namespace Product.Persistence.Migrations
                     b.ToTable("reviews", "products");
                 });
 
+            modelBuilder.Entity("Product.Domain.Models.Variant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("color");
+
+                    b.Property<bool>("IsInStock")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Size")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("size");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("sku");
+
+                    b.Property<int>("StockLevel")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Color");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("Size");
+
+                    b.HasIndex("Sku")
+                        .IsUnique();
+
+                    b.HasIndex("ProductId", "Color", "Size");
+
+                    b.ToTable("Variants", "products");
+                });
+
             modelBuilder.Entity("Product.Domain.Models.Product", b =>
                 {
                     b.HasOne("Product.Domain.Models.Product", "ParentProduct")
                         .WithMany("Alternatives")
                         .HasForeignKey("ParentProductId")
                         .OnDelete(DeleteBehavior.NoAction);
+
+                    b.OwnsMany("Shared.Domain.ValueObjects.Image", "Images", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("AltText")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("alt_text");
+
+                            b1.Property<bool>("IsMain")
+                                .HasColumnType("bit")
+                                .HasColumnName("is_main");
+
+                            b1.Property<Guid>("ProductId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ProductId");
+
+                            b1.ToTable("images", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProductId");
+
+                            b1.OwnsOne("Shared.Domain.ValueObjects.ImageUrl", "ImageUrl", b2 =>
+                                {
+                                    b2.Property<Guid>("ImageId")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<string>("PublicId")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)")
+                                        .HasColumnName("image_publicId");
+
+                                    b2.Property<string>("Value")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)")
+                                        .HasColumnName("image_url");
+
+                                    b2.HasKey("ImageId");
+
+                                    b2.ToTable("images", "products");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("ImageId");
+                                });
+
+                            b1.Navigation("ImageUrl")
+                                .IsRequired();
+                        });
+
+                    b.OwnsOne("Product.Domain.ValueObjects.Category", "Category", b1 =>
+                        {
+                            b1.Property<Guid>("ProductId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Main")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("category_main");
+
+                            b1.Property<string>("Sub")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("category_sub");
+
+                            b1.HasKey("ProductId");
+
+                            b1.HasIndex("Main");
+
+                            b1.HasIndex("Sub");
+
+                            b1.ToTable("Products", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProductId");
+                        });
+
+                    b.OwnsOne("Product.Domain.ValueObjects.ProductType", "ProductType", b1 =>
+                        {
+                            b1.Property<Guid>("ProductId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("SubType")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("product_subtype");
+
+                            b1.Property<string>("Type")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("product_type");
+
+                            b1.HasKey("ProductId");
+
+                            b1.HasIndex("SubType");
+
+                            b1.HasIndex("Type");
+
+                            b1.ToTable("Products", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProductId");
+                        });
 
                     b.OwnsOne("Product.Domain.ValueObjects.Status", "Status", b1 =>
                         {
@@ -236,41 +349,138 @@ namespace Product.Persistence.Migrations
                                 .HasForeignKey("ProductId");
                         });
 
-                    b.OwnsMany("Shared.Domain.ValueObjects.ProductImage", "ImageDtos", b1 =>
+                    b.OwnsOne("Shared.Domain.ValueObjects.Slug", "Slug", b1 =>
                         {
-                            b1.Property<Guid>("Id")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("AltText")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)")
-                                .HasColumnName("alt_text");
-
-                            b1.Property<string>("ImageUrl")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)")
-                                .HasColumnName("image_url");
-
-                            b1.Property<bool>("IsMain")
-                                .HasColumnType("bit")
-                                .HasColumnName("is_main");
-
                             b1.Property<Guid>("ProductId")
                                 .HasColumnType("uniqueidentifier");
 
-                            b1.HasKey("Id");
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("slug");
 
-                            b1.HasIndex("ProductId");
+                            b1.HasKey("ProductId");
 
-                            b1.ToTable("ImageDtos", "products");
+                            b1.HasIndex("Value");
+
+                            b1.ToTable("Products", "products");
 
                             b1.WithOwner()
                                 .HasForeignKey("ProductId");
                         });
 
+                    b.OwnsMany("Product.Domain.Models.MaterialDetail", "MaterialDetails", b1 =>
+                        {
+                            b1.Property<Guid>("product_id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Detail")
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("detail");
+
+                            b1.Property<decimal>("Percentage")
+                                .HasColumnType("decimal(18,2)")
+                                .HasColumnName("percentage");
+
+                            b1.HasKey("product_id", "Detail");
+
+                            b1.HasIndex("product_id");
+
+                            b1.ToTable("product_material_details", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("product_id");
+
+                            b1.OwnsOne("Product.Domain.ValueObjects.Material", "Material", b2 =>
+                                {
+                                    b2.Property<Guid>("MaterialDetailproduct_id")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<string>("MaterialDetailDetail")
+                                        .HasColumnType("nvarchar(450)");
+
+                                    b2.Property<string>("Name")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(450)")
+                                        .HasColumnName("material");
+
+                                    b2.HasKey("MaterialDetailproduct_id", "MaterialDetailDetail");
+
+                                    b2.HasIndex("Name")
+                                        .HasDatabaseName("IX_ProductMaterialDetails_Material");
+
+                                    b2.ToTable("product_material_details", "products");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("MaterialDetailproduct_id", "MaterialDetailDetail");
+                                });
+
+                            b1.Navigation("Material")
+                                .IsRequired();
+                        });
+
+                    b.OwnsMany("Product.Domain.ValueObjects.Attribute", "DetailsAttributes", b1 =>
+                        {
+                            b1.Property<Guid>("product_id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Name")
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("attribute_name");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("attribute_description");
+
+                            b1.HasKey("product_id", "Name");
+
+                            b1.ToTable("product_details_attributes", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("product_id");
+                        });
+
+                    b.OwnsMany("Product.Domain.ValueObjects.Attribute", "SizeFitAttributes", b1 =>
+                        {
+                            b1.Property<Guid>("product_id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Name")
+                                .HasColumnType("nvarchar(450)")
+                                .HasColumnName("attribute_name");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("attribute_description");
+
+                            b1.HasKey("product_id", "Name");
+
+                            b1.ToTable("product_sizefit_attributes", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("product_id");
+                        });
+
+                    b.Navigation("Category")
+                        .IsRequired();
+
+                    b.Navigation("DetailsAttributes");
+
+                    b.Navigation("Images");
+
+                    b.Navigation("MaterialDetails");
+
                     b.Navigation("ParentProduct");
 
-                    b.Navigation("ImageDtos");
+                    b.Navigation("ProductType")
+                        .IsRequired();
+
+                    b.Navigation("SizeFitAttributes");
+
+                    b.Navigation("Slug")
+                        .IsRequired();
 
                     b.Navigation("Status")
                         .IsRequired();
@@ -308,11 +518,80 @@ namespace Product.Persistence.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Product.Domain.Models.Variant", b =>
+                {
+                    b.HasOne("Product.Domain.Models.Product", "Product")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Shared.Domain.ValueObjects.Image", "Images", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("AltText")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("alt_text");
+
+                            b1.Property<bool>("IsMain")
+                                .HasColumnType("bit")
+                                .HasColumnName("is_main");
+
+                            b1.Property<Guid>("VariantId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("VariantId");
+
+                            b1.ToTable("VariantImages", "products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VariantId");
+
+                            b1.OwnsOne("Shared.Domain.ValueObjects.ImageUrl", "ImageUrl", b2 =>
+                                {
+                                    b2.Property<Guid>("ImageId")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<string>("PublicId")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)")
+                                        .HasColumnName("image_publicId");
+
+                                    b2.Property<string>("Value")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)")
+                                        .HasColumnName("image_url");
+
+                                    b2.HasKey("ImageId");
+
+                                    b2.ToTable("VariantImages", "products");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("ImageId");
+                                });
+
+                            b1.Navigation("ImageUrl")
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Images");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Product.Domain.Models.Product", b =>
                 {
+                    b.Navigation("Alternatives");
+
                     b.Navigation("Reviews");
 
-                    b.Navigation("Alternatives");
+                    b.Navigation("Variants");
                 });
 #pragma warning restore 612, 618
         }

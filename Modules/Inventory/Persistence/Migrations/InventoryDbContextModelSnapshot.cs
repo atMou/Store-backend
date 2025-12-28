@@ -29,6 +29,10 @@ namespace Inventory.Persistence.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("inventory_id");
 
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -43,6 +47,14 @@ namespace Inventory.Persistence.Migrations
                     b.Property<int>("Reserved")
                         .HasColumnType("int")
                         .HasColumnName("reserved");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -64,7 +76,7 @@ namespace Inventory.Persistence.Migrations
 
             modelBuilder.Entity("Inventory.Domain.Models.Inventory", b =>
                 {
-                    b.OwnsOne("Inventory.Domain.ValueObjects.Stock", "Stock", b1 =>
+                    b.OwnsOne("Shared.Domain.ValueObjects.Stock", "Stock", b1 =>
                         {
                             b1.Property<Guid>("InventoryId")
                                 .HasColumnType("uniqueidentifier");

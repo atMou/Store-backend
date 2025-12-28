@@ -4,7 +4,7 @@ public record SetUserCartIdCommand(Guid UserId, Guid CartId) : ICommand<Fin<Unit
 public class SetUserCartIdCommandHandler(IdentityDbContext dbContext)
     : ICommandHandler<SetUserCartIdCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(SetUserCartIdCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(SetUserCartIdCommand command, CancellationToken cancellationToken)
     {
         var db = GetUpdateEntity<IdentityDbContext, User>(
             user => user.Id == UserId.From(command.UserId),
@@ -13,7 +13,7 @@ public class SetUserCartIdCommandHandler(IdentityDbContext dbContext)
                 user => user.AddCartId(CartId.From(command.CartId))
             ).Map(_ => unit);
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

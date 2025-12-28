@@ -19,7 +19,7 @@ public class RefreshTokenCommandHandler(
 {
     private readonly JwtOptions _options = options.Value;
 
-    public Task<Fin<RefreshCommandResult>> Handle(RefreshTokenCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<RefreshCommandResult>> Handle(RefreshTokenCommand command, CancellationToken cancellationToken)
     {
         var db =
 
@@ -33,7 +33,7 @@ public class RefreshTokenCommandHandler(
                 ),
                 (u, rt, _) => u.AddRefreshToken(rt, clock.UtcNow))
             select new RefreshCommandResult(res.b, res.c);
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

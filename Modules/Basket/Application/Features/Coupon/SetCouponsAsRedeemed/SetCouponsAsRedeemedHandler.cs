@@ -5,7 +5,7 @@ public record UpdateCouponCommand(IEnumerable<CouponId> CouponIds) : ICommand<Fi
 internal class UpdateCouponCommandHandler(BasketDbContext dbContext, IClock clock)
     : ICommandHandler<UpdateCouponCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(UpdateCouponCommand command,
+    public async Task<Fin<Unit>> Handle(UpdateCouponCommand command,
         CancellationToken cancellationToken)
     {
         var db =
@@ -16,6 +16,6 @@ internal class UpdateCouponCommandHandler(BasketDbContext dbContext, IClock cloc
                 );
 
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

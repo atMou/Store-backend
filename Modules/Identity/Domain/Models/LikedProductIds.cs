@@ -2,19 +2,19 @@ namespace Identity.Domain.Models;
 
 public record LikedProductId
 {
-    public UserId UserId { get; init; }
-    public ProductId ProductId { get; init; }
+	public UserId UserId { get; init; }
+	public ProductId ProductId { get; init; }
 
 
-    private LikedProductId(UserId userId, ProductId productId)
-    {
-        UserId = userId;
-        ProductId = productId;
-    }
+	private LikedProductId(UserId userId, ProductId productId)
+	{
+		UserId = userId;
+		ProductId = productId;
+	}
 
-    public static LikedProductId Create(UserId userId, ProductId productId)
-    {
-        return new LikedProductId(userId, productId);
-    }
+	public static LikedProductId Create(UserId userId, ProductId productId)
+	{
+		return new LikedProductId(userId, productId);
+	}
 
 }

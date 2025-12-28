@@ -2,37 +2,41 @@
 
 public record RegisterUserRequest
 {
-    public string Email { get; init; } = null!;
-    public string FirstName { get; init; } = null!;
-    public string LastName { get; init; } = null!;
-    public string? Avatar { get; init; } = null;
-    public byte? Age { get; init; }
-    public string Password { get; init; } = null!;
-    public string? Gender { get; init; } = null;
-    //public IEnumerable<string>? Roles { get; init; }
-    public string City { get; init; } = null!;
-    public string Street { get; init; } = null!;
-    public uint PostalCode { get; init; }
-    public uint HouseNumber { get; init; }
-    public string? ExtraDetails { get; init; }
+	public string Email { get; set; }
+	public string? Phone { get; set; }
+	public IFormFile? Avatar { get; set; }
+	public string FirstName { get; set; }
+	public string LastName { get; set; }
+	public byte? Age { get; set; }
+	public string Password { get; set; }
+	public string? Gender { get; set; }
+	public bool RememberMe { get; set; }
 
-    public RegisterCommand ToCommand()
-    {
-        return new RegisterCommand(new CreateUserDto()
-        {
-            Email = Email,
-            FirstName = FirstName,
-            LastName = LastName,
-            Age = Age,
-            Password = Password,
-            Gender = Gender,
-            City = City,
-            Street = Street,
-            PostalCode = PostalCode,
-            HouseNumber = HouseNumber,
-            ExtraDetails = ExtraDetails
+	public string City { get; set; }
+	public string Street { get; set; }
+	public uint PostalCode { get; set; }
+	public uint HouseNumber { get; set; }
+	public string? ExtraDetails { get; set; }
 
-        });
+	public RegisterCommand ToCommand()
+	{
+		return new RegisterCommand(new CreateUserDto()
+		{
+			Email = Email,
+			FirstName = FirstName,
+			LastName = LastName,
+			Age = Age,
+			Password = Password,
+			Gender = Gender,
+			City = City,
+			Street = Street,
+			PostalCode = PostalCode,
+			HouseNumber = HouseNumber,
+			ExtraDetails = ExtraDetails,
+			Avatar = Avatar,
+			Phone = Phone,
+			RememberMe = RememberMe,
+		});
 
-    }
+	}
 }

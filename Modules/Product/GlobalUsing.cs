@@ -38,6 +38,7 @@ global using Shared.Application.Contracts.Product.Queries;
 global using Shared.Application.Contracts.Product.Results;
 global using Shared.Domain.Abstractions;
 global using Shared.Domain.Errors;
+global using Shared.Domain.Filters;
 global using Shared.Domain.Validations;
 global using Shared.Domain.ValueObjects;
 global using Shared.Infrastructure.Authentication;
@@ -45,7 +46,6 @@ global using Shared.Infrastructure.Clock;
 global using Shared.Persistence.Db.Monad;
 global using Shared.Persistence.Extensions;
 global using Shared.Persistence.Interceptors;
-global using Shared.Presentation;
 global using Shared.Presentation.Extensions;
 
 global using SixLabors.ImageSharp;
@@ -54,8 +54,10 @@ global using static LanguageExt.Prelude;
 global using static Shared.Application.Contracts.Product.Constants;
 global using static Shared.Persistence.Db.Monad.Db;
 
+global using Attribute = Product.Domain.ValueObjects.Attribute;
 global using Color = Product.Domain.ValueObjects.Color;
 global using Error = LanguageExt.Common.Error;
+global using Image = Shared.Domain.ValueObjects.Image;
 global using Size = Product.Domain.ValueObjects.Size;
 global using Unit = LanguageExt.Unit;
 

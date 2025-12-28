@@ -3,8 +3,9 @@ using CloudinaryDotNet.Actions;
 
 using Microsoft.AspNetCore.Http;
 
-using Shared.Application.Contracts.Product.Results;
 using Shared.Infrastructure.Images.Options;
+
+using Image = Shared.Domain.ValueObjects.Image;
 
 namespace Shared.Infrastructure.Images;
 
@@ -12,49 +13,53 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
 {
     private readonly CloudinarySettings _options = options.Value;
 
-    public IO<IEnumerable<ImageResult>> UploadProductImages(IFormFile[] files, bool[] isMain, string slug, string category, string brand, string? color = null, string? size = null)
+    public IO<IEnumerable<Image>> UploadProductImages(IFormFile[] files, bool[] isMain, string slug, string category, string brand, string? color = null)
     {
         var index = 0;
+        if (!files.Any())
+        {
+            return IO<IEnumerable<Image>>.Pure([]);
+        }
         return files.AsIterable().Traverse(file =>
         {
-            var alt = $"{slug} {category} {brand} {color} {size}".Trim();
+            var alt = $"{slug} {category} {brand} {color}".Trim();
             var _isMain = isMain.ElementAtOrDefault(index);
 
             index++;
 
-            return UploadAndResizeAsync(file, slug)
-                .Map(url => new ImageResult
-                {
-                    Url = url,
-                    AltText = alt,
-                    IsMain = _isMain
-                });
+            return UploadAndResizeAsync(file, "products", slug, category, brand, color)
+                .Map(t => Image.FromUnsafe(t.Url, t.PublicId, alt, _isMain));
         }).Map(it => it.AsEnumerable()).As();
     }
 
-
     public IO<ImageUrl> UploadImage(IFormFile file, string userName)
     {
-        return UploadAndResizeAsync(file, userName, "users", 200, 200).Map(ImageUrl.FromUnsafe);
+        return UploadAndResizeAsync(file, "users", userName, null, null, null, 200, 200).Map(tuple => ImageUrl.FromUnsafe(tuple.Url, tuple.PublicId));
     }
-    private IO<string> UploadAndResizeAsync(
+
+
+
+    private IO<(string Url, string PublicId)> UploadAndResizeAsync(
        IFormFile file,
+       string folderName,
        string slug,
-       string folderName = "products",
+       string? category = null, string? brand = null, string? color = null,
        int maxWidth = 1200,
        int maxHeight = 1200)
     {
+
         return from _cloudinary in GetCredentials()
                from _ in when(!file.ContentType.StartsWith("image/"),
                    IO.fail<Unit>(InvalidOperationError.New("File is not a valid image.")))
-               from url in liftIO(async () =>
+               from tuple in liftIO(async () =>
                {
                    await using var inputStream = file.OpenReadStream();
 
                    var fileName = Path.GetFileNameWithoutExtension(file.FileName);
-                   var publicId = $"{folderName}/{slug}_{fileName}_{Guid.NewGuid():N}";
+                   var publicId = category is not null && brand is not null && color is not null
+                       ? $"{slug}-{brand}-{category}-{color}-{fileName}-{Helpers.GenerateCode(8)}"
+                       : $"{slug}-{fileName}-{Helpers.GenerateCode(8)}";
 
-                   // Upload original, untouched file to Cloudinary
                    var uploadParams = new ImageUploadParams
                    {
                        File = new FileDescription(file.FileName, inputStream),
@@ -64,26 +69,28 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
                        UseFilename = false,
                        UniqueFilename = false,
 
-                       // Cloudinary handles all optimization perfectly
                        Transformation = new Transformation()
                            .Width(maxWidth)
                            .Height(maxHeight)
-                           .Crop("limit")             // never upscale
-                           .Quality("auto:best")      // Cloudinary chooses perfect quality
-                           .FetchFormat("auto")       // f_auto
-                           .Flags("progressive")      // best for JPEG images
+                           .Crop("limit")
+                           .Quality("auto:best")
+                           .FetchFormat("auto")
+                           .Flags("progressive")
                    };
 
                    var result = await _cloudinary.UploadAsync(uploadParams);
 
                    if (result.Error != null)
-                       return IO.fail<string>(InvalidOperationError.New(
+                       return IO.fail<(string, string)>(InvalidOperationError.New(
                            $"Cloudinary upload failed: {result.Error.Message}"));
 
-                   return IO.pure(result.SecureUrl?.ToString()
-                       ?? throw new InvalidOperationException("Failed to generate URL."));
+
+                   var secureUrl = result.SecureUrl?.ToString();
+                   return secureUrl.IsNotNull() ? IO.pure((secureUrl!, result.PublicId)) :
+                     IO.fail<(string Url, string PublicId)>(InvalidOperationError.New("Failed to generate URL."));
+
                }).Bind(x => x)
-               select url;
+               select tuple;
     }
     public IO<Unit> DeleteImagesAsync(IEnumerable<string> publicIds)
     {
@@ -92,12 +99,12 @@ public class ImageService(IOptions<CloudinarySettings> options) : IImageService
                from results in publicIds.AsIterable().Traverse(id =>
                    IO.liftAsync(async e => await _cloudinary.DestroyAsync(new DeletionParams(id))))
                let res = results.Partition(result => result.Error.IsNotNull())
-               let errs = res.Second.Fold("", (s, result) => $"{s} :: {result.Error} ")
-               from x in when(res.Second.Any(),
+
+
+               let errs = res.First.Fold("", (s, result) => $"{s} :: {result.Error} ")
+               from x in when(res.First.Any(),
                    IO.fail<Unit>(ConflictError.New($"Failed to delete some or all images: {errs}")))
                select unit;
-
-
 
     }
     private IO<Cloudinary> GetCredentials()

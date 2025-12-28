@@ -10,7 +10,7 @@ public record DeleteUserRoleCommand : ICommand<Fin<Unit>>
 public class DeleteUserRoleCommandHandler(IdentityDbContext dbContext)
     : ICommandHandler<DeleteUserRoleCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(DeleteUserRoleCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(DeleteUserRoleCommand command, CancellationToken cancellationToken)
     {
         var db =
             GetUpdateEntity<IdentityDbContext, User>(
@@ -24,7 +24,7 @@ public class DeleteUserRoleCommandHandler(IdentityDbContext dbContext)
                 user => user.DeleteRoles(command.Role)
             ).Map(_ => unit);
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

@@ -11,7 +11,7 @@ public record GetCartByUserIdQuery : IQuery<Fin<CartResult>>, IInclude
 internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext)
     : IQueryHandler<GetCartByUserIdQuery, Fin<CartResult>>
 {
-    public Task<Fin<CartResult>> Handle(GetCartByUserIdQuery query, CancellationToken cancellationToken)
+    public async Task<Fin<CartResult>> Handle(GetCartByUserIdQuery query, CancellationToken cancellationToken)
     {
         var loadCart =
             GetEntity<BasketDbContext, Domain.Models.Cart>(
@@ -25,7 +25,7 @@ internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext)
 
         var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToResult(coupons));
 
-        return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

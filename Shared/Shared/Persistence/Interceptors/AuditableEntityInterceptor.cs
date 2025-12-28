@@ -11,12 +11,12 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
         return base.SavingChanges(eventData, result);
     }
 
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = new())
     {
-        UpdateAuditableEntity(eventData);
-        return base.SavingChangesAsync(eventData, result, cancellationToken);
+        await UpdateAuditableEntityAsync(eventData, cancellationToken);
+        return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
     private Unit UpdateAuditableEntity(DbContextEventData eventData)
@@ -27,6 +27,40 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
 
         return Optional(eventData.Context).Map(cxt =>
 
+            {
+                var auditableEntities = cxt.ChangeTracker.Entries<IEntity>();
+
+                foreach (var entry in auditableEntities)
+                {
+                    if (entry.State == EntityState.Added)
+                    {
+                        entry.Entity.CreatedAt = clock.UtcNow;
+                        entry.Entity.CreatedBy = user!.Email;
+                    }
+
+                    if (entry.State == EntityState.Modified || entry.HasModifiedOwnedEntity())
+                    {
+                        entry.Entity.UpdatedAt = clock.UtcNow;
+                        entry.Entity.UpdatedBy = user!.Email;
+                    }
+                }
+
+                return unit;
+            }
+        ).Match(u => u, () => unit);
+    }
+
+    private async ValueTask<Unit> UpdateAuditableEntityAsync(DbContextEventData eventData, CancellationToken cancellationToken)
+    {
+        var userResult = await userContext.GetCurrentUser<IO>()
+            .As()
+            .IfFail(new CurrentUser(Guid.Empty, "System", "System"))
+            .RunAsync(EnvIO.New(null, cancellationToken))
+            .ConfigureAwait(false);
+
+        var user = Optional(userResult).ValueUnsafe();
+
+        return Optional(eventData.Context).Map(cxt =>
             {
                 var auditableEntities = cxt.ChangeTracker.Entries<IEntity>();
 

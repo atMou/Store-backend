@@ -10,6 +10,7 @@ public class BasketDbContext(DbContextOptions<BasketDbContext> options) : DbCont
         //modelBuilder.AddOutboxMessageEntity();
         //modelBuilder.AddOutboxStateEntity();
         //modelBuilder.AddInboxStateEntity();
+        modelBuilder.Ignore<Description>();
         modelBuilder.HasDefaultSchema("basket");
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);

@@ -136,6 +136,7 @@ public record Order : Aggregate<OrderId>
         var items = dto.OrderItems.Select(item => OrderItem.Create(new CreateOrderItemDto()
         {
             ProductId = item.ProductId,
+            VariantId = item.VariantId,
             Slug = item.Slug,
             Sku = item.Sku,
             ImageUrl = item.ImageUrl,

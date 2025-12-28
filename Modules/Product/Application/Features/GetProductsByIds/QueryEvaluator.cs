@@ -8,6 +8,7 @@ public static class QueryEvaluator
 
         options = options with
         {
+
             AsNoTracking = true,
             AsSplitQuery = true,
             WithPagination = true,
@@ -16,26 +17,40 @@ public static class QueryEvaluator
 
         };
 
+
         if (!string.IsNullOrEmpty(query.Include))
         {
-            var includes = query.Include.Split(',').Select(s => s.Trim());
+            var includes = query.Include.Split(',');
 
             foreach (string se in includes.Distinct())
             {
-                if (string.Equals(se, "variants", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, Alternatives, StringComparison.OrdinalIgnoreCase))
                 {
                     options = options.AddInclude(p => p.Alternatives);
                 }
 
-                if (string.Equals(se, "reviews", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, Reviews, StringComparison.OrdinalIgnoreCase))
                 {
                     options = options.AddInclude(p => p.Reviews);
                 }
 
-                if (string.Equals(se, "images", StringComparison.OrdinalIgnoreCase))
+
+                if (string.Equals(se, Images, StringComparison.OrdinalIgnoreCase))
                 {
                     options = options.AddInclude(p => p.Images);
                 }
+
+
+                if (string.Equals(se, Variants, StringComparison.OrdinalIgnoreCase))
+                {
+                    options = options.AddInclude(p => p.Variants);
+                }
+
+                if (string.Equals(se, MaterialDetails, StringComparison.OrdinalIgnoreCase))
+                {
+                    options = options.AddInclude(p => p.MaterialDetails);
+                }
+
 
             }
         }
@@ -47,18 +62,19 @@ public static class QueryEvaluator
             options = sortBy switch
             {
 
-                "price" => options.AddOrderBy(p => p.Price.Value),
-                "brand" => options.AddOrderBy(p => p.Brand.Name),
+                "price" => options.AddOrderBy(p => EF.Property<decimal>(p, "Price")),
+                "brand" => options.AddOrderBy(p => p.Brand),
                 "totalsales" => options.AddOrderBy(p => p.TotalSales),
                 "totalreviews" => options.AddOrderBy(p => p.TotalReviews),
                 "averagerating" => options.AddOrderBy(p => p.AverageRating),
-                _ => options
+                _ => options.AddOrderBy(p => p.Id)
             };
         }
         else
         {
             options = options.AddOrderBy(p => p.Id);
         }
+
 
         if (!string.IsNullOrWhiteSpace(query.SortDir))
         {

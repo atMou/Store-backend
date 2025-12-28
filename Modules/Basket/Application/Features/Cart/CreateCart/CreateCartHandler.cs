@@ -1,7 +1,5 @@
 
 
-using LanguageExt.Pipes;
-
 using Shared.Application.Contracts.User.Queries;
 
 namespace Basket.Application.Features.Cart.CreateCart;
@@ -9,9 +7,6 @@ namespace Basket.Application.Features.Cart.CreateCart;
 public record CreateCartCommand : ICommand<Fin<Guid>>
 {
     public UserId UserId { get; init; } = null!;
-    public decimal Tax { get; init; }
-    public decimal ShipmentCost { get; init; }
-    public CouponId? CouponId { get; init; } = null;
 }
 
 internal class CreateCartCommandHandler(
@@ -20,32 +15,23 @@ internal class CreateCartCommandHandler(
     ISender sender)
     : ICommandHandler<CreateCartCommand, Fin<Guid>>
 {
-    public Task<Fin<Guid>> Handle(CreateCartCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Guid>> Handle(CreateCartCommand command, CancellationToken cancellationToken)
     {
         var db =
-
-            from currentUser in userContext.GetCurrentUser<IO>().As().MapFail(e =>
-                UnAuthorizedError.New($"Cannot Create Cart: Unable to get current user."))
-
             from result in IO.liftAsync(async e =>
                 await sender.Send(new GetUserByIdQuery(command.UserId), e.Token))
 
-            from cart in result.Bind(result =>
+            from cart in result.Bind(u =>
             {
-                if (result.CartId is not null)
+                if (u.CartId is not null)
                 {
                     return FinFail<Domain.Models.Cart>(ConflictError.New(
-                        $"Cannot Create Cart for User '{command.UserId.Value}': User Has Cart with Id: '{result.CartId}'"));
+                        $"Cannot Create Cart for User '{command.UserId.Value}': User Has Cart with Id: '{u.CartId}'"));
                 }
 
-                if (!result.Addresses.Any())
-                {
-                    return FinFail<Domain.Models.Cart>(InvalidOperationError.New(
-                        $"Cannot Create Cart for User '{command.UserId.Value}': User Has No Addresses."));
-                }
-                var deliveryAddressResult = result.Addresses.FirstOrDefault(a => a.IsMain) ?? result.Addresses.First();
+                var deliveryAddressResult = u.Addresses.FirstOrDefault(a => a.IsMain) ?? u.Addresses.First();
 
-                return Domain.Models.Cart.Create(command.UserId, command.Tax, command.ShipmentCost, new Address
+                return Domain.Models.Cart.Create(command.UserId, GetTaxService(), new Address
                 {
                     City = deliveryAddressResult.City,
                     Street = deliveryAddressResult.Street,
@@ -55,12 +41,19 @@ internal class CreateCartCommandHandler(
                 });
             })
 
-
-            from _3 in Db<BasketDbContext>.lift(cxt => cxt.Carts.Add(cart))
+            from _3 in AddEntity<BasketDbContext, Domain.Models.Cart>(cart)
             select cart.Id.Value;
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
+
+    private decimal GetTaxService()
+    {
+
+        return 0.15m;
+    }
+
+
 }
 
 

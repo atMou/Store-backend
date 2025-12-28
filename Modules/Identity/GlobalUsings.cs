@@ -6,7 +6,6 @@ global using System.Security.Claims;
 global using System.Text;
 
 global using Identity.Application.EventHandlers;
-global using Identity.Application.Events;
 global using Identity.Application.Features.AddPhoneNumber;
 global using Identity.Application.Features.AssignPermission;
 global using Identity.Application.Features.AssignRole;

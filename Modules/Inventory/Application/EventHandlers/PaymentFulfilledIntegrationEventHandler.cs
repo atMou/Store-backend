@@ -1,15 +1,10 @@
-﻿using Inventory.Persistence;
-
-using MassTransit;
-
-using MediatR;
+﻿using MediatR;
 
 using Microsoft.Extensions.Logging;
 
 using Shared.Application.Contracts.Order.Queries;
 using Shared.Application.Features.Payment.Events;
 using Shared.Infrastructure.Clock;
-using Shared.Persistence.Db.Monad;
 
 namespace Inventory.Application.EventHandlers;
 
@@ -22,7 +17,7 @@ public class PaymentFulfilledIntegrationEventHandler(
 {
     public async Task Consume(ConsumeContext<PaymentFulfilledIntegrationEvent> context)
     {
-        var db = from result in IO.liftAsync(async e => await sender.Send(new GetOrderByIdCommand
+        var db = from result in IO.liftAsync(async e => await sender.Send(new GetOrderByIdQuery
         {
             OrderId = context.Message.OrderId
         }, e.Token))
@@ -39,7 +34,7 @@ public class PaymentFulfilledIntegrationEventHandler(
                              {
                                  if (tuple.Item1 == inventory.ProductId)
                                  {
-                                     return inventory.ReleaseReservationDueToOrderCompletion(tuple.Quantity);
+                                     return inventory.ReleaseReservation(tuple.Quantity);
                                  }
                              }
 

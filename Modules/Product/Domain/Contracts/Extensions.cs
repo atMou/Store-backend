@@ -1,5 +1,6 @@
 ﻿using Product.Domain.Models;
 
+
 namespace Product.Domain.Contracts;
 public static class Extensions
 {
@@ -10,46 +11,60 @@ public static class Extensions
             Id = p.Id.Value,
             Slug = p.Slug.Value,
             Brand = p.Brand.Name,
-            Category = p.Category.Name,
+            Category = p.Category.Main,
+            SubCategory = p.Category.Sub,
             Discount = p.Discount?.Value,
             Price = p.Price.Value,
             NewPrice = p.NewPrice?.Value,
             Description = p.Description.Value,
-            IsNew = p.Status.IsNew,
-            IsFeatured = p.Status.IsFeatured,
-            IsBestSeller = p.Status.IsBestSeller,
-            IsTrending = p.Status.IsTrending,
             TotalReviews = p.TotalReviews,
             TotalSales = p.TotalSales,
-            RatingValue = p.Rating.Value,
-            RatingDescription = p.Rating.Description,
+            Rating = p.Rating.ToResult(),
+            Status = p.Status.ToResult(),
             Images = p.Images.Select(pi => pi.ToResult()).ToArray(),
             Variants = p.Variants.Select(v => v.ToResult()).ToArray(),
-            Reviews = p.Reviews.Select(r => r.ToResult())
+            Reviews = p.Reviews.Select(r => r.ToResult()),
+            Colors = p.Colors.Select(color => color.ToResult()),
+            Sizes = p.Sizes.Select(size => size.ToResult()),
+            Alternatives = p.Alternatives.Select(a => a.ToResult()),
+            SizeFitAttributes = p.SizeFitAttributes.Select(attr => attr.ToResult()),
+            DetailsAttributes = p.DetailsAttributes.Select(attr => attr.ToResult()),
+            MaterialDetails = p.MaterialDetails.Select(md => md.ToResult()),
+            ProductType = p.ProductType.ToResult()
+
+
+
         };
     }
+    public static MaterialDetailResult ToResult(this MaterialDetail md)
+    {
+        return new MaterialDetailResult()
+        {
+            Material = md.Material.Name,
+            Percentage = md.Percentage,
+            Detail = md.Detail
+        };
+
+    }
+
 
     public static IEnumerable<ProductResult> ToResult(this IEnumerable<Models.Product> ps)
     {
         return ps.Select(p => p.ToResult());
     }
 
-    public static ProductVariantsResult ToResult(this Variant v)
+    public static VariantsResult ToResult(this Variant v)
     {
-        return new ProductVariantsResult()
+        return new VariantsResult()
         {
             Id = v.Id.Value,
             Sku = v.Sku.Value,
-            Size = v.Size.Name,
-            Color = v.Color.Name,
-            ColorHex = v.Color.Hex,
-            StockLevel = v.StockLevel.ToString(),
+            Color = v.Color.ToResult(),
             Images = v.Images.Select(pi => pi.ToResult()).ToArray(),
-
         };
     }
 
-    public static ReviewResult ToResult(this Review review)
+    private static ReviewResult ToResult(this Review review)
     {
         return new ReviewResult()
         {
@@ -63,7 +78,7 @@ public static class Extensions
         };
     }
 
-    public static ImageResult ToResult(this ProductImage pi)
+    private static ImageResult ToResult(this Image pi)
     {
         return new ImageResult()
         {
@@ -77,9 +92,82 @@ public static class Extensions
     {
         return new CategoryResult
         {
-            Name = category.Name,
-            Subcategories = category.Subcategories.Select(sub => sub.ToResult()).ToList()
+            Main = category.Main,
+            Sub = category.Sub,
+            ProductTypes = category.ProductTypes.Select(pt => new ProductTypeCategoryResult
+            {
+                Type = pt.Type,
+                SubTypes = pt.AllowedSubTypes
+            }).ToArray(),
         };
     }
 
+    public static ProductTypeResult ToResult(this ProductType productType)
+    {
+        return new ProductTypeResult
+        {
+            Type = productType.Type,
+            SubType = productType.SubType,
+
+        };
+    }
+
+
+
+
+    private static ColorResult ToResult(this Color color)
+    {
+        return new ColorResult
+        {
+            Name = color.Name,
+            Hex = color.Hex
+        };
+    }
+
+    private static StockResult ToResult(this Stock stock)
+    {
+        return new StockResult
+        {
+            Stock = stock.Value,
+            Low = stock.Low,
+            Mid = stock.Mid,
+            High = stock.High
+        };
+    }
+    private static SizeResult ToResult(this Size size)
+    {
+        return new SizeResult
+        {
+            Code = size.Code.ToString(),
+            Name = size.Name
+        };
+    }
+
+    private static StatusResult ToResult(this Status s)
+    {
+        return new StatusResult
+        {
+            IsNew = s.IsNew,
+            IsFeatured = s.IsFeatured,
+            IsTrending = s.IsTrending,
+            IsBestSeller = s.IsBestSeller
+        };
+    }
+
+    private static AttributeResults ToResult(this Attribute attribute)
+    {
+        return new AttributeResults()
+        {
+            Name = attribute.Name,
+            Description = attribute.Description.Value
+        };
+    }
+    private static RatingResult ToResult(this Rating rating)
+    {
+        return new RatingResult()
+        {
+            Value = rating.Value,
+            Description = rating.Description
+        };
+    }
 }

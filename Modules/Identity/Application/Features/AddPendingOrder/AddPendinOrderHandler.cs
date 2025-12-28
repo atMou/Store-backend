@@ -7,7 +7,7 @@ public record AddPendingOrderCommand : ICommand<Fin<Unit>>
 internal class AddPendingOrderCommandHandler(IUserContext userContext, IdentityDbContext dbContext)
     : ICommandHandler<AddPendingOrderCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(AddPendingOrderCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(AddPendingOrderCommand command, CancellationToken cancellationToken)
     {
         var db = from _ in userContext.IsSameUser<IO>(command.UserId, UnAuthorizedError.New("You are not authorized to continue this process")).As()
                  from a in GetUpdateEntity<IdentityDbContext, User>(
@@ -21,7 +21,7 @@ internal class AddPendingOrderCommandHandler(IUserContext userContext, IdentityD
                      user => user.AddPendingOrder(PendingOrderId.Create(command.UserId, command.OrderId))
                  )
                  select unit;
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

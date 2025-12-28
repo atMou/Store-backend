@@ -17,44 +17,44 @@ using Shared.Persistence.Interceptors;
 namespace Inventory;
 public static class InventoryModule
 {
-    public static IServiceCollection AddInventoryModule(this IServiceCollection services, IConfiguration configuration)
-    {
+	public static IServiceCollection AddInventoryModule(this IServiceCollection services, IConfiguration configuration)
+	{
 
-        services.AddInventoryModuleServices(configuration);
-        return services;
-    }
+		services.AddInventoryModuleServices(configuration);
+		return services;
+	}
 
-    public static IApplicationBuilder UseInventoryModule(this IApplicationBuilder app)
-    {
-        return app;
-    }
+	public static IApplicationBuilder UseInventoryModule(this IApplicationBuilder app)
+	{
+		return app;
+	}
 
 
-    private static IServiceCollection AddInventoryModuleServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddDbContext<InventoryDbContext>((sp, options) =>
-        {
+	private static IServiceCollection AddInventoryModuleServices(this IServiceCollection services, IConfiguration configuration)
+	{
+		services.AddDbContext<InventoryDbContext>((sp, options) =>
+		{
 
-            var mediatr = Optional(sp.GetService<IMediator>())
-                .IfNone(() => throw new InvalidOperationException("IMediator is not registered"));
-            var clock = Optional(sp.GetService<IClock>())
-                .IfNone(() => throw new InvalidOperationException("IClock is not registered"));
-            var userContext = Optional(sp.GetService<IUserContext>())
-                .IfNone(() => throw new InvalidOperationException("IUserContext is not registered"));
+			var mediatr = Optional(sp.GetService<IMediator>())
+				.IfNone(() => throw new InvalidOperationException("IMediator is not registered"));
+			var clock = Optional(sp.GetService<IClock>())
+				.IfNone(() => throw new InvalidOperationException("IClock is not registered"));
+			var userContext = Optional(sp.GetService<IUserContext>())
+				.IfNone(() => throw new InvalidOperationException("IUserContext is not registered"));
 
-            options.AddInterceptors(new AuditableEntityInterceptor(clock, userContext),
-                new DispatchDomainEventInterceptor(mediatr));
+			options.AddInterceptors(new AuditableEntityInterceptor(clock, userContext),
+				new DispatchDomainEventInterceptor(mediatr));
 
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
-                .EnableSensitiveDataLogging()
-                .EnableDetailedErrors();
+			options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
+				.EnableSensitiveDataLogging()
+				.EnableDetailedErrors();
 
-            options.LogTo(Log.Logger.Information,
-                Microsoft.Extensions.Logging.LogLevel.Information,
-                DbContextLoggerOptions.DefaultWithLocalTime);
-        });
-        return services;
-    }
+			options.LogTo(Log.Logger.Information,
+				Microsoft.Extensions.Logging.LogLevel.Information,
+				DbContextLoggerOptions.DefaultWithLocalTime);
+		});
+		return services;
+	}
 
 
 

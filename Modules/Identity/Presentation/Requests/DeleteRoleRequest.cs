@@ -2,6 +2,6 @@
 
 public record DeleteRoleRequest
 {
-    public Guid UserId { get; init; }
-    public string Role { get; init; }
+	public Guid UserId { get; init; }
+	public string Role { get; init; }
 }

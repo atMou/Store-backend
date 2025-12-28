@@ -14,4 +14,28 @@ public enum ColorCode
     BR, // Brown
     GY, // Gray
     NV, // Navy
+
+    SV, // Silver
+    MR, // Maroon
+    RS, // Rose
+    CR, // Coral
+    GD, // Gold
+    LM, // Lime
+    OL, // Olive
+    TL, // Teal
+    MT, // Mint
+    SB, // Sky Blue
+    CY, // Cyan
+    VT, // Violet
+    LV, // Lavender
+    MG, // Magenta
+    BE, // Beige
+    TN, // Tan
+    CM, // Cream
+    BG, // Burgundy
+    IN, // Indigo
+    TQ, // Turquoise
+    PC, // Peach
+    KH, // Khaki
+    CH  // Charcoal
 }

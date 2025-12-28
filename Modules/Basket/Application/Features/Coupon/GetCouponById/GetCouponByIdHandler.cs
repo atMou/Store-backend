@@ -8,7 +8,7 @@ public record GetCouponByIdCommand(CouponId CouponId) : ICommand<Fin<CouponResul
 
 internal class GetCouponByIdCommandHandler(BasketDbContext dbContext) : ICommandHandler<GetCouponByIdCommand, Fin<CouponResult>>
 {
-    public Task<Fin<CouponResult>> Handle(GetCouponByIdCommand command,
+    public async Task<Fin<CouponResult>> Handle(GetCouponByIdCommand command,
         CancellationToken cancellationToken)
     {
         var db = GetEntity<BasketDbContext, Domain.Models.Coupon>(
@@ -21,6 +21,6 @@ internal class GetCouponByIdCommandHandler(BasketDbContext dbContext) : ICommand
             })
             .Map(coupon => coupon.ToResult());
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

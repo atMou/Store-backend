@@ -1,4 +1,5 @@
-﻿using Shared.Application.Contracts.Order.Results;
+﻿using Shared.Application.Contracts;
+using Shared.Application.Contracts.Order.Results;
 
 namespace Order.Application.Features.GetOrdersByUserId;
 
@@ -10,18 +11,17 @@ public class GetOrdersByUserIdQuery : IQuery<Fin<PaginatedResult<OrderResult>>>,
     public string? Include { get; init; }
 }
 
-internal class GetOrderByIdCommandHandler(OrderDBContext dbContext)
+internal class GetOrdersByUserIdQueryHandler(OrderDBContext dbContext)
     : IQueryHandler<GetOrdersByUserIdQuery, Fin<PaginatedResult<OrderResult>>>
 {
     public Task<Fin<PaginatedResult<OrderResult>>> Handle(GetOrdersByUserIdQuery query, CancellationToken cancellationToken)
     {
         var db =
-            from res in GetEntitiesWithPagination<OrderDBContext, Domain.Models.Order, OrderResult,
-                GetOrdersByUserIdQuery>(
-                query,
-                o => o.ToResult(),
+            from res in GetEntitiesWithPagination<OrderDBContext, Domain.Models.Order, OrderResult, GetOrdersByUserIdQuery>(
                 order => order.UserId == query.UserId,
-                opt => QueryEvaluator(opt, query)
+                opt => QueryEvaluator(opt, query),
+                query,
+                o => o.ToResult()
             )
 
             select res;

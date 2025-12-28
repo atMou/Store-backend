@@ -1,10 +1,15 @@
+using Shared.Application.Contracts;
+
 namespace Product.Application.Features.GetProducts;
 
 public record GetProductsQuery : IQuery<Fin<PaginatedResult<ProductResult>>>, IPagination, IInclude
 {
     public string? Category { get; init; }
+    public string? SubCategory { get; init; }
     public string? Brand { get; init; }
     public string? Color { get; init; }
+    public string? Type { get; init; }
+    public string? Sub { get; init; }
     public string? Size { get; init; }
     public decimal? MinPrice { get; init; }
     public decimal? MaxPrice { get; init; }
@@ -25,20 +30,15 @@ public record GetProductsQueryResult(PaginatedResult<ProductResult> PaginatedRes
 internal class GetProductsQueryHandler(ProductDBContext dbContext)
     : IQueryHandler<GetProductsQuery, Fin<PaginatedResult<ProductResult>>>
 {
-    public Task<Fin<PaginatedResult<ProductResult>>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
+    public async Task<Fin<PaginatedResult<ProductResult>>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
     {
-        var db = GetEntitiesWithPagination<ProductDBContext,
-            Domain.Models.Product,
-            ProductResult, GetProductsQuery>(
-            query,
-            product => product.ToResult(),
+        var db = GetEntitiesWithPagination<ProductDBContext, Domain.Models.Product, ProductResult, GetProductsQuery>(
             null,
-            options => QueryEvaluator.Evaluate(options, query)
+            options => QueryEvaluator.Evaluate(options, query),
+            query,
+            product => product.ToResult()
         );
-        return db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
-
-
-
 }
 

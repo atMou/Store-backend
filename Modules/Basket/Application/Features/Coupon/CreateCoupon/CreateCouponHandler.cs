@@ -5,7 +5,7 @@ public record CreateCouponCommand(CreateCouponDto Dto) : ICommand<Fin<Unit>>;
 
 internal class CreateCouponCommandHandler(BasketDbContext dbContext, IClock clock) : ICommandHandler<CreateCouponCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(CreateCouponCommand command,
+    public async Task<Fin<Unit>> Handle(CreateCouponCommand command,
         CancellationToken cancellationToken)
     {
         var createCouponDto = command.Dto with { CurrentDate = clock.UtcNow };
@@ -20,6 +20,6 @@ internal class CreateCouponCommandHandler(BasketDbContext dbContext, IClock cloc
             from _ in Db<BasketDbContext>.lift(ctx => ctx.Coupons.Add(c))
             select unit;
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

@@ -11,11 +11,11 @@ public static class QueryableExtensions
         {
             var _options = new QueryOptions<TAggregate>();
             var options = fn.Invoke(_options);
+
             foreach (var include in options.IncludeExpressions)
             {
                 queryable = queryable.Include(include);
             }
-
 
             foreach (var filter in options.FilterExpressions)
             {
@@ -29,6 +29,11 @@ public static class QueryableExtensions
             if (options.AsSplitQuery)
             {
                 queryable = queryable.AsSplitQuery();
+            }
+
+            if (options.IgnoreGlobalFilters)
+            {
+                queryable = queryable.IgnoreQueryFilters();
             }
 
             if (options.OrderByExpression is not null)
@@ -58,6 +63,7 @@ public record QueryOptions<TAggregate>
     public string[] Includes { get; set; } = [];
     public bool AsSplitQuery { get; set; }
     public bool AsNoTracking { get; set; }
+    public bool IgnoreGlobalFilters { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
 
@@ -112,5 +118,12 @@ public record QueryOptions<TAggregate>
     {
         return this with { WithPagination = true };
     }
+
+
+    public QueryOptions<TAggregate> IncludeDeleted()
+    {
+        return this with { IgnoreGlobalFilters = true };
+    }
+
 
 }

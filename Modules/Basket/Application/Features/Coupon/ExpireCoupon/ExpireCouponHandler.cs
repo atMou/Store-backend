@@ -7,7 +7,7 @@ public record ExpireCouponCommand(CouponId CouponId) : ICommand<Fin<Unit>>;
 
 internal class ExpireCouponCommandHandler(BasketDbContext dbContext, IClock clock) : ICommandHandler<ExpireCouponCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(ExpireCouponCommand command,
+    public async Task<Fin<Unit>> Handle(ExpireCouponCommand command,
         CancellationToken cancellationToken)
     {
         var db = GetUpdateEntity<BasketDbContext, Domain.Models.Coupon>(
@@ -17,6 +17,6 @@ internal class ExpireCouponCommandHandler(BasketDbContext dbContext, IClock cloc
                 o => o.MarkAsExpired(clock.UtcNow)
          ).Map(_ => unit);
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

@@ -6,38 +6,40 @@ namespace Basket.Domain.Models;
 
 public record Cart : Aggregate<CartId>
 {
+    private Cart() : base(CartId.New)
+    {
+    }
 
-    private Cart(UserId userId, Tax tax, Money shipmentCost, Address deliveryAddress)
+    private Cart(UserId userId, Tax tax, Address deliveryAddress)
         : base(CartId.New)
     {
         UserId = userId;
         Tax = tax;
-        ShipmentCost = shipmentCost;
         DeliveryAddress = deliveryAddress;
-        AddDomainEvent(new CartCreatedDomainEvent(Id, userId));
+
     }
 
-    public UserId UserId { get; private init; }
-    public Tax Tax { get; private init; }
+    public UserId UserId { get; }
+    public Tax Tax { get; }
     public Money TotalSub { get; private set; } = Money.Zero;
-    public Money Discount { get; private set; } = Money.Zero;
-    public Money ShipmentCost { get; private set; } = Money.Zero;
-    public Address DeliveryAddress { get; set; } = null!;
-    public Money TotalAfterDiscounted => Money.FromDecimal(Math.Max(0, TotalSub.Value - Discount.Value));
+    public Discount Discount { get; private set; }
+    public Money ShipmentCost { get; set; } = Money.Zero;
+    public Address DeliveryAddress { get; set; }
+    public Money TotalAfterDiscounted => Money.FromDecimal(Math.Max(0, TotalSub.Value - Discount.Apply(TotalSub)));
+    public Money TotalDiscount => TotalSub - TotalAfterDiscounted;
     public Money TaxValue => Tax * TotalAfterDiscounted;
     public Money Total => TotalAfterDiscounted + TaxValue + ShipmentCost;
     public bool IsCheckedOut { get; private set; }
     public bool IsActive { get; private set; } = true;
-    public IEnumerable<CouponId> CouponIds { get; private set; } = [];
-    public List<LineItem> LineItems { get; private init; } = [];
+    public ICollection<CouponId> CouponIds { get; private set; } = [];
+    public ICollection<LineItem> LineItems { get; private set; } = [];
 
 
     public static Fin<Cart> Create(
         UserId userId,
         decimal tax,
-        decimal shipmentCost,
         Address deliveryAddress) =>
-        Tax.From(tax).Map(tx => new Cart(userId, tx, shipmentCost, deliveryAddress));
+        Tax.From(tax).Map(tx => new Cart(userId, tx, deliveryAddress));
 
     public Cart SetCartCheckedOut()
     {
@@ -48,7 +50,7 @@ public record Cart : Aggregate<CartId>
             Total = Total.Value,
             TotalSub = TotalSub.Value,
             Tax = TaxValue.Value,
-            Discount = Discount.Value,
+            Discount = TotalDiscount,
             TotalAfterDiscounted = TotalAfterDiscounted.Value,
             CouponIds = CouponIds.Select(c => c.Value).ToList(),
             ShipmentCost = ShipmentCost.Value,
@@ -56,82 +58,109 @@ public record Cart : Aggregate<CartId>
             LineItems = LineItems.Select(li => new LineItemResult
             {
                 ProductId = li.ProductId.Value,
-                Quantity = li.Quantity
+                Quantity = li.Quantity,
+                ImageUrl = li.ImageUrl,
+                LineTotal = li.LineTotal.Value,
+                Slug = li.Slug,
+                UnitPrice = li.UnitPrice.Value,
+                VariantId = li.VariantId.Value
+
             }).ToList()
         });
 
 
-        return this with { IsCheckedOut = true };
-    }
-
-
-    public Fin<Cart> AddDiscount(CouponId couponId, decimal discount)
-    {
-        return AddCouponIds(couponId)
-            .Map(c => c with { Discount = Discount + discount });
+        IsCheckedOut = true;
+        return this;
     }
 
     public Fin<Cart> SetIsActiveToFalse()
     {
-        return IsActive is false ?
-            FinFail<Cart>(InvalidOperationError.New("Cart is already inactive.")) :
-           this with { IsActive = false };
+        if (!IsActive)
+        {
+            return FinFail<Cart>(InvalidOperationError.New("Cart is already inactive."));
+        }
+        IsActive = false;
+        return this;
     }
-    public Fin<Cart> RemoveDiscount(decimal discount, CouponId couponId)
+
+    public Cart AddDiscount(CouponId couponId, Discount discount)
+    {
+        if (Discount.IsNull())
+        {
+            Discount = discount;
+            return this;
+        }
+        var existingCoupons = CouponIds.ToHashSet();
+        if (existingCoupons.Contains(couponId)) return this;
+        CouponIds = [.. CouponIds, couponId];
+        Discount += discount;
+        return this;
+    }
+    public Fin<Cart> RemoveDiscount(Discount discount, CouponId couponId)
     {
         if (discount > Discount)
-        {
-            return FinFail<Cart>(InvalidOperationError.New($"Cannot remove more discount than applied."));
-        }
+            return FinFail<Cart>(InvalidOperationError.New("Cannot remove more discount than applied."));
         var restDiscount = Discount - discount;
         return DeleteCouponId(couponId).Map(c =>
         {
             AddDomainEvent(new CouponRemovedFromCartDomainEvent(couponId));
-            return c with { Discount = restDiscount };
+            c.Discount = restDiscount;
+            return c;
         });
-
     }
 
     public Cart ChangeDeliveryAddress(Address newAddress)
     {
-        return this with { DeliveryAddress = newAddress };
+        DeliveryAddress = newAddress;
+        return this;
     }
-    private List<LineItem> AddLineItem(LineItem item) =>
-        LineItems.Select(li =>
-            li.ProductId.Value == item.ProductId.Value
-                ? li.AddQuantity(item.Quantity)
-                : li).ToList();
 
-    public Cart AddLineItems(params LineItem[] ls)
+
+    public Cart AddLineItem(LineItem lineItem)
     {
-        List<LineItem> lineItems = [];
-        foreach (var li in ls)
+        //var itemsToAdd = Seq([.. ls]);
+        //LineItems = itemsToAdd.Fold(LineItems, ((items, itemToAdd) =>
+        //  {
+        //      var existing = items.FirstOrDefault(item => item.VariantId.Value == itemToAdd.VariantId.Value);
+        //      if (existing != null)
+        //      {
+        //          existing.AddQuantity(itemToAdd.Quantity);
+        //          return items;
+        //      }
+        //      return [.. items, itemToAdd];
+        //  }));
+
+        LineItems = [.. LineItems, lineItem];
+        TotalSub = GetSubTotal(LineItems);
+        return this;
+    }
+
+
+    public Fin<Cart> UpdateLineItemQuantity(VariantId variantId, int quantity)
+    {
+        if (quantity <= 0)
         {
-            lineItems = AddLineItem(li);
+            return DeleteLineItem(variantId);
         }
-
-
-        return this with
-        {
-            LineItems = lineItems,
-            TotalSub = GetSubTotal(lineItems)
-        };
-    }
-
-
-    public Cart UpdateLineItem(LineItem item)
-    {
-        var lineItems = LineItems.Select(li =>
-            li.ProductId.Value == item.ProductId.Value
-                ? item
+        LineItems = LineItems.Select(li =>
+            li.VariantId.Value == variantId.Value
+                ? li.UpdateQuantity(quantity)
                 : li).ToList();
-        return this with { LineItems = lineItems, TotalSub = GetSubTotal(lineItems) };
+        TotalSub = GetSubTotal(LineItems);
+        return this;
     }
 
-    public Cart DeleteLineItem(ProductId productId)
+    public Fin<Cart> DeleteLineItem(VariantId variantId)
     {
-        var lineItems = LineItems.Where(i => i.ProductId != productId).ToList();
-        return this with { LineItems = lineItems, TotalSub = GetSubTotal(lineItems) };
+        var itemToDelete = LineItems.FirstOrDefault(li => li.VariantId.Value == variantId.Value);
+
+        if (itemToDelete == null)
+            return FinFail<Cart>(NotFoundError.New($"Line item with variant id '{variantId.Value}' not found in cart."));
+
+        var lineItems = LineItems.Where(i => i.VariantId.Value != variantId.Value).ToList();
+        LineItems = lineItems;
+        TotalSub = GetSubTotal(lineItems);
+        return this;
     }
 
     private Money GetSubTotal(IEnumerable<LineItem> lineItems)
@@ -139,42 +168,14 @@ public record Cart : Aggregate<CartId>
         return lineItems.Aggregate(Money.Zero, (acc, li) => acc + li.LineTotal);
     }
 
-    //private Fin<Cart> AddCouponId(CouponId couponId)
-    //{
-    //    if (CouponIds.Any(cId => cId == couponId))
-    //    {
-    //        return Fin<Cart>.Fail(InvalidOperationError.New($"Coupon with id '{couponId}' is already in your cart."));
-    //    }
-
-    //    return this with { CouponIds = [.. CouponIds, couponId] };
-    //}
 
 
-    private Fin<Cart> AddCouponIds(params CouponId[] couponIds)
-    {
-        var existingCoupons = CouponIds.ToHashSet();
-
-        foreach (var couponId in couponIds)
-        {
-            if (existingCoupons.Contains(couponId))
-            {
-                return Fin<Cart>.Fail(
-                    InvalidOperationError.New($"Coupon with id '{couponId}' is already in your cart."));
-            }
-        }
-
-
-        return this with { CouponIds = [.. CouponIds, .. couponIds] };
-    }
 
     public Fin<Cart> DeleteCouponId(CouponId couponId)
     {
-
         if (CouponIds.All(cId => cId != couponId))
-        {
             return Fin<Cart>.Fail(
                 InvalidOperationError.New($"Coupon with id '{couponId}' does not exist in your cart."));
-        }
 
         CouponIds = [.. CouponIds.Where(cid => cid.Value != couponId.Value)];
 

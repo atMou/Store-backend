@@ -8,9 +8,9 @@ namespace Order.Presentation.Controllers;
 public class OrdersController(ISender sender) : ControllerBase
 {
 
-    //[HttpGet("{id}")]
-    //public async Task<IActionResult> GetOrderById(Guid id)
-    //{
+	//[HttpGet("{id}")]
+	//public async Task<IActionResult> GetOrderById(Guid id)
+	//{
 
-    //}
+	//}
 }

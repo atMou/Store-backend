@@ -1,8 +1,6 @@
-﻿using Shared.Domain.Enums;
+﻿namespace Inventory.Domain.Events;
 
-namespace Inventory.Domain.Events;
-
-public record ProductReservedDomainEvent(ProductId ProductId, int Qty, StockLevel StockLevel) : IDomainEvent
+public record ProductReservedDomainEvent(ProductId ProductId, VariantId VariantId, string Sku, int Qty, int AvailableStock) : IDomainEvent
 {
 
 }

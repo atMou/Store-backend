@@ -37,6 +37,30 @@ public record Color
         _ = Brown;
         _ = Gray;
         _ = Navy;
+
+        _ = Silver;
+        _ = Maroon;
+        _ = Rose;
+        _ = Coral;
+        _ = Gold;
+        _ = Lime;
+        _ = Olive;
+        _ = Teal;
+        _ = Mint;
+        _ = SkyBlue;
+        _ = Cyan;
+        _ = Violet;
+        _ = Lavender;
+        _ = Magenta;
+        _ = Beige;
+        _ = Tan;
+        _ = Cream;
+        _ = Burgundy;
+        _ = Indigo;
+        _ = Turquoise;
+        _ = Peach;
+        _ = Khaki;
+        _ = Charcoal;
     }
 
     public static Color None => new(ColorCode.None, "", "");
@@ -53,25 +77,58 @@ public record Color
     public static Color Gray => new(ColorCode.GY, "Gray", "#808080");
     public static Color Navy => new(ColorCode.NV, "Navy", "#000080");
 
-    // Lookups
-    public static Fin<Color> FromCode(string code) =>
-        Enum.TryParse<ColorCode>(code, out var colorCode)
-            ? Optional(_all.FirstOrDefault(c => c.Code == colorCode))
-                .ToFin((Error)$"Invalid color code '{code}'")
-            : FinFail<Color>((Error)$"Invalid color code '{code}'");
+    public static Color Silver => new(ColorCode.SV, "Silver", "#C0C0C0");
+    public static Color Maroon => new(ColorCode.MR, "Maroon", "#800000");
+    public static Color Rose => new(ColorCode.RS, "Rose", "#FF007F");
+    public static Color Coral => new(ColorCode.CR, "Coral", "#FF7F50");
+    public static Color Gold => new(ColorCode.GD, "Gold", "#FFD700");
+    public static Color Lime => new(ColorCode.LM, "Lime", "#00FF00");
+    public static Color Olive => new(ColorCode.OL, "Olive", "#808000");
+    public static Color Teal => new(ColorCode.TL, "Teal", "#008080");
+    public static Color Mint => new(ColorCode.MT, "Mint", "#98FF98");
+    public static Color SkyBlue => new(ColorCode.SB, "Sky Blue", "#87CEEB");
+    public static Color Cyan => new(ColorCode.CY, "Cyan", "#00FFFF");
+    public static Color Violet => new(ColorCode.VT, "Violet", "#EE82EE");
+    public static Color Lavender => new(ColorCode.LV, "Lavender", "#E6E6FA");
+    public static Color Magenta => new(ColorCode.MG, "Magenta", "#FF00FF");
+    public static Color Beige => new(ColorCode.BE, "Beige", "#F5F5DC");
+    public static Color Tan => new(ColorCode.TN, "Tan", "#D2B48C");
+    public static Color Cream => new(ColorCode.CM, "Cream", "#FFFDD0");
+    public static Color Burgundy => new(ColorCode.BG, "Burgundy", "#800020");
+    public static Color Indigo => new(ColorCode.IN, "Indigo", "#4B0082");
+    public static Color Turquoise => new(ColorCode.TQ, "Turquoise", "#40E0D0");
+    public static Color Peach => new(ColorCode.PC, "Peach", "#FFE5B4");
+    public static Color Khaki => new(ColorCode.KH, "Khaki", "#F0E68C");
+    public static Color Charcoal => new(ColorCode.CH, "Charcoal", "#36454F");
 
-    public static Fin<Color> FromName(string name) =>
+
+    public static Fin<Color> From(string name) =>
         Optional(_all.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            .ToFin((Error)$"Invalid color name '{name}'");
+            .ToFin(ValidationError.New($"Invalid color name '{name}'"));
 
-    public static Color FromUnsafe(string code) =>
-        Enum.TryParse<ColorCode>(code, out var colorCode)
-            ? Optional(_all.FirstOrDefault(c => c.Code == colorCode)).Match(
-                c => c, () => Color.None)
-            : None;
+    public static Color FromUnsafe(string repr) =>
 
-    public static Fin<IEnumerable<Color>> FromCodes(IEnumerable<string> colors)
+        Optional(_all.FirstOrDefault(c => c.Name == repr)).Match(
+            c => c, () => Color.None);
+
+    public static IEnumerable<Color> Like(IEnumerable<string> repr)
     {
-        return colors.AsIterable().Traverse(c => FromName(c)).Map(it => it.AsEnumerable()).As();
+        return _all.Where(color => repr.Any(s => color.Name.Contains(s)));
+    }
+
+    public static Fin<IEnumerable<Color>> From(IEnumerable<string> colors)
+    {
+        return colors.AsIterable().Traverse(c => From(c)).Map(it => it.AsEnumerable()).As();
+    }
+
+    public virtual bool Equals(Color? other)
+    {
+        return other is not null &&
+               Name == other.Name;
+    }
+
+    public override int GetHashCode()
+    {
+        return Name.GetHashCode();
     }
 }

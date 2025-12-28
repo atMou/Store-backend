@@ -1,26 +1,23 @@
-using Shared.Domain.Validations;
-
 namespace Shared.Domain.ValueObjects;
 
 public record Sku
 {
-    private static readonly Regex _skuRegex =
-        new("^[A-Z0-9]+$", RegexOptions.Compiled);
 
     private Sku()
     {
     }
 
-    private Sku(string category, string color, string size, string brand, string code)
+    private Sku(string category, string color, string brand, string code)
     {
-        Value = $"{category}-{color}-{size}-{brand}-{code}";
+        Value = $"{category}-{color}-{brand}-{code}";
     }
 
-    public string Value { get; private set; }
+    public string Value { get; private init; }
 
-    public static Sku From(string category, string color, string size, string brand)
+
+    public static Sku From(string category, string color, string brand)
     {
-        return new Sku(category, color, size, brand, Helpers.GenerateCode(6));
+        return new Sku(category, color, brand, Helpers.GenerateCode(6));
     }
 
     public static Sku FromUnsafe(string sku)
@@ -28,7 +25,15 @@ public record Sku
         return new Sku { Value = sku };
     }
 
+    public virtual bool Equals(Sku? other)
+    {
+        return other is not null &&
+               Value == other.Value;
+    }
 
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Value);
+    }
 }
 
-//[Category]-[Color]-[Size]-[Brand]-[UniqueID]

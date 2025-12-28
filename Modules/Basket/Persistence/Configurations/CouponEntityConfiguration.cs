@@ -26,7 +26,9 @@ public class CouponConfiguration : IEntityTypeConfiguration<Coupon>
             .HasMaxLength(30)
             .IsRequired();
 
-        builder.Property(c => c.Description).HasColumnName("description")
+        builder.Property(c => c.Description)
+            .HasConversion(description => description.Value, s => Description.FromUnsafe(s))
+            .HasColumnName("description")
             .HasMaxLength(200)
             .IsRequired();
 
@@ -71,6 +73,7 @@ public class CouponConfiguration : IEntityTypeConfiguration<Coupon>
         //builder.HasIndex(c => c.Code).IsUnique();
         builder.HasIndex(c => c.UserId);
         builder.HasIndex(c => c.CartId).IsUnique();
+        builder.HasIndex(c => c.Code).IsUnique();
 
         builder.ToTable("coupons");
     }

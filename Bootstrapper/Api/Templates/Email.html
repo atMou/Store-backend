@@ -22,11 +22,31 @@
             border: 1px solid #ddd;
         }
 
+        .logo-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
         .logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto;
-            display: block;
+            width: 56px;
+            height: 56px;
+            background: #f97316;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-left: 16px solid #fff;
+            border-bottom: 10px solid transparent;
+            margin-left: 2px;
         }
 
         h1 {
@@ -46,16 +66,20 @@
 
         .btn {
             display: inline-block;
-            background: #0057ff;
-            color: #fff !important;
+            color: #000 !important;
             padding: 12px 24px;
-            border-radius: 8px;
             font-weight: 700;
             font-size: 15px;
             margin: 25px auto;
             text-align: center;
             text-decoration: none;
+            border: 2px solid #000; 
         }
+
+            .btn:hover {
+                background: #000;
+                color: #fff !important;
+            }
 
         .footer-box {
             background: #f2eff3;
@@ -71,31 +95,41 @@
 
 <body>
     <div class="container">
-        
-        <img class="logo" src="https://placehold.co/60x60" alt="Logo" />
 
-        <h1>Please verify your email 😄</h1>
+        <div class="logo-wrapper">
+            <div class="logo">
+                <div class="play-icon"></div>
+            </div>
+        </div>
+        <p style="text-align: left;">
+            Dear: {{name}},
+        </p>
+        <h1>Please verify your email</h1>
 
         <p>
-            To use X, click the verification button below.
-            This helps keep your account secure.
+            Click the verification button below to verify your account.
+        </p>
+
+        <p>
+            or use this code and insert it into your page <strong>{{code}}</strong>.
         </p>
 
         <div style="text-align:center;">
             <a class="btn" href="{{VerificationLink}}" target="_blank">
-                Verify my account
+                Verify  account
             </a>
         </div>
 
         <p>
-            You’re receiving this email because you created an account for
+            You're receiving this email because you created an account for
             <strong>{{UserEmail}}</strong>.
-            If this wasn’t you, simply ignore the message.
+            If this wasn't you, simply ignore the message.
         </p>
 
         <div class="footer-box">
-            EmailService specialists use X's tools to design emails easily
-            and send high-quality HTML to all inbox providers.
+            This message was sent by Fakelando.
+            By continuing to use our services, you agree to our Terms & Conditions and Privacy Policy.
+            If you believe this email was sent to you in error, please contact Fakelando support.
         </div>
 
     </div>

@@ -1,12 +1,13 @@
 namespace Product.Domain.Enums;
 public enum SizeCode
 {
-    None,
-    XS, // Extra Small
-    S,  // Small
-    M,  // Medium
-    L,  // Large
-    XL, // Extra Large
-    XXL, // Double Extra Large
-    XXXL // Triple Extra Large
+	None,
+	XXS,
+	XS,
+	S,
+	M,
+	L,
+	XL,
+	XXL,
+	XXXL
 }

@@ -37,51 +37,100 @@ internal class CartEntityConfigurations : IEntityTypeConfiguration<Cart>
             b.HasKey("id");
         });
 
-        builder.HasMany(c => c.LineItems)
-            .WithOne()
-            .HasForeignKey(ci => ci.CartId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         builder.Property(cart => cart.TotalSub)
             .HasConversion(money => money.Value, d => Money.FromDecimal(d))
             .HasColumnName("total_sub");
 
-        builder.Property(cart => cart.Discount)
+        builder.OwnsOne(c => c.Discount, discount =>
+        {
+            discount.Property(d => d.DiscountType)
+                .HasColumnName("discount_type")
+                .IsRequired();
+
+            discount.Property(d => d.DiscountValue)
+                .HasColumnName("discount_value")
+                .HasColumnType("decimal(6,2)")
+                .IsRequired();
+        });
+
+        builder.OwnsOne(cart => cart.DeliveryAddress, address =>
+        {
+            address.Property(a => a.City)
+                .HasColumnName("delivery_address_city")
+                .IsRequired();
+
+            address.Property(a => a.Street)
+                .HasColumnName("delivery_address_street")
+                .IsRequired();
+
+            address.Property(a => a.PostalCode)
+                .HasColumnName("delivery_address_postal_code")
+                .IsRequired();
+
+            address.Property(a => a.HouseNumber)
+                .HasColumnName("delivery_address_house_number")
+                .IsRequired();
+
+            address.Property(a => a.ExtraDetails)
+                .HasColumnName("delivery_address_extra_details")
+                .IsRequired(false);
+        });
+
+        builder.Property(cart => cart.ShipmentCost)
             .HasConversion(money => money.Value, d => Money.FromDecimal(d))
-            .HasColumnName("discount");
+            .HasColumnName("shipment_cost");
+
+        builder.Property(cart => cart.IsActive)
+            .HasColumnName("is_active");
 
 
-        //builder.OwnsMany(c => c.LineItems, li =>
-        //{
-        //    li.WithOwner().HasForeignKey("cart_id");
-        //    li.HasKey(item => new { item.ProductId, item.CartId });
+        // Configure LineItems as OwnsMany
+        builder.OwnsMany(c => c.LineItems, li =>
+        {
+            li.ToTable("line_items");
+            li.WithOwner().HasForeignKey("cart_id");
 
-        //    li.Property(x => x.ProductId)
-        //        .HasConversion(
-        //            id => id.Value,
-        //            value => ProductId.From(value)).HasColumnName("product_id");
+            li.HasKey("CartId", "ProductId");
 
-        //    li.Property(x => x.CartId)
-        //        .HasConversion(
-        //            id => id.Value,
-        //            value => CartId.From(value)).HasColumnName("cart_id");
+            li.Property(x => x.ProductId)
+                .HasConversion(id => id.Value, value => ProductId.From(value))
+                .HasColumnName("product_id")
+                .IsRequired();
 
-        //    li.Property(x => x.LineTotal)
-        //        .HasConversion(money => money.Value, d => Money.FromDecimal(d))
-        //        .HasColumnName("line_total");
+            li.Property(x => x.CartId)
+                .HasConversion(id => id.Value, value => CartId.From(value))
+                .HasColumnName("cart_id")
+                .IsRequired();
 
-        //    li.Property(x => x.UnitPrice)
-        //        .HasConversion(money => money.Value, d => Money.FromDecimal(d))
-        //        .HasColumnName("unit_price");
+            li.Property(x => x.VariantId)
+                .HasConversion(id => id.Value, value => VariantId.From(value))
+                .HasColumnName("variant_id")
+                .IsRequired();
 
-        //    li.Property(x => x.Quantity);
+            li.Property(x => x.Slug)
+                .HasMaxLength(200)
+                .HasColumnName("slug")
+                .IsRequired();
 
-        //    li.Property(x => x.Slug).HasColumnName("slug");
-        //    li.Property(x => x.ImageUrl).HasColumnName("image_url");
+            li.Property(x => x.ImageUrl)
+                .HasMaxLength(500)
+                .HasColumnName("image_url");
 
-        //    li.ToTable("line_items");
-        //});
+            li.Property(x => x.Quantity)
+                .HasColumnName("quantity")
+                .IsRequired();
 
+            li.Property(x => x.UnitPrice)
+                .HasConversion(money => money.Value, d => Money.FromDecimal(d))
+                .HasColumnName("unit_price")
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            li.Ignore(x => x.LineTotal);
+
+            li.HasIndex(x => x.CartId);
+            li.HasIndex(x => x.ProductId);
+        });
 
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.CreatedBy).HasColumnName("created_by");
@@ -90,18 +139,10 @@ internal class CartEntityConfigurations : IEntityTypeConfiguration<Cart>
 
         builder.Ignore(c => c.TaxValue);
         builder.Ignore(c => c.TotalAfterDiscounted);
+        builder.Ignore(c => c.TotalDiscount);
         builder.Ignore(c => c.Total);
-
 
         builder.HasIndex(c => c.UserId);
         builder.ToTable("carts");
-
     }
 }
-
-
-
-//builder.HasMany(c => c.LineItems)
-//    .WithOne()
-//    .HasForeignKey(ci => ci.CartId)
-//    .OnDelete(DeleteBehavior.Cascade);

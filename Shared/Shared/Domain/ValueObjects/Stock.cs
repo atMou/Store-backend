@@ -1,8 +1,4 @@
-﻿using LanguageExt.Traits.Domain;
-
-using Shared.Domain.Errors;
-
-namespace Inventory.Domain.ValueObjects;
+﻿namespace Shared.Domain.ValueObjects;
 public record Stock : DomainType<Stock, (int Value, int Low, int Mid, int High)>
 {
     public int Value { get; init; }
@@ -44,6 +40,17 @@ public record Stock : DomainType<Stock, (int Value, int Low, int Mid, int High)>
     }
 
 
-
+    public virtual bool Equals(Stock? other)
+    {
+        return other is not null &&
+               Value == other.Value &&
+               Low == other.Low &&
+               Mid == other.Mid &&
+               High == other.High;
+    }
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Value, Low, Mid, High);
+    }
 }
 

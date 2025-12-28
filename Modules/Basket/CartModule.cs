@@ -64,4 +64,3 @@ public static class CartModule
 
 }
 
-//public interface IBasketBus : IBus { }

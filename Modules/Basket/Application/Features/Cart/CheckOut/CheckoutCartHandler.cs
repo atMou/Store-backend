@@ -10,7 +10,7 @@ internal class CheckoutCartCommandHandler(
     IPublishEndpoint endpoint)
     : ICommandHandler<CartCheckoutCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(CartCheckoutCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(CartCheckoutCommand command, CancellationToken cancellationToken)
     {
         var db =
             from cart in GetEntity<BasketDbContext, Domain.Models.Cart>(
@@ -30,7 +30,7 @@ internal class CheckoutCartCommandHandler(
             from _3 in UpdateEntity<BasketDbContext, Domain.Models.Cart>(cart, cart => cart.SetCartCheckedOut())
             select unit;
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseOnFail(async error => await endpoint.Publish(new CartCheckoutFailedDomainEvent(error), cancellationToken)
             );
     }

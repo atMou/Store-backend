@@ -1,6 +1,6 @@
 namespace Basket.Application.Features.Cart.DeleteCartItem;
 
-public record DeleteLineItemCommand(ProductId ProductId, CartId CartId) : ICommand<Fin<Unit>>;
+public record DeleteLineItemCommand(VariantId VariantId, CartId CartId) : ICommand<Fin<Unit>>;
 
 internal class DeleteLineItemHandler(
     IUserContext userContext,
@@ -11,13 +11,20 @@ internal class DeleteLineItemHandler(
         CancellationToken cancellationToken)
     {
         var db =
-            from cart in SoftDeleteEntity<BasketDbContext, Domain.Models.Cart>(
+
+            from c in GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
                 cart => cart.Id == command.CartId,
-                cart => cart.DeleteLineItem(command.ProductId),
-                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."))
-            from x in userContext.IsSameUser<IO>(cart.UserId,
+                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
+                opt =>
+                {
+                    opt.AsSplitQuery = true;
+                    opt = opt.AddInclude(cart => cart.LineItems);
+                    return opt;
+                },
+                cart => cart.DeleteLineItem(command.VariantId))
+            from x in userContext.IsSameUser<IO>(c.UserId,
                           UnAuthorizedError.New("You are not authorized to delete this cart item."))
-                      | userContext.IsInRole<IO>(Role.Admin,
+                      | userContext.HasRole<IO>(Role.Admin,
                           UnAuthorizedError.New("You are not authorized to delete this cart item.")).As()
             select unit;
 

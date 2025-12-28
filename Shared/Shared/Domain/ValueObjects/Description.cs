@@ -1,30 +1,27 @@
-
-using Shared.Domain.Validations;
-
 namespace Shared.Domain.ValueObjects;
 
-public record Description : DomainType<Description, string>
+public record Description
 {
-    public readonly string Value;
+	public readonly string Value;
 
-    private Description()
-    {
+	private Description()
+	{
 
-    }
-    private Description(string repr)
-    {
-        Value = repr;
-    }
-    public static Fin<Description> From(string repr) =>
-       (from v in Helpers.MinLength(50, nameof(Description))(repr) &
-                  Helpers.MaxLength(200, nameof(Description))(repr)
-        select new Description(repr)).ToFin();
+	}
+	private Description(string repr)
+	{
+		Value = repr;
+	}
+	public static Fin<Description> From(int min, int max, string repr) =>
+	   (from v in Helpers.MinLength(min, nameof(Description))(repr) &
+				  Helpers.MaxLength(max, nameof(Description))(repr)
+		select new Description(repr)).ToFin();
 
-    public string To() => Value;
+	public string To() => Value;
 
 
-    public static Description FromUnsafe(string repr)
-    {
-        return new Description(repr);
-    }
+	public static Description FromUnsafe(string repr)
+	{
+		return new Description(repr);
+	}
 }

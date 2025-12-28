@@ -2,10 +2,10 @@
 internal class EnsureProductNotInCartsQueryHandler(BasketDbContext dbContext)
     : IQueryHandler<EnsureProductNotInCartsQuery, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(EnsureProductNotInCartsQuery request,
+    public async Task<Fin<Unit>> Handle(EnsureProductNotInCartsQuery request,
         CancellationToken cancellationToken)
     {
-        return Db<BasketDbContext>.liftIO(ctx => EnsureNotInCart(request.ProductId, ctx))
+        return await Db<BasketDbContext>.liftIO(ctx => EnsureNotInCart(request.ProductId, ctx))
             .RunAsync(dbContext, EnvIO.New(null, cancellationToken));
 
     }

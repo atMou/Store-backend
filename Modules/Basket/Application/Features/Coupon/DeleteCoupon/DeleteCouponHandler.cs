@@ -7,7 +7,7 @@ public record DeleteCouponCommand(CouponId CouponId) : ICommand<Fin<Unit>>;
 internal class DeleteCouponCommandHandler(BasketDbContext dbContext)
     : ICommandHandler<DeleteCouponCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(DeleteCouponCommand command,
+    public async Task<Fin<Unit>> Handle(DeleteCouponCommand command,
         CancellationToken cancellationToken)
     {
         var db =
@@ -18,6 +18,6 @@ internal class DeleteCouponCommandHandler(BasketDbContext dbContext)
                 c => c.EnsureCanDelete().Map(co => co.MarkAsDeleted())
                 ).Map(_ => unit);
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

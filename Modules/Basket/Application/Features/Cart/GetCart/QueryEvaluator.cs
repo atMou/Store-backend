@@ -18,11 +18,11 @@ internal static class QueryEvaluator
 
             foreach (string se in includes.Distinct())
             {
-                if (string.Equals(se, "lineItems", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, LineItems, StringComparison.OrdinalIgnoreCase))
                 {
                     options = options.AddInclude(p => p.LineItems);
                 }
-                if (string.Equals(se, "couponIds", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, CouponIds, StringComparison.OrdinalIgnoreCase))
                 {
                     options = options.AddInclude(p => p.CouponIds);
                 }

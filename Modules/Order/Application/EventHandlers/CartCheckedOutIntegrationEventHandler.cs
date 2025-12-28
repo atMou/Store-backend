@@ -28,6 +28,7 @@ public class CartCheckedOutIntegrationEventHandler(ISender sender) : IConsumer<C
                 OrderItems = context.Message.LineItems.Select(item => new CreateOrderItemDto()
                 {
                     ProductId = ProductId.From(item.ProductId),
+                    VariantId = VariantId.From(item.VariantId),
                     Slug = item.Slug,
                     ImageUrl = item.ImageUrl,
                     Quantity = item.Quantity,

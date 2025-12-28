@@ -3,142 +3,142 @@ using System.Numerics;
 namespace Identity.Domain.ValueObjects;
 
 public record Age : DomainType<Age, byte>,
-    IComparisonOperators<Age, Age, bool>,
-    IComparisonOperators<Age, byte, bool>
+	IComparisonOperators<Age, Age, bool>,
+	IComparisonOperators<Age, byte, bool>
 {
-    public readonly byte Value;
+	public readonly byte Value;
 
-    private Age(byte repr)
-    {
-        Value = repr;
+	private Age(byte repr)
+	{
+		Value = repr;
 
-    }
+	}
 
-    public static Fin<Age> From(string repr, DateTime dateTime)
-    {
-        return DateOnly.TryParse(repr, out var result)
-            ? From(result, DateOnly.FromDateTime(dateTime))
-            : Error.New($"Could not parse date of birth '{repr}'");
+	public static Fin<Age> From(string repr, DateTime dateTime)
+	{
+		return DateOnly.TryParse(repr, out var result)
+			? From(result, DateOnly.FromDateTime(dateTime))
+			: Error.New($"Could not parse date of birth '{repr}'");
 
-    }
+	}
 
-    public static Fin<Age> From(byte repr)
-    {
-        return repr > 120 ? FinFail<Age>((Error)$"Please enter an proper age.") : new Age(repr);
-    }
-
-
-    public static Fin<Age> From(DateOnly dob, DateOnly now)
-    {
-
-        int age = now.Year - dob.Year;
-        if (now < dob.AddYears(age))
-        {
-            age--;
-        }
-
-        return age < 18 || age > 120 ?
-            FinFail<Age>(Error.New($"Age value '{dob.ToShortDateString()}' is invalid, please enter a proper age over 18 Yo, and less than 120 Yo."))
-
-            : new Age((byte)age);
-    }
+	public static Fin<Age> From(byte repr)
+	{
+		return repr > 120 ? FinFail<Age>((Error)$"Please enter an proper age.") : new Age(repr);
+	}
 
 
-    private static Fin<Unit> IsLessThanZero(int repr)
-    {
-        return repr < 0
-              ? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a proper age value."))
-              : unit;
-    }
+	public static Fin<Age> From(DateOnly dob, DateOnly now)
+	{
 
-    private static Fin<Unit> IsMoreThan100(int repr)
-    {
-        return repr > 100
-            ? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a proper age value."))
-            : unit;
-    }
+		int age = now.Year - dob.Year;
+		if (now < dob.AddYears(age))
+		{
+			age--;
+		}
 
-    private static Fin<Unit> IsLessThan18(int repr)
-    {
-        return repr < 0
-            ? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a age over 18 YO value."))
-            : unit;
-    }
-    public static Age FromUnsafe(byte repr)
-    {
-        return new Age(repr);
-    }
+		return age < 18 || age > 120 ?
+			FinFail<Age>(Error.New($"Age value '{dob.ToShortDateString()}' is invalid, please enter a proper age over 18 Yo, and less than 120 Yo."))
 
-    public static Age? FromNullable(byte? repr)
-    {
-        return repr is null ? null : new Age(repr.Value);
-    }
+			: new Age((byte)age);
+	}
 
 
+	private static Fin<Unit> IsLessThanZero(int repr)
+	{
+		return repr < 0
+			  ? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a proper age value."))
+			  : unit;
+	}
 
-    public byte To()
-    {
-        return Value;
-    }
+	private static Fin<Unit> IsMoreThan100(int repr)
+	{
+		return repr > 100
+			? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a proper age value."))
+			: unit;
+	}
+
+	private static Fin<Unit> IsLessThan18(int repr)
+	{
+		return repr < 0
+			? FinFail<Unit>(Error.New($"Age value '{repr}' is invalid, please enter a age over 18 YO value."))
+			: unit;
+	}
+	public static Age FromUnsafe(byte repr)
+	{
+		return new Age(repr);
+	}
+
+	public static Age? FromNullable(byte? repr)
+	{
+		return repr is null ? null : new Age(repr.Value);
+	}
 
 
-    public static bool operator >(Age left, Age right)
-    {
-        return left.To() > right.To();
-    }
 
-    public static bool operator >=(Age left, Age right)
-    {
-        return left.To() >= right.To();
-    }
+	public byte To()
+	{
+		return Value;
+	}
 
-    public static bool operator <(Age left, Age right)
-    {
-        return left.To() < right.To();
-    }
 
-    public static bool operator <=(Age left, Age right)
-    {
-        return left.To() <= right.To();
-    }
+	public static bool operator >(Age left, Age right)
+	{
+		return left.To() > right.To();
+	}
 
-    public static bool operator ==(Age? left, byte right)
-    {
-        return left is { } l && l.To() == right;
-    }
+	public static bool operator >=(Age left, Age right)
+	{
+		return left.To() >= right.To();
+	}
 
-    public static bool operator !=(Age? left, byte right)
-    {
-        return !(left == right);
-    }
+	public static bool operator <(Age left, Age right)
+	{
+		return left.To() < right.To();
+	}
 
-    public static bool operator >(Age left, byte right)
-    {
-        return left.To() > right;
-    }
+	public static bool operator <=(Age left, Age right)
+	{
+		return left.To() <= right.To();
+	}
 
-    public static bool operator >=(Age left, byte right)
-    {
-        return left.To() >= right;
-    }
+	public static bool operator ==(Age? left, byte right)
+	{
+		return left is { } l && l.To() == right;
+	}
 
-    public static bool operator <(Age left, byte right)
-    {
-        return left.To() < right;
-    }
+	public static bool operator !=(Age? left, byte right)
+	{
+		return !(left == right);
+	}
 
-    public static bool operator <=(Age left, byte right)
-    {
-        return left.To() <= right;
-    }
+	public static bool operator >(Age left, byte right)
+	{
+		return left.To() > right;
+	}
 
-    public virtual bool Equals(Age? other)
-    {
-        return other is { } && Value == other.Value;
-    }
+	public static bool operator >=(Age left, byte right)
+	{
+		return left.To() >= right;
+	}
 
-    public override int GetHashCode()
-    {
-        return Value.GetHashCode();
-    }
+	public static bool operator <(Age left, byte right)
+	{
+		return left.To() < right;
+	}
+
+	public static bool operator <=(Age left, byte right)
+	{
+		return left.To() <= right;
+	}
+
+	public virtual bool Equals(Age? other)
+	{
+		return other is { } && Value == other.Value;
+	}
+
+	public override int GetHashCode()
+	{
+		return Value.GetHashCode();
+	}
 }

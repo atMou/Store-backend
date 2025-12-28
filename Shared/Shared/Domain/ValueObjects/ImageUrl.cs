@@ -1,40 +1,40 @@
-using Shared.Domain.Errors;
-using Shared.Domain.Validations;
-
 namespace Shared.Domain.ValueObjects;
 
-public record ImageUrl : DomainType<ImageUrl, string>
+public record ImageUrl
 {
     private static readonly Regex _allowedExtensions =
-        new(@"\.(jpg|jpeg|png)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\.(jpg|jpeg|png|webp)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private ImageUrl() { }
+    private ImageUrl()
+    {
+    }
 
-    private ImageUrl(string value)
+    private ImageUrl(string value, string publicId)
     {
         Value = value;
+        PublicId = publicId;
     }
 
     public string Value { get; }
-
-    public static Fin<ImageUrl> From(string url)
+    public string PublicId { get; }
+    public static Fin<ImageUrl> From(string url, string publicId)
     {
         return Helpers.IsNullOrEmpty(url, nameof(ImageUrl)).ToFin()
             .Bind(_ => IsValid(url)
-                ? FinSucc(new ImageUrl(url!))
+                ? FinSucc(new ImageUrl(url, publicId))
                 : FinFail<ImageUrl>(
                     InvalidOperationError.New("Invalid image URL. Must be a valid HTTP/HTTPS URL ending with .jpg, .jpeg, or .png."))
                 .As()
                 );
     }
 
-    public static ImageUrl FromUnsafe(string url)
+    public static ImageUrl FromUnsafe(string url, string publicId)
     {
-        return new ImageUrl(url);
+        return new ImageUrl(url, publicId);
     }
-    public static ImageUrl? FromNullable(string? repr)
+    public static ImageUrl? FromNullable(string? repr, string publicId)
     {
-        return repr is null ? null : new ImageUrl(repr);
+        return repr is null ? null : new ImageUrl(repr, "");
     }
 
     public string To()

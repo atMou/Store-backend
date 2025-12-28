@@ -2,10 +2,11 @@
 public record ToggleLikedProductsCommand : ICommand<Fin<Unit>>
 {
     public IEnumerable<ProductId> ProductIds { get; set; } = [];
+
 }
 internal class ToggleLikedProductsCommandHandler(IUserContext userContext, IdentityDbContext dbContext) : ICommandHandler<ToggleLikedProductsCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(ToggleLikedProductsCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(ToggleLikedProductsCommand command, CancellationToken cancellationToken)
     {
         var db = from userId in GetCurrentUserId()
                  from a in GetUpdateEntity<IdentityDbContext, User>(
@@ -13,13 +14,13 @@ internal class ToggleLikedProductsCommandHandler(IUserContext userContext, Ident
                      NotFoundError.New($"User with id '{userId}' does not exist."),
                      opt =>
                      {
-                         opt.AddInclude(u => u.LikedProducts);
+                         opt = opt.AddInclude(u => u.LikedProductIds);
                          return opt;
                      },
                      user => user.ToggleLikedProducts([.. command.ProductIds])
                  )
                  select unit;
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
     private Fin<UserId> GetCurrentUserId() => userContext.GetCurrentUserF<Fin>()

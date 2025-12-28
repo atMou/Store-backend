@@ -1,31 +1,44 @@
 ﻿using Inventory.Domain.Events;
-using Inventory.Domain.ValueObjects;
 
 using Shared.Domain.Enums;
 using Shared.Domain.Errors;
 
 namespace Inventory.Domain.Models;
-public record Inventory : Aggregate<ProductId>
-{
-    private Inventory() : base(ProductId.New()) { }
 
-    private Inventory(ProductId productId, Stock stock)
-        : base(productId)
+public record Inventory : Aggregate<InventoryId>
+{
+    private Inventory() : base(InventoryId.New()) { }
+
+    private Inventory(
+        ProductId productId,
+        VariantId variantId,
+        string sku,
+        Stock stock,
+        string brand,
+        string slug)
+        : base(InventoryId.New())
     {
         ProductId = productId;
+        VariantId = variantId;
+        Sku = sku;
+        Brand = brand;
+        Slug = slug;
         Stock = stock;
     }
 
     public ProductId ProductId { get; private init; }
     public VariantId VariantId { get; private init; }
-    public int Reserved { get; private init; } = 0;
+    public string Sku { get; private init; }
+    public string Brand { get; private init; }
+    public string Slug { get; private init; }
+    public int Reserved { get; private set; } = 0;
+    public byte[] Version { get; private set; }
+    public Stock Stock { get; private set; }
 
-    public byte[] Version { get; private init; }
-
-    public Stock Stock { get; private init; }
+    public int AvailableStock => Stock.Value - Reserved;
 
     public StockLevel StockLevel =>
-        Stock.Value switch
+        AvailableStock switch
         {
             <= 0 => StockLevel.OutOfStock,
             var s when s <= Stock.Low => StockLevel.LowStock,
@@ -33,74 +46,141 @@ public record Inventory : Aggregate<ProductId>
             _ => StockLevel.HighStock
         };
 
-    public static Fin<Inventory> Create(ProductId productId, int quantity, int stockLow, int stockMid, int stockHigh)
-       => Stock.From((quantity, stockLow, stockMid, stockHigh))
-          .Map(stock => new Inventory(productId, stock));
+    public static Fin<Inventory> Create(
+        ProductId productId,
+        VariantId variantId,
+        string sku,
+        int stock,
+        int low,
+        int mid,
+        int high,
+        string brand,
+        string slug)
+    {
+        return Stock.From((stock, low, mid, high))
+            .Map(_stock => new Inventory(productId, variantId, sku, _stock, brand, slug));
+    }
 
     public Inventory Increase(int qty)
     {
-        var inventory = this with
-        {
-            Stock = Stock with { Value = Stock.Value + qty },
+        var previousLevel = StockLevel;
+        var newStock = Stock.Value + qty;
 
-        };
-        if ((StockLevel == StockLevel.OutOfStock || StockLevel == StockLevel.LowStock) &&
-            inventory.StockLevel == StockLevel.MediumStock || inventory.StockLevel == StockLevel.HighStock)
+        Stock = Stock with { Value = newStock };
+
+        if ((previousLevel == StockLevel.OutOfStock || previousLevel == StockLevel.LowStock) &&
+            (StockLevel == StockLevel.MediumStock || StockLevel == StockLevel.HighStock))
         {
-            AddDomainEvent(new ProductBackInStockDomainEvent(ProductId, inventory.Stock.Value));
+            AddDomainEvent(new ProductBackInStockDomainEvent(ProductId, VariantId, Sku, AvailableStock));
         }
 
-        return inventory;
+        return this;
     }
 
     public Fin<Inventory> Decrease(int qty)
+
     {
-        if (Stock.Value < qty)
-            return InvalidOperationError.New($"Insufficient stock for product  with id {ProductId.Value}, available stock is {Stock.Value}");
-        var inventory = this with { Stock = Stock with { Value = Stock.Value - qty } };
+        var previousLevel = StockLevel;
+        if (AvailableStock < qty)
+            return FinFail<Inventory>(InvalidOperationError.New(
+                $"Insufficient stock for SKU {Sku}. Available: {AvailableStock}, Requested: {qty}"));
 
-        if (inventory.StockLevel == StockLevel.LowStock)
-            AddDomainEvent(new ProductLowStockAlertEvent(ProductId, inventory.Stock.Value));
 
-        if (inventory.StockLevel == StockLevel.OutOfStock)
-            AddDomainEvent(new ProductOutOfStockAlertEvent(ProductId));
+        Stock = Stock with { Value = Stock.Value - qty };
+        if (previousLevel != StockLevel)
+        {
+            AddDomainEvent(new StockLevelChangedDomainEvent(
+                ProductId.Value,
+                VariantId.Value,
+                StockLevel >= StockLevel.MediumStock,
+                StockLevel));
+        }
+        if (StockLevel == StockLevel.LowStock)
+            AddDomainEvent(new ProductLowStockDomainEvent(ProductId, VariantId, Sku, AvailableStock));
 
-        return inventory;
+        if (StockLevel == StockLevel.OutOfStock)
+            AddDomainEvent(new ProductOutOfStockDomainEvent(
+                ProductId, VariantId, Sku, StockLevel,
+                $"{Slug} {Brand} (SKU: {Sku}) is out of stock"));
+
+        return this;
     }
 
     public Fin<Inventory> Reserve(int qty)
     {
+        var previousLevel = StockLevel;
+        if (AvailableStock < qty)
+            return FinFail<Inventory>(InvalidOperationError.New(
+                $"Insufficient available stock for SKU {Sku}. Available: {AvailableStock}, Requested: {qty}"));
 
-        if (Stock.Value < qty)
-            return InvalidOperationError.New($"Insufficient stock for product with id {ProductId.Value}, available stock is {Stock.Value}");
-        var inventory = this with { Stock = Stock with { Value = Stock.Value - qty }, Reserved = Reserved + qty };
+        Stock = Stock with { Value = Stock.Value - qty };
+        Reserved += qty;
 
-        if (inventory.StockLevel == StockLevel.LowStock)
-            AddDomainEvent(new ProductLowStockAlertEvent(ProductId, inventory.Stock.Value));
-
-        if (inventory.StockLevel == StockLevel.OutOfStock)
-            AddDomainEvent(new ProductOutOfStockAlertEvent(ProductId));
-
-        AddDomainEvent(new ProductReservedDomainEvent(ProductId, inventory.Stock.Value, inventory.StockLevel));
-        return inventory;
-    }
-
-    public Inventory ReleaseReservationDueToCancellation(int qty)
-    {
-        var newStock = Stock.Value + qty;
-        var inventory = this with { Stock = Stock with { Value = newStock }, Reserved = Math.Max(0, Reserved - qty) };
-        if ((StockLevel == StockLevel.OutOfStock || StockLevel == StockLevel.LowStock) &&
-            (inventory.StockLevel == StockLevel.MediumStock || inventory.StockLevel == StockLevel.HighStock))
+        if (previousLevel != StockLevel)
         {
-            AddDomainEvent(new ProductBackInStockDomainEvent(ProductId, inventory.Stock.Value));
+            AddDomainEvent(new StockLevelChangedDomainEvent(
+                ProductId.Value,
+                VariantId.Value,
+                StockLevel >= StockLevel.MediumStock,
+                StockLevel));
+        }
+        if (StockLevel == StockLevel.LowStock)
+            AddDomainEvent(new ProductLowStockDomainEvent(ProductId, VariantId, Sku, AvailableStock));
+
+        if (StockLevel == StockLevel.OutOfStock)
+            AddDomainEvent(new ProductOutOfStockDomainEvent(
+                ProductId, VariantId, Sku, StockLevel,
+                $"{Slug} {Brand} (SKU: {Sku}) is out of stock"));
+
+        AddDomainEvent(new ProductReservedDomainEvent(ProductId, VariantId, Sku, qty, AvailableStock));
+
+        return this;
+    }
+    public Inventory ReleaseReservation(int qty)
+    {
+        var previousLevel = StockLevel;
+        var newStock = Stock.Value + qty;
+        var newReserved = Math.Max(0, Reserved - qty);
+
+
+        Stock = Stock with { Value = newStock };
+        Reserved = newReserved;
+
+        if (previousLevel != StockLevel)
+        {
+            AddDomainEvent(new StockLevelChangedDomainEvent(
+                ProductId.Value,
+                VariantId.Value,
+                StockLevel >= StockLevel.MediumStock,
+                StockLevel));
+        }
+        if ((previousLevel == StockLevel.OutOfStock || previousLevel == StockLevel.LowStock) &&
+            (StockLevel == StockLevel.MediumStock || StockLevel == StockLevel.HighStock))
+        {
+            AddDomainEvent(new ProductBackInStockDomainEvent(ProductId, VariantId, Sku, AvailableStock));
         }
 
-        return inventory;
+        return this;
     }
 
-    public Inventory ReleaseReservationDueToOrderCompletion(int qty)
+    public Inventory ConfirmReservation(int qty)
     {
-        return this with { Reserved = Math.Max(0, Reserved - qty), };
+        return this with
+        {
+            Reserved = Math.Max(0, Reserved - qty)
+        };
+    }
 
+    public bool IsAvailable(int requestedQuantity) => AvailableStock >= requestedQuantity;
+
+    public Fin<Inventory> UpdateStock(int? low = null, int? mid = null, int? high = null)
+    {
+        return Stock.From((
+            Stock.Value,
+            low ?? Stock.Low,
+            mid ?? Stock.Mid,
+            high ?? Stock.High
+        )).Map(newStock => { Stock = newStock; return this; });
     }
 }
+

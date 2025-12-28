@@ -9,23 +9,9 @@ public static class DbExtensions
         return (Db<RT, A>)db;
     }
 
-    public static Fin<A> Run<RT, A>(this Db<RT, A> db, RT env)
-    {
-        return db.runDB
-            .Run(env);
-    }
-
-
-    public static Fin<A> Run<RT, A>(this K<Db<RT>, A> db, RT rt)
-    {
-        return db.As().runDB
-            .Run(rt);
-    }
-
     public static Fin<A> Run<RT, A>(this K<Db<RT>, A> db, RT rt, EnvIO env)
     {
-        return db.As().runDB
-            .Run(rt, env);
+        return db.As().Run(rt, env);
     }
 
     public static Task<Fin<A>> RunAsync<RT, A>(this K<Db<RT>, A> db, RT rt, EnvIO env)
@@ -38,8 +24,7 @@ public static class DbExtensions
 
     public static async Task<Fin<A>> RunSaveAsync<RT, A>(this K<Db<RT>, A> db, RT rt, EnvIO env) where RT : DbContext
     {
-        Fin<A> res = db.As().runDB
-            .Run(rt, env);
+        Fin<A> res = db.Run(rt, env);
 
         if (res.IsFail)
         {
@@ -60,7 +45,7 @@ public static class DbExtensions
 
     public static async Task<Fin<A>> RunSaveAsyncT<RT, A>(this K<Db<RT>, A> db, RT rt, EnvIO env) where RT : DbContext
     {
-        Fin<A> res = db.As().runDB
+        Fin<A> res = db
             .Run(rt, env);
         await using var transaction = await rt.Database.BeginTransactionAsync(env.Token);
         return await res.Match<Task<Fin<A>>>(async a =>
@@ -144,7 +129,22 @@ public static class DbExtensions
 
     }
 
+    public static async Task<Fin<A>> RaiseBiEvent<A>(this Task<Fin<A>> ma, Func<A, Task> onSuccess, Func<Error, Task> onFail)
+    {
 
+        return await ma.MapAsync(fa => fa.Match(
+            async a =>
+            {
+                await onSuccess.Invoke(a);
+                return FinSucc(a);
+            },
+            Fail: async e =>
+            {
+                await onFail.Invoke(e);
+                return FinFail<A>(e);
+            }));
+
+    }
 
     public static Db<RT, C> SelectMany<A, B, C, RT>(this Fin<A> ma, Func<A, Db<RT, B>> bind, Func<A, B, C> project) =>
         ma.Match(

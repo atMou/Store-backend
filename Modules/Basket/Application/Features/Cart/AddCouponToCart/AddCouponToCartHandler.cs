@@ -7,7 +7,7 @@ internal class AddCouponToCartCommandHandler(
     IClock clock)
     : ICommandHandler<AddCouponToCartCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(AddCouponToCartCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(AddCouponToCartCommand command, CancellationToken cancellationToken)
     {
         var loadCart =
             GetEntity<BasketDbContext, Domain.Models.Cart>(
@@ -28,13 +28,11 @@ internal class AddCouponToCartCommandHandler(
             .Apply((cart, coupon) =>
                 (cart, coupon));
 
-        Db<BasketDbContext, Unit> db = from t in result
-                                       from co in t.coupon.ApplyToCart(t.cart.Id, t.cart.UserId, clock.UtcNow)
-                                       let discount = t.coupon.Discount.Apply(t.cart.TotalSub)
-                                       from res in UpdateEntity<BasketDbContext, Domain.Models.Cart>(t.cart,
-                                           c => c.AddDiscount(t.coupon.Id, discount))
-                                       select unit;
+        var db = from res in result
+                 from _ in UpdateEntity<BasketDbContext, Domain.Models.Cart>(res.cart,
+                     c => c.AddDiscount(res.coupon.Id, res.coupon.Discount))
+                 select unit;
 
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

@@ -1,5 +1,5 @@
-﻿using Shared.Application.Contracts.Carts.Results;
-using Shared.Presentation;
+﻿using Shared.Application.Contracts;
+using Shared.Application.Contracts.Carts.Results;
 
 namespace Basket.Application.Features.Coupon.GetCouponByUserId;
 
@@ -11,15 +11,10 @@ public record GetCouponsByUserIdQuery(UserId UserId, int PageNumber = 1, int Pag
 internal class GetCouponByUserIdQueryHandler(BasketDbContext dbContext)
     : IQueryHandler<GetCouponsByUserIdQuery, Fin<PaginatedResult<CouponResult>>>
 {
-    public Task<Fin<PaginatedResult<CouponResult>>> Handle(GetCouponsByUserIdQuery query,
+    public async Task<Fin<PaginatedResult<CouponResult>>> Handle(GetCouponsByUserIdQuery query,
         CancellationToken cancellationToken)
     {
-        var db = GetEntitiesWithPagination<BasketDbContext,
-            Domain.Models.Coupon,
-            CouponResult,
-            GetCouponsByUserIdQuery>(
-            query,
-            coupon => coupon.ToResult(),
+        var db = GetEntitiesWithPagination<BasketDbContext, Domain.Models.Coupon, CouponResult, GetCouponsByUserIdQuery>(
             c => c.UserId == query.UserId,
             options =>
         {
@@ -31,11 +26,12 @@ internal class GetCouponByUserIdQueryHandler(BasketDbContext dbContext)
                 AsNoTracking = true,
             };
             return options;
-        });
+        },
+        query,
+        coupon => coupon.ToResult());
 
 
 
-
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }

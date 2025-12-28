@@ -13,20 +13,40 @@ public static class Extensions
             NewPrice = command.NewPrice,
             Brand = command.Brand,
             Category = command.Category,
-            Description = command.Description
+            SubCategory = command.SubCategory,
+            Description = command.Description,
+            Type = command.Type,
+            SubType = command.SubType,
+            MaterialDetails = command.MaterialDetails.Select(m => m.ToDto()),
+            DetailsAttributes = command.DetailsAttributes.Select(a => a.ToDto()),
+            SizeFitAttributes = command.SizeFitAttributes.Select(a => a.ToDto())
+
         };
     }
+
+    public static CreateMaterialDetailDto ToDto(this CreateMaterialDetailCommand command)
+    {
+        return new CreateMaterialDetailDto()
+        {
+            Material = command.Material,
+            Percentage = command.Percentage,
+            Detail = command.Detail
+        };
+    }
+
     public static CreateVariantDto ToDto(this CreateVariantCommand command)
     {
         return new CreateVariantDto()
         {
             Color = command.Color,
-            Size = command.Size,
-            Stock = command.Quantity,
-            StockLow = command.StockLow,
-            StockMid = command.StockMid,
-            StockHigh = command.StockHigh,
-            Attributes = command.Attributes.Select(a => a.ToDto())
+            SizeVariants = command.SizeVariants.Select(sv => new CreateSizeVariantDto
+            {
+                Size = sv.Size,
+                Stock = sv.Stock,
+                StockLow = sv.StockLow,
+                StockMid = sv.StockMid,
+                StockHigh = sv.StockHigh
+            }).ToList()
         };
     }
 

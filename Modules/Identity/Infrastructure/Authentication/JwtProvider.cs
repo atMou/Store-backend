@@ -34,17 +34,20 @@ internal sealed class JwtProvider : IJwtProvider
                 Encoding.UTF8.GetBytes(options.SecretKey)),
             SecurityAlgorithms.HmacSha256);
 
-        var d = Optional(duration).Match(span => DateTime.UtcNow.Add(span),
-            () => DateTime.UtcNow.AddDays(2));
+        var now = DateTime.UtcNow;
+        var expires = Optional(duration).Match(
+            span => now.Add(span),
+            () => now.AddDays(2));
+
         var token = new JwtSecurityToken(
             options.Issuer,
             options.Audience,
             claims,
-            null,
-            d,
+            now,
+            expires,
             signingCredentials);
 
-        Console.WriteLine($"The Token Is going to expire in: {(d - DateTime.Now).TotalMinutes} minutes");
+        Console.WriteLine($"The Token Is going to expire in: {(expires - now).TotalMinutes} minutes");
 
         string tokenValue = new JwtSecurityTokenHandler()
             .WriteToken(token);
@@ -52,5 +55,6 @@ internal sealed class JwtProvider : IJwtProvider
         return tokenValue;
     }
 }
+
 
 

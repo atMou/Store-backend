@@ -2,36 +2,55 @@
 
 namespace Product.Presentation.Requests;
 
-public record CreateProductRequest
+public class CreateProductRequest
 {
-    public string Slug { get; init; } = null!;
-    public IFormFile[] Images { get; init; } = [];
-    public bool[] IsMain { get; init; } = [];
-    public string Brand { get; init; } = null!;
-
-    public string Category { get; init; } = null!;
-    public decimal Price { get; init; }
-    public decimal? NewPrice { get; init; }
-    public string Description { get; init; } = null!;
-
-    public IEnumerable<CreateVariantRequest> Variants { get; set; } = [];
-
-
-    public CreateProductCommand ToCommand()
-    {
-        return new CreateProductCommand
-        {
-            Slug = Slug,
-            Images = Images,
-            IsMain = IsMain,
-            Price = Price,
-            NewPrice = NewPrice,
-            Brand = Brand,
-            Category = Category,
-            Description = Description,
-            Variants = Variants.Select(v => v.ToCommand())
+    public string Slug { get; set; }
+    public IFormFile[] Images { get; set; }
+    public bool[] IsMain { get; set; }
+    public decimal Price { get; set; }
+    public decimal? NewPrice { get; set; }
+    public string Type { get; set; }
+    public string SubType { get; set; }
+    public string Brand { get; set; }
+    public string Category { get; set; }
+    public string SubCategory { get; set; }
+    public string Description { get; set; }
+    public List<CreateVariantRequest> Variants { get; set; }
+    public List<CreateAttributeRequest> DetailsAttributes { get; set; }
+    public List<CreateAttributeRequest> SizeFitAttributes { get; set; }
+    public List<CreateMaterialDetailRequest> MaterialDetails { get; set; }
 
 
-        };
-    }
+
+}
+
+public record CreateMaterialDetailRequest
+{
+    public string Material { get; init; }
+    public decimal Percentage { get; init; }
+    public string Detail { get; init; }
+
+}
+public class CreateAttributeRequest
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+
+}
+
+public class CreateVariantRequest
+{
+    public IFormFile[] Images { get; set; }
+    public bool[] IsMain { get; set; }
+    public string Color { get; set; }
+    public IEnumerable<CreateSizeVariantCommand> SizeVariants { get; init; }
+}
+
+public record CreateSizeVariantRequest
+{
+    public string Size { get; init; }
+    public int Stock { get; init; }
+    public int StockLow { get; init; }
+    public int StockMid { get; init; }
+    public int StockHigh { get; init; }
 }

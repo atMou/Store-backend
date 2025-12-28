@@ -1,8 +1,6 @@
-﻿using Shared.Application.Abstractions;
+﻿namespace Shared.Application.Features.Cart.Events;
 
-namespace Shared.Application.Features.Cart.Events;
-
-public record CartCreatedIntegrationEvent(Guid CartId, Guid UserId) : IntegrationEvent
+public record CartCreatedIntegrationEvent(Guid UserId, Guid CartId) : IntegrationEvent
 {
 
 }

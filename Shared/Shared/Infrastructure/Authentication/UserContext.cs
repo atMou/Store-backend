@@ -12,8 +12,8 @@ public interface IUserContext
 {
     K<M, CurrentUser> GetCurrentUser<M>() where M : MonadIO<M>, Fallible<M>;
     K<M, CurrentUser> GetCurrentUserF<M>() where M : Monad<M>, Fallible<M>;
-    K<M, Unit> IsInRole<M>(Role role, Error error) where M : MonadIO<M>, Fallible<M>;
-    K<M, Unit> IsInRoleF<M>(Role role, Error error) where M : Monad<M>, Fallible<M>;
+    K<M, Unit> HasRole<M>(Role role, Error error) where M : MonadIO<M>, Fallible<M>;
+    K<M, Unit> HasRoleF<M>(Role role, Error error) where M : Monad<M>, Fallible<M>;
     K<M, Unit> IsSameUser<M>(UserId userId, Error error) where M : MonadIO<M>, Fallible<M>;
     K<M, Unit> IsSameUserF<M>(UserId userId, Error error) where M : Monad<M>, Fallible<M>;
     K<M, Unit> HasPermission<M>(Permission permission, Error error) where M : MonadIO<M>, Fallible<M>;
@@ -43,14 +43,14 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
     }
 
 
-    public K<M, Unit> IsInRole<M>(Role role, Error error) where M : MonadIO<M>, Fallible<M>
+    public K<M, Unit> HasRole<M>(Role role, Error error) where M : MonadIO<M>, Fallible<M>
     {
         return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))
             .Map(p => p.IsInRole(role.Name))
             .Match(b => b ? M.Pure(unit) : M.Fail<Unit>(error), M.Fail<Unit>);
     }
 
-    public K<M, Unit> IsInRoleF<M>(Role role, Error error) where M : Monad<M>, Fallible<M>
+    public K<M, Unit> HasRoleF<M>(Role role, Error error) where M : Monad<M>, Fallible<M>
     {
         return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))
             .Map(p => p.IsInRole(role.Name))

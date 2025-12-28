@@ -1,4 +1,6 @@
-﻿using Product.Application.Features.CreateProduct;
+﻿using Product.Application.Features.GetMaterials;
+
+using Shared.Application.Contracts;
 
 namespace Product.Presentation.Controllers;
 [ApiController]
@@ -14,6 +16,14 @@ public class ProductsController(ISender sender) : ControllerBase
     }
 
 
+    [HttpPost("liked-products")]
+    public async Task<ActionResult<PaginatedResult<ProductResult>>> GetLikedProducts([FromBody] GetProductsByIdsRequest request)
+    {
+        var result = await sender.Send(request.ToQuery());
+
+        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductResult>> Get([FromRoute] Guid id, [FromQuery] string include)
     {
@@ -24,7 +34,7 @@ public class ProductsController(ISender sender) : ControllerBase
 
     [HttpPost]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult<CreateProductResult>> Create([FromForm] CreateProductRequest request)
+    public async Task<ActionResult<Guid>> Create([FromForm] CreateProductRequest request)
     {
         var result = await sender.Send(request.ToCommand());
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
@@ -43,13 +53,13 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
-    [HttpDelete]
-    public async Task<ActionResult<Unit>> DeleteImages([FromBody] IEnumerable<Guid> ids)
-    {
-        var result = await sender.Send(new DeleteImagesCommand(ids.Select(guid => ProductImageId.From(guid))));
+    //[HttpDelete]
+    //public async Task<ActionResult<Unit>> DeleteImages([FromBody] IEnumerable<Guid> ids)
+    //{
+    //	var result = await sender.Send(new DeleteImagesCommand(ids.Select(guid => ImageId.From(guid))));
 
-        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
-    }
+    //	return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+    //}
     [HttpGet("categories")]
     public async Task<ActionResult<IEnumerable<CategoryResult>>> GetCategories()
     {
@@ -81,6 +91,16 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpGet("materials")]
+    public async Task<ActionResult<IEnumerable<string>>> GetMaterials()
+    {
+        var result = await sender.Send(new GetMaterialsCommand());
+
+        return Ok(result);
+    }
+
+
 
 
 }

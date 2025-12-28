@@ -18,19 +18,21 @@ internal class UpdateProductCommandHandler(
         var dto = command.UpdateProductDto;
         var db =
             from ps in GetEntities<ProductDBContext, Domain.Models.Product>(p => dto.AlternativesIds.Contains(p.Id))
-
             from x in GetUpdateEntity<ProductDBContext, Domain.Models.Product>(
                 p => p.Id == dto.ProductId,
                 NotFoundError.New($"Product with id '{dto.ProductId}' was not found."),
                 opt =>
                 {
                     opt.AsSplitQuery = true;
-                    opt.AddInclude(p => p.Alternatives, p => p.Variants);
+                    opt = opt.AddInclude(p => p.Alternatives, p => p.Variants);
                     return opt;
                 },
                 p => p.Update(dto, ps),
-                p => Seq(UploadProductImages(p, dto), UploadVariantImages(p, dto.Variants))
-            )
+                p =>
+                    from p1 in UploadProductImages(p, dto)
+                    from p2 in UploadVariantImages(p1, dto.Variants)
+                    from _ in DeleteImagesMarkedAsDeleted(p2, dto)
+                    select p2)
             select unit;
 
 
@@ -39,7 +41,7 @@ internal class UpdateProductCommandHandler(
 
     private IO<Domain.Models.Product> UploadProductImages(Domain.Models.Product product, UpdateProductDto dto)
     {
-        return imageService.UploadProductImages(dto.Images, dto.IsMain, product.Slug.Value, product.Category.Name,
+        return imageService.UploadProductImages(dto.Images, dto.IsMain, product.Slug.Value, product.Category.ToString(),
                 product.Brand.Name)
             .Map(results => product.AddImages(
                 [.. results]));
@@ -51,9 +53,41 @@ internal class UpdateProductCommandHandler(
         return dtos.AsIterable().Traverse(dto =>
         {
             return imageService.UploadProductImages(dto.Images, dto.IsMain, product.Slug.Value,
-                product.Category.Name, product.Brand.Name, dto.Color, dto.Size).Map(results =>
-                product.AddImages(dto.VariantId,
-                    [.. results]));
+                product.Category.ToString(), product.Brand.Name, dto.Color)
+                .Map(results =>
+                product.AddImages(dto.VariantId, [.. results]));
         }).Map(_ => product).As();
+    }
+
+
+    private IO<Unit> DeleteImagesMarkedAsDeleted(
+        Domain.Models.Product product,
+        UpdateProductDto dto)
+    {
+        var deletedProductImageIds = dto.ImageDtos
+            .Where(img => img.IsDeleted)
+            .Select(img => img.ImageId)
+            .ToHashSet();
+
+        var deletedVariantImageIds = dto.Variants
+            .SelectMany(v => v.ImageDtos)
+            .Where(img => img.IsDeleted)
+            .Select(img => img.ImageId)
+            .ToHashSet();
+
+        var productPublicIds = product.Images
+            .Where(image => deletedProductImageIds.Contains(image.Id))
+            .Select(image => image.ImageUrl.PublicId);
+
+        var variantPublicIds = product.Variants
+            .SelectMany(variant => variant.Images)
+            .Where(image => deletedVariantImageIds.Contains(image.Id))
+            .Select(image => image.ImageUrl.PublicId);
+
+        var allPublicIds = productPublicIds.Concat(variantPublicIds).ToList();
+
+        return allPublicIds.Any()
+            ? imageService.DeleteImagesAsync(allPublicIds)
+            : IO<Unit>.Pure(unit);
     }
 }

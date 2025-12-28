@@ -10,7 +10,7 @@ public record DeletePermissionCommand : ICommand<Fin<Unit>>
 public class DeletePermissionCommandHandler(IdentityDbContext dbContext)
     : ICommandHandler<DeletePermissionCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(DeletePermissionCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(DeletePermissionCommand command, CancellationToken cancellationToken)
     {
         var db =
         GetUpdateEntity<IdentityDbContext, User>(
@@ -23,7 +23,7 @@ public class DeletePermissionCommandHandler(IdentityDbContext dbContext)
             },
             user => user.DeletePermissions([.. command.Permissions])
         ).Map(_ => unit);
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

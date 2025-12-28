@@ -43,10 +43,17 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
             .HasConversion(a => Optional(a).Match<byte?>(age => age.Value, () => null), i => Age.FromNullable(i))
             .HasColumnName("age");
 
-        builder.Property(u => u.Avatar)
-            .HasConversion(i => Optional(i).Match<string?>(image => image.Value, () => null), i => ImageUrl.FromNullable(i))
-            .HasColumnName("avatar")
-            .HasMaxLength(1000);
+
+        builder.OwnsOne(u => u.Avatar, avatarBuilder =>
+        {
+            avatarBuilder.Property(a => a.PublicId)
+                .HasMaxLength(1500)
+                .HasColumnName("avatar_public_id");
+            avatarBuilder.Property(a => a.Value)
+                .HasColumnName("avatar_url")
+                .HasMaxLength(1000);
+
+        });
 
         builder.Property(u => u.Gender)
             .HasConversion(i => Optional(i)
@@ -68,35 +75,30 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.EmailConfirmationToken)
             .HasColumnName("email_confirmation_token");
 
+        builder.Property(u => u.EmailConfirmationCode)
+            .HasColumnName("email_confirmation_code");
+
+
         builder
-            .HasMany(u => u.LikedProducts)
+            .HasMany(u => u.LikedProductIds)
             .WithOne()
             .HasForeignKey(lp => lp.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+
+
         builder
-            .HasMany(u => u.PendingOrderIds)
-            .WithOne()
-            .HasForeignKey(lp => lp.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OwnsMany(u => u.PendingOrderIds, po =>
+            {
+                po.HasKey(p => new { p.UserId, p.OrderId });
+                po.Property(p => p.UserId).HasConversion(p => p.Value, guid => UserId.From(guid)).HasColumnName("user_id");
+                po.Property(p => p.OrderId).HasConversion(p => p.Value, guid => OrderId.From(guid)).HasColumnName("order_id");
+
+                po.ToTable("user_pending_order_ids");
+            });
 
 
-        //builder.OwnsMany(u => u.CouponIds, b =>
-        //{
-        //    b.Property(c => c.Value).HasColumnName("coupon_id");
-        //    b.ToTable("user_coupon_ids");
-        //});
 
-        //builder.OwnsMany(u => u.OrderIds, b =>
-        //{
-        //    b.Property(o => o.Value).HasColumnName("order_id");
-        //    b.ToTable("user_order_ids");
-        //});
-
-        //builder.OwnsMany(u => u.LikedProductIds, b =>
-        //{
-        //    b.Property(p => p.Value).HasColumnName("product_id");
-        //    b.ToTable("user_liked_product_ids");
-        //});
 
         var rolesComparee = new ValueComparer<IReadOnlyList<Role>>(
             (c1, c2) => c1!.SequenceEqual(c2!),
@@ -143,20 +145,36 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
         builder.HasMany(u => u.RefreshTokens).WithOne().HasForeignKey(token => token.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder
-            .HasMany(u => u.Addresses)
-            .WithOne()
-            .HasForeignKey(a => a.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-        //    OwnsMany(u => u.Addresses, nb =>
-        //{
-        //    nb.Property(a => a.City).HasColumnName("city").HasMaxLength(200);
-        //    nb.Property(a => a.Street).HasColumnName("street").HasMaxLength(200);
-        //    nb.Property(a => a.HouseNumber).HasColumnName("house_number");
-        //    nb.Property(a => a.ExtraDetails).HasColumnName("extra_details").HasMaxLength(500);
-        //    nb.Property(a => a.IsMain).HasColumnName("is_main");
-        //    nb.Property(a => a.PostalCode).HasColumnName("postal_code");
-        //});
+        builder.OwnsMany(u => u.Addresses, ab =>
+            {
+                ab.ToTable("user_addresses");
+                ab.HasKey(a => new { a.UserId, a.Id });
+                ab.Property(a => a.Id).HasConversion(id => id.Value, guid => AddressId.From(guid));
+                ab.Property(a => a.UserId).HasConversion(id => id.Value, guid => UserId.From(guid));
+
+                ab.Property(a => a.Street)
+                    .HasColumnName("street")
+                    .HasMaxLength(255)
+                    .IsRequired();
+                ab.Property(a => a.City)
+                    .HasColumnName("city")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                ab.Property(a => a.PostalCode)
+                    .HasColumnName("postal_code");
+                ab.Property(a => a.IsMain)
+                    .HasColumnName("is_main")
+                    .IsRequired();
+                ab.Property(a => a.ExtraDetails)
+                    .HasColumnName("extra_details")
+                    .HasMaxLength(500);
+                ab.Property(a => a.HouseNumber)
+                    .HasColumnName("house_number")
+                    .IsRequired();
+            });
+
+
+
 
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");

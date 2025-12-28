@@ -2,140 +2,184 @@ namespace Product.Domain.ValueObjects;
 
 public record Category
 {
+    private const string Men = "Men";
+    private const string Women = "Women";
+    private const string Baby = "Baby";
+    private const string Boy = "Boy";
+    private const string Girl = "Girl";
+
+
+    private const string Tops = "Tops";
+    private const string Bottoms = "Bottoms";
+    private const string Outerwear = "Outerwear";
+    private const string Shoes = "Shoes";
+    private const string Accessories = "Accessories";
+    private const string Sleepwear = "Sleepwear";
+
     private static readonly List<Category> _all = [];
-    public readonly IEnumerable<Category> Subcategories;
 
     private Category() { }
-
-    private Category(CategoryCode code, string name, IEnumerable<Category> subcategories)
+    private Category(string main, string sub, IEnumerable<ProductType> productTypes)
     {
-        Code = code;
-        Name = name;
-        Subcategories = subcategories ?? [];
+        Main = main;
+        Sub = sub;
+
+        ProductTypes = productTypes ?? [];
         _all.Add(this);
     }
 
     static Category()
     {
+        // NONE
         _ = None;
 
-        _ = Men;
-        _ = Women;
-        _ = Kids;
+        // MEN
+        _ = MenTops;
+        _ = MenBottoms;
+        _ = MenOuterwear;
+        _ = MenShoes;
+        _ = MenAccessories;
 
-        _ = NewIn;
-        _ = Trending;
-        _ = Sale;
-        _ = Sports;
-        _ = Designer;
-        _ = Brands;
-        _ = Beauty;
+        // WOMEN
+        _ = WomenTops;
+        _ = WomenBottoms;
+        _ = WomenOuterwear;
+        _ = WomenShoes;
+        _ = WomenAccessories;
 
-        _ = Accessories;
-        _ = Footwear;
-        _ = Shoes;
-        _ = Handbags;
+        // BOY
+        _ = BoyTops;
+        _ = BoyBottoms;
+        _ = BoyOuterwear;
+        _ = BoySleepwear;
+        _ = BoyShoes;
+        _ = BoyAccessories;
 
-        _ = Tops;
-        _ = Bottoms;
-        _ = Dresses;
-        _ = Outerwear;
-        _ = Sweaters;
-        _ = Suits;
-        _ = Activewear;
-        _ = Underwear;
+        // GIRL
+        _ = GirlTops;
+        _ = GirlBottoms;
+        _ = GirlOuterwear;
+        _ = GirlSleepwear;
+        _ = GirlShoes;
+        _ = GirlAccessories;
 
-        _ = Blouses;
-        _ = Lingerie;
-        _ = Skirts;
-        _ = Coats;
-
-        _ = Sleepwear;
-        _ = Jackets;
-        _ = TShirts;
-        _ = Jeans;
-        _ = Shorts;
-        _ = Pants;
-
-        _ = Toys;
+        // BABY
+        _ = BabyTops;
+        _ = BabyBottoms;
+        _ = BabyOuterwear;
+        _ = BabySleepwear;
+        _ = BabyShoes;
+        _ = BabyAccessories;
     }
 
-    public CategoryCode Code { get; }
-    public string Name { get; }
-    public static IReadOnlyList<Category> All => [Men, Women, Kids, NewIn, Trending, Sale, Sports, Designer, Brands, Beauty];
+    public string Main { get; }
+    public string Sub { get; }
+    [NotMapped]
+    public IEnumerable<ProductType> ProductTypes { get; }
+
+    public static Category None => new("", "", []);
 
 
-    public static Category None => new(CategoryCode.None, "None", []);
+    public static Category MenTops => new(Men, Tops,
+        [ProductType.MenTShirts, ProductType.MenShirts, ProductType.MenPolos, ProductType.MenSweaters]);
+    public static Category MenBottoms => new(Men, Bottoms,
+        [ProductType.MenJeans, ProductType.MenShorts, ProductType.MenSweatpants, ProductType.MenTrousers]);
+    public static Category MenOuterwear => new(Men, Outerwear,
+        [ProductType.MenJackets, ProductType.MenCoats, ProductType.MenBlazers, ProductType.MenParkas]);
+    public static Category MenShoes => new(Men, Shoes,
+        [ProductType.MenSneakers, ProductType.MenBoots, ProductType.MenLoafers, ProductType.MenSandals]);
+    public static Category MenAccessories => new(Men, Accessories,
+        [ProductType.MenBelts, ProductType.MenHats, ProductType.MenBags, ProductType.MenScarves]);
 
-    public static Category Men => new(CategoryCode.Men, nameof(Men), [
-        Tops, Bottoms, Outerwear, Activewear, Suits, Underwear,
-        Shoes, Accessories
-    ]);
+    public static Category WomenTops => new(Women, Tops,
+        [ProductType.WomenTShirts, ProductType.WomenBlouses, ProductType.WomenShirts, ProductType.WomenKnitwear]);
+    public static Category WomenBottoms => new(Women, Bottoms,
+        [ProductType.WomenJeans, ProductType.WomenTrousers, ProductType.WomenSkirts, ProductType.WomenShorts]);
+    public static Category WomenOuterwear => new(Women, Outerwear,
+        [ProductType.WomenJackets, ProductType.WomenCoats, ProductType.WomenBlazers, ProductType.WomenParkas]);
+    public static Category WomenShoes => new(Women, Shoes,
+        [ProductType.WomenHeels, ProductType.WomenFlats, ProductType.WomenBoots, ProductType.WomenSneakers]);
+    public static Category WomenAccessories => new(Women, Accessories,
+        [ProductType.WomenBags, ProductType.WomenScarves, ProductType.WomenHats, ProductType.WomenJewelry]);
 
-    public static Category Women => new(CategoryCode.Women, nameof(Women), [
-        Tops, Bottoms, Dresses, Outerwear, Sweaters, Lingerie,
-        Skirts, Handbags, Shoes, Accessories, Beauty
-    ]);
+    // BOY
+    public static Category BoyTops => new(Boy, Tops,
+        [ProductType.BoyTShirts, ProductType.BoyShirts, ProductType.BoyOuterwear]);
+    public static Category BoyBottoms => new(Boy, Bottoms,
+        [ProductType.BoyShorts, ProductType.BoyShorts]);
+    public static Category BoyOuterwear => new(Boy, Outerwear,
+        [ProductType.BoyOuterwear, ProductType.BoyTShirts, ProductType.BoyShirts]);
+    public static Category BoySleepwear => new(Boy, Sleepwear,
+        [ProductType.BoyOuterwear, ProductType.BabySleepwear]);
+    public static Category BoyShoes => new(Boy, Shoes,
+        [ProductType.BabyAccessories]);
+    public static Category BoyAccessories => new(Boy, Accessories,
+        [ProductType.BabyAccessories, ProductType.BoyShirts]);
 
-    public static Category Kids => new(CategoryCode.Kids, nameof(Kids), [
-        Clothing, Toys, Footwear, Sleepwear
-    ]);
+    // GIRL
+    public static Category GirlTops => new(Girl, Tops,
+        [ProductType.GirlTops, ProductType.GirlDresses, ProductType.GirlSkirts]);
+    public static Category GirlBottoms => new(Girl, Bottoms,
+        [ProductType.GirlSkirts, ProductType.GirlDresses, ProductType.GirlOuterwear]);
+    public static Category GirlOuterwear => new(Girl, Outerwear,
+        [ProductType.GirlOuterwear, ProductType.GirlTops, ProductType.GirlSkirts]);
+    public static Category GirlSleepwear => new(Girl, Sleepwear,
+        [ProductType.BabySleepwear, ProductType.GirlTops]);
+    public static Category GirlShoes => new(Girl, Shoes,
+        [ProductType.BabyAccessories]);
+    public static Category GirlAccessories => new(Girl, Accessories,
+        [ProductType.BabyAccessories, ProductType.GirlTops]);
 
-    public static Category NewIn => new(CategoryCode.NewIn, nameof(NewIn), []);
-    public static Category Trending => new(CategoryCode.Trending, nameof(Trending), []);
-    public static Category Sale => new(CategoryCode.Sale, nameof(Sale), []);
-    public static Category Sports => new(CategoryCode.Sports, nameof(Sports), []);
-    public static Category Designer => new(CategoryCode.Designer, nameof(Designer), []);
-    public static Category Brands => new(CategoryCode.Brands, nameof(Brands), []);
-    public static Category Beauty => new(CategoryCode.Beauty, nameof(Beauty), []);
+    // BABY
+    public static Category BabyTops => new(Baby, Tops,
+        [ProductType.BabyOnesies, ProductType.BabySets, ProductType.BabySleepwear]);
+    public static Category BabyBottoms => new(Baby, Bottoms,
+        [ProductType.BabySets, ProductType.BabyAccessories]);
+    public static Category BabyOuterwear => new(Baby, Outerwear,
+        [ProductType.BabyOnesies, ProductType.BabySleepwear]);
+    public static Category BabySleepwear => new(Baby, Sleepwear,
+        [ProductType.BabySleepwear, ProductType.BabyOnesies]);
+    public static Category BabyShoes => new(Baby, Shoes,
+        [ProductType.BabyAccessories, ProductType.BabySets]);
+    public static Category BabyAccessories => new(Baby, Accessories,
+        [ProductType.BabyAccessories, ProductType.BabyOnesies]);
 
-    public static Category Clothing => new(CategoryCode.Clothing, "Clothing", []);
+    public static IReadOnlyList<Category> All => _all;
 
-    public static Category Accessories => new(CategoryCode.Accessories, "Accessories", []);
-    public static Category Footwear => new(CategoryCode.Footwear, "Footwear", []);
-    public static Category Shoes => new(CategoryCode.Shoes, "Shoes", []);
-    public static Category Handbags => new(CategoryCode.Handbags, "Handbags", []);
-
-    public static Category Tops => new(CategoryCode.Tops, "Tops", []);
-    public static Category Bottoms => new(CategoryCode.Bottoms, "Bottoms", []);
-    public static Category Dresses => new(CategoryCode.Dresses, "Dresses", []);
-    public static Category Outerwear => new(CategoryCode.Outerwear, "Outerwear", []);
-    public static Category Sweaters => new(CategoryCode.Sweaters, "Sweaters", []);
-    public static Category Suits => new(CategoryCode.Suits, "Suits", []);
-    public static Category Activewear => new(CategoryCode.Activewear, "Activewear", []);
-    public static Category Underwear => new(CategoryCode.Underwear, "Underwear", []);
-
-    public static Category Blouses => new(CategoryCode.Blouses, "Blouses", []);
-    public static Category Lingerie => new(CategoryCode.Lingerie, "Lingerie", []);
-    public static Category Skirts => new(CategoryCode.Skirts, "Skirts", []);
-    public static Category Coats => new(CategoryCode.Coats, "Coats", []);
-
-    public static Category Toys => new(CategoryCode.Toys, "Toys", []);
-    public static Category Sleepwear => new(CategoryCode.Sleepwear, "Sleepwear", []);
-
-    public static Category Jackets => new(CategoryCode.Jackets, "Jackets", []);
-    public static Category TShirts => new(CategoryCode.TShirts, "TShirts", []);
-    public static Category Jeans => new(CategoryCode.Jeans, "Jeans", []);
-    public static Category Shorts => new(CategoryCode.Shorts, "Shorts", []);
-    public static Category Pants => new(CategoryCode.Pants, "Pants", []);
-
-
-    public static Fin<Category> From(string repr)
+    public static Func<Fin<ProductType>, Fin<Category>> From(string main, string sub)
     {
-        return Enum.TryParse<CategoryCode>(repr, out var categoryCode)
-            ? Optional(_all.FirstOrDefault(c => c.Code == categoryCode))
-                .ToFin((Error)$"Invalid category code '{repr}'")
-            : FinFail<Category>((Error)$"Invalid category code '{repr}'");
+        return type =>
+            Optional(_all.FirstOrDefault(c => c.Main == main && c.Sub == sub))
+            .ToFin(ValidationError.New($"Invalid category name '{sub}'"))
+            .Bind(category => type.Bind(productType => category.HasType(productType)));
     }
 
-    public static Category FromUnsafe(string repr)
-        => Enum.TryParse<CategoryCode>(repr, out var code)
-            ? _all.FirstOrDefault(c => c.Code == code) ?? None
-            : None;
+    public static IEnumerable<string> SubLiKe(IEnumerable<string> repr)
+    {
+        return _all.Where(category =>
+            repr.Any(s =>
+                category.Sub.Equals(s, StringComparison.OrdinalIgnoreCase)
+            )
+        ).Select(c => c.Sub).Distinct();
+    }
 
-    public virtual bool Equals(Category? other)
-        => other is { } o && Code == o.Code;
 
-    public override int GetHashCode()
-        => Code.GetHashCode();
+    private Fin<Category> HasType(ProductType type)
+    {
+        return ProductTypes.Contains(type)
+            ? Fin<Category>.Succ(this)
+            : ValidationError.New($"Category '{ToString()}' does not contain product type '{type.Type}-{type.SubType}'");
+    }
+
+    //public static Category FromUnsafe(string repr) =>
+    //    _all.FirstOrDefault(c => c.Identifier == repr) ?? None;
+
+    public virtual bool Equals(Category? other) =>
+        other is { } o && Main == o.Main && Sub == o.Sub;
+
+    public override int GetHashCode() => HashCode.Combine(Main, Sub);
+    public override string ToString()
+    {
+        return $"{Main}-{Sub}";
+    }
 }

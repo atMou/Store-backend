@@ -11,7 +11,7 @@ public class AssignPermissionCommandHandler(
     IdentityDbContext dbContext)
     : ICommandHandler<AssignPermissionCommand, Fin<Unit>>
 {
-    public Task<Fin<Unit>> Handle(AssignPermissionCommand command, CancellationToken cancellationToken)
+    public async Task<Fin<Unit>> Handle(AssignPermissionCommand command, CancellationToken cancellationToken)
     {
         var db = GetUpdateEntity<IdentityDbContext, User>(
             user => user.Id == command.UserId,
@@ -23,7 +23,7 @@ public class AssignPermissionCommandHandler(
             },
             user => user.AssignUserToPermissions([.. command.Permissions])
         ).Map(_ => unit);
-        return db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
 

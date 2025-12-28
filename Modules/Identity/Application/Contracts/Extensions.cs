@@ -18,8 +18,8 @@ public static class Extensions
         CartId = user.CartId?.Value,
         Addresses = user.Addresses.Select(a => a.ToResult()),
         Roles = user.Roles.Select(r => r.ToResult()),
-        Permissions = user.Permissions.Select(p => p.Name),
-        LikedProductsIds = user.LikedProducts.Select(lp => lp.ProductId.Value)
+        //Permissions = user.Permissions.Select(p => p.Name),
+        LikedProductIds = user.LikedProductIds.Select(lp => lp.ProductId.Value)
 
     };
     public static AddressResult ToResult(this Address address) => new()

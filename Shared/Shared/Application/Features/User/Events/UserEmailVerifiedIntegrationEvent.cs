@@ -2,6 +2,6 @@
 
 namespace Shared.Application.Features.User.Events;
 
-public record UserEmailVerifiedIntegrationEvent(Guid UserId) : IntegrationEvent
+public record UserEmailVerifiedIntegrationEvent(Guid UserId, Address Address) : IntegrationEvent
 {
 }
