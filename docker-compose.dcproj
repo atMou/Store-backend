@@ -13,12 +13,5 @@
     </None>
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
-    <None Include="Docs\IMPLEMENTATION_SUMMARY.md" />
-    <None Include="Docs\LOGGING.md" />
-    <None Include="Docs\LOGGING_QUICK_REFERENCE.md" />
-    <None Include="Docs\SEQ_QUICKSTART.md" />
-    <None Include="Docs\SERILOG_SEQ_COMPLETE_GUIDE.md" />
-    <None Include="Docs\STARTUP_CHECKLIST.md" />
-    <None Include="README_LOGGING.md" />
   </ItemGroup>
 </Project>
