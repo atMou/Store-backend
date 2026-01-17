@@ -29,3 +29,11 @@ README.md
 !.git/packed-refs
 !.git/refs/heads/**
 .env
+.env.*
+docker-compose.override.yml
+docs/
+
+scripts/
+.dockerignore
+.vscode/
+.gitignore
