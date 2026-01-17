@@ -32,19 +32,25 @@ public static class LogEvents
     public static readonly EventId CartCheckedOut = new(4003, "CartCheckedOut");
     public static readonly EventId CouponApplied = new(4004, "CouponApplied");
     public static readonly EventId CartPriceUpdated = new(4005, "CartPriceUpdated");
+    public static readonly EventId CartCheckoutFailed = new(4006, "CartCheckoutFailed");
 
     // Order Module (5000-5099)
     public static readonly EventId OrderCreated = new(5000, "OrderCreated");
     public static readonly EventId OrderCancelled = new(5001, "OrderCancelled");
     public static readonly EventId OrderShipped = new(5002, "OrderShipped");
     public static readonly EventId OrderDelivered = new(5003, "OrderDelivered");
-    public static readonly EventId PaymentProcessed = new(5004, "PaymentProcessed");
+    public static readonly EventId OrderCreateFail = new(5003, "OrderCreateFail");
+
 
     // Payment Module (6000-6099)
     public static readonly EventId PaymentInitiated = new(6000, "PaymentInitiated");
-    public static readonly EventId PaymentCompleted = new(6001, "PaymentCompleted");
-    public static readonly EventId PaymentFailed = new(6002, "PaymentFailed");
-    public static readonly EventId RefundIssued = new(6003, "RefundIssued");
+    public static readonly EventId PaymentCreated = new(6001, "PaymentCreated");
+    public static readonly EventId PaymentCompleted = new(6002, "PaymentCompleted");
+    public static readonly EventId PaymentFailed = new(6003, "PaymentFailed");
+    public static readonly EventId RefundIssued = new(6004, "RefundIssued");
+    public static readonly EventId PaymentProcessed = new(6005, "PaymentProcessed");
+    public static readonly EventId PaymentCancelled = new(6006, "PaymentCancelled");
+    public static readonly EventId PaymentInitiationFailed = new(6007, "PaymentInitiationFailed");
 
     // Shipment Module (7000-7099)
     public static readonly EventId ShipmentCreated = new(7000, "ShipmentCreated");
@@ -52,9 +58,10 @@ public static class LogEvents
     public static readonly EventId ShipmentDelivered = new(7002, "ShipmentDelivered");
 
     // Inventory Module (8000-8099)
-    public static readonly EventId StockAdded = new(8000, "StockAdded");
-    public static readonly EventId StockReserved = new(8001, "StockReserved");
-    public static readonly EventId StockReleased = new(8002, "StockReleased");
+    public static readonly EventId InventoryCreated = new(8000, "InventoryCreated");
+    public static readonly EventId StockAdded = new(8001, "StockAdded");
+    public static readonly EventId StockReserved = new(8002, "StockReserved");
+    public static readonly EventId StockReleased = new(8003, "StockReleased");
 
     // Integration Events (9000-9099)
     public static readonly EventId IntegrationEventPublished = new(9000, "IntegrationEventPublished");

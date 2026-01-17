@@ -22,8 +22,8 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
     private Unit UpdateAuditableEntity(DbContextEventData eventData)
     {
         var user =
-            Optional(userContext.GetCurrentUser<IO>().As().IfFail(new CurrentUser(Guid.Empty, "System", "System"))
-                .Run()).ValueUnsafe();
+            userContext.GetCurrentUserF<Fin>().As()
+                .IfFail(new CurrentUser(Guid.Empty, "System", "System", false));
 
         return Optional(eventData.Context).Map(cxt =>
 
@@ -52,15 +52,13 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
 
     private async ValueTask<Unit> UpdateAuditableEntityAsync(DbContextEventData eventData, CancellationToken cancellationToken)
     {
-        var userResult = await userContext.GetCurrentUser<IO>()
-            .As()
-            .IfFail(new CurrentUser(Guid.Empty, "System", "System"))
-            .RunAsync(EnvIO.New(null, cancellationToken))
-            .ConfigureAwait(false);
+        var user =
+            userContext.GetCurrentUserF<Fin>().As()
+                .IfFail(new CurrentUser(Guid.Empty, "System", "System", false));
 
-        var user = Optional(userResult).ValueUnsafe();
-
-        return Optional(eventData.Context).Map(cxt =>
+        return await Task.Run(() =>
+        {
+            return Optional(eventData.Context).Map(cxt =>
             {
                 var auditableEntities = cxt.ChangeTracker.Entries<IEntity>();
 
@@ -80,8 +78,8 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
                 }
 
                 return unit;
-            }
-        ).Match(u => u, () => unit);
+            }).Match(u => u, () => unit);
+        }, cancellationToken);
     }
 }
 

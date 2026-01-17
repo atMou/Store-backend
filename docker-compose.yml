@@ -1,24 +1,69 @@
-﻿
 services:
-  postgresdb:
+  postgresIdentityDb:
     image: postgres:16-alpine
-    container_name: postgresdb
+    container_name: postgresIdentityDb
     env_file:
       - .env
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}   # ← from .env or UserSecrets
-      POSTGRES_DB: PostgresDb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: IdentityDb
     restart: always
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - postgres_db:/var/lib/postgresql/data
+      - postgres_identity_db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - store-network
+
+  postgresInventoryDb:
+    image: postgres:16-alpine
+    container_name: postgresInventoryDb
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: InventoryDb
+    restart: always
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_inventory_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - store-network
+
+  postgresShipmentDb:
+    image: postgres:16-alpine
+    container_name: postgresShipmentDb
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ShipmentDb
+    restart: always
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_shipment_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - store-network
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -36,26 +81,81 @@ services:
       - sqlserver_data:/var/opt/mssql/data
     user: root
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -U sa -P $$SA_PASSWORD -Q 'SELECT 1'"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $$SA_PASSWORD -Q 'SELECT 1' -C || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $$SA_PASSWORD -Q 'SELECT 1'"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - store-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    restart: always
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgresIdentityDb
+      - postgresInventoryDb
+      - postgresShipmentDb
+    healthcheck:
+      test: ["CMD", "wget", "-O", "-", "http://localhost:80/misc/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - store-network
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: sqlserver
+      ADMINER_DESIGN: 'nette'
+    depends_on:
+      - sqlserver
+      - postgresIdentityDb
+      - postgresInventoryDb
+      - postgresShipmentDb
+    healthcheck:
+      test: ["CMD", "php", "-r", "if (file_get_contents('http://localhost:8080') === false) exit(1);"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - store-network
 
   distributedcache:
     image: redis:7-alpine
     container_name: distributedcache
     env_file:
       - .env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     restart: always
     ports:
       - "6379:6379"
-    command: redis-server --save 60 1 --loglevel warning
+    command: redis-server --save 60 1 --loglevel warning --protected-mode no --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--askpass", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - store-network
 
   seq:
     image: datalust/seq:latest
@@ -69,12 +169,16 @@ services:
     ports:
       - "5341:5341"
       - "9091:80"
+    volumes:
+      - seq_data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 20s
       timeout: 5s
       retries: 6
       start_period: 60s
+    networks:
+      - store-network
 
   messagebus:
     image: rabbitmq:3-management-alpine
@@ -89,13 +193,69 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - store-network
 
- 
+  api:
+    image: ${DOCKER_REGISTRY-}api
+    build:
+      context: .
+      dockerfile: Bootstrapper/Api/Dockerfile
+    container_name: store-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=5000
+      - ASPNETCORE_HTTPS_PORTS=5001
+      - ConnectionStrings__PostgresIdentity=Server=postgresIdentityDb;Port=5432;Database=IdentityDb;User Id=postgres;Password=${POSTGRES_PASSWORD};Include Error Detail=true
+      - ConnectionStrings__PostgresInventory=Server=postgresInventoryDb;Port=5432;Database=InventoryDb;User Id=postgres;Password=${POSTGRES_PASSWORD};Include Error Detail=true
+      - ConnectionStrings__PostgresShipment=Server=postgresShipmentDb;Port=5432;Database=ShipmentDb;User Id=postgres;Password=${POSTGRES_PASSWORD};Include Error Detail=true
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EShopDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true
+      - ConnectionStrings__SqlServer=Server=sqlserver,1433;Database=EShopDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true
+      - ConnectionStrings__Redis=distributedcache:6379,password=${REDIS_PASSWORD}
+      - RabbitMq__Host=messagebus
+      - RabbitMq__UserName=${RABBITMQ_USER}
+      - RabbitMq__Password=${RABBITMQ_PASS}
+      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
+      - Stripe__PublishableKey=${STRIPE_PUBLISHABLE_KEY}
+      - Stripe__WebhookSecret=${STRIPE_WEBHOOK_SECRET}
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    depends_on:
+      postgresIdentityDb:
+        condition: service_healthy
+      postgresInventoryDb:
+        condition: service_healthy
+      postgresShipmentDb:
+        condition: service_healthy
+      sqlserver:
+        condition: service_healthy
+      distributedcache:
+        condition: service_healthy
+      messagebus:
+        condition: service_healthy
+      seq:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - store-network
+
+networks:
+  store-network:
+    driver: bridge
+
 volumes:
-  postgres_db:
+  postgres_identity_db:
+  postgres_inventory_db:
+  postgres_shipment_db:
   sqlserver_data:
+  seq_data:
+  rabbitmq_data:
+  pgadmin_data:

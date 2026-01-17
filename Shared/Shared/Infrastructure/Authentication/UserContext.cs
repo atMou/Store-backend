@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Shared.Infrastructure.Authentication;
 
-public record CurrentUser(Guid Id, string Email, string Name)
+public record CurrentUser(Guid Id, string Email, string Name, bool HasPendingOrders)
 {
 }
 
@@ -17,6 +17,7 @@ public interface IUserContext
     K<M, Unit> IsSameUser<M>(UserId userId, Error error) where M : MonadIO<M>, Fallible<M>;
     K<M, Unit> IsSameUserF<M>(UserId userId, Error error) where M : Monad<M>, Fallible<M>;
     K<M, Unit> HasPermission<M>(Permission permission, Error error) where M : MonadIO<M>, Fallible<M>;
+    K<M, Unit> HasPermissionF<M>(Permission permission, Error error) where M : Monad<M>, Fallible<M>;
 }
 
 public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContext
@@ -27,8 +28,8 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
     {
         return from user in iff(User.IsNull(), M.Fail<ClaimsPrincipal>(UnAuthorizedError.New("You are not authorized")),
                 M.Pure(User)!)
-               let result = (ParseId(user), GetEmail(user), GetName(user))
-                   .Apply((id, email, name) => new CurrentUser(id, email, name)).As()
+               let result = (ParseId(user), GetEmail(user), GetName(user), GetHasPendingOrders(user))
+                   .Apply((id, email, name, hasPending) => new CurrentUser(id, email, name, hasPending)).As()
                from a in result.Match(M.Pure, M.Fail<CurrentUser>)
                select a;
     }
@@ -36,8 +37,8 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
     {
         return from user in iff(User.IsNull(), M.Fail<ClaimsPrincipal>(UnAuthorizedError.New("You are not authorized")),
                 M.Pure(User)!)
-               let result = (ParseId(user), GetEmail(user), GetName(user))
-                   .Apply((id, email, name) => new CurrentUser(id, email, name)).As()
+               let result = (ParseId(user), GetEmail(user), GetName(user), GetHasPendingOrders(user))
+                   .Apply((id, email, name, hasPending) => new CurrentUser(id, email, name, hasPending)).As()
                from a in result.Match(M.Pure, M.Fail<CurrentUser>)
                select a;
     }
@@ -75,7 +76,12 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
             .Map(p => p.FindAll(Claims.Permissions).Any(c => c.Value == permission.Name))
             .Match(b => b ? M.Pure(unit) : M.Fail<Unit>(error), M.Fail<Unit>);
     }
-
+    public K<M, Unit> HasPermissionF<M>(Permission permission, Error error) where M : Monad<M>, Fallible<M>
+    {
+        return Optional(User).ToFin(UnAuthorizedError.New("Claims principal of user could not be retrieved!"))
+            .Map(p => p.FindAll(Claims.Permissions).Any(c => c.Value == permission.Name))
+            .Match(b => b ? M.Pure(unit) : M.Fail<Unit>(error), M.Fail<Unit>);
+    }
 
     private static Fin<Guid> ParseId(ClaimsPrincipal p)
     {
@@ -98,5 +104,13 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
     {
         var emailClaim = p.FindFirst(ClaimTypes.Email)?.Value;
         return Optional(emailClaim).ToFin(UnAuthorizedError.New("User emailService claim is missing"));
+    }
+
+    private static Fin<bool> GetHasPendingOrders(ClaimsPrincipal p)
+    {
+        var hasPendingClaim = p.FindFirst(Claims.HasPendingOrders)?.Value;
+        return Optional(hasPendingClaim)
+            .Map(value => bool.TryParse(value, out var result) && result)
+            .IfNone(false);
     }
 }

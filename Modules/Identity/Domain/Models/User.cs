@@ -2,7 +2,7 @@ using Identity.Domain.Events;
 
 namespace Identity.Domain.Models;
 
-public record User : Aggregate<UserId>
+public class User : Aggregate<UserId>
 {
     private User() : base(UserId.New)
     {
@@ -37,9 +37,9 @@ public record User : Aggregate<UserId>
     public Age? Age { get; private set; }
     public ImageUrl? Avatar { get; private set; }
     public Gender? Gender { get; private set; }
-    public string? EmailConfirmationToken { get; private set; }
-    public string? EmailConfirmationCode { get; private set; }
-    public string? PhoneConfirmationToken { get; private set; }
+    public string? EmailConfirmationToken { get; private set; } = String.Empty;
+    public string? EmailConfirmationCode { get; private set; } = String.Empty;
+    public string? PhoneConfirmationToken { get; private set; } = String.Empty;
     public DateTime? EmailConfirmationExpiresAt { get; private set; }
     public DateTime? PhoneConfirmationExpiresAt { get; private set; }
 
@@ -49,8 +49,11 @@ public record User : Aggregate<UserId>
     public bool IsEmailVerified { get; private set; }
     public bool IsPhoneVerified { get; private set; }
 
-    public ICollection<LikedProductId> LikedProductIds { get; private set; } = [];
-    public ICollection<PendingOrderId> PendingOrderIds { get; private set; } = [];
+    public ICollection<ProductId> LikedProductIds { get; private set; } = [];
+
+    public ICollection<ProductSubscription> ProductSubscriptions { get; private set; } = [];
+
+    public bool HasPendingOrders { get; private set; }
     public List<Role> Roles { get; private set; } = [];
 
 
@@ -63,14 +66,6 @@ public record User : Aggregate<UserId>
 
     public static Fin<User> Create(CreateUserDto dto, DateTime utcNow)
     {
-        var address = Address.Create(
-            dto.Street,
-            dto.City,
-            dto.PostalCode,
-            true,
-            dto.ExtraDetails,
-            dto.HouseNumber);
-        ;
         return (
                 Email.From(dto.Email),
                 Firstname.From(dto.FirstName),
@@ -82,6 +77,14 @@ public record User : Aggregate<UserId>
             )
             .Apply((e, f, l, a, p, g, ph) =>
                 {
+                    var address = Address.Create(
+                        $"{f.Value} {l.Value}",
+                        dto.Street,
+                        dto.City,
+                        dto.PostalCode,
+                        true,
+                        dto.ExtraDetails,
+                        dto.HouseNumber);
                     var user = new User(e, p, f, l, g.ValueUnsafe(), a.ValueUnsafe(), ph.ValueUnsafe(), address)
                         .GenerateEmailVerificationToken(utcNow);
 
@@ -90,18 +93,11 @@ public record User : Aggregate<UserId>
             ).As();
     }
 
-    public User AddPendingOrder(PendingOrderId orderId)
+    public User SetHasPendingOrders(bool value)
     {
-
-        PendingOrderIds = [.. PendingOrderIds, orderId]; return this;
-    }
-
-    public User RemovePendingOrder(PendingOrderId orderId)
-    {
-        PendingOrderIds = PendingOrderIds.Where(id => id != orderId).ToList();
+        HasPendingOrders = value;
         return this;
     }
-
 
     public User MarkAsDeleted()
     {
@@ -109,11 +105,11 @@ public record User : Aggregate<UserId>
         return this;
     }
 
-    public Fin<User> HasNoPendingOrders()
+    public Fin<User> EnsureNoPendingOrders()
     {
-        return PendingOrderIds.Count > 0
+        return HasPendingOrders
             ? FinFail<User>(
-                InvalidOperationError.New($"User with id has '{PendingOrderIds.Count}' pending orders"))
+                InvalidOperationError.New($"User with id '{Id.Value}' has pending orders"))
             : this;
     }
 
@@ -154,7 +150,9 @@ public record User : Aggregate<UserId>
 
     public User AssignUserToRoles(params Role[] roles)
     {
-        return this with { Roles = roles.ToList() };
+        Roles = roles.ToList();
+        return this;
+
     }
 
     public Fin<User> AssignUserToPermissions(params string[] permissions)
@@ -197,6 +195,11 @@ public record User : Aggregate<UserId>
         return this;
     }
 
+    public User AddAddress(Address address)
+    {
+        Addresses = [.. Addresses, address];
+        return this;
+    }
     public User AddAvatar(ImageUrl imageUrl)
     {
         Avatar = imageUrl;
@@ -233,31 +236,46 @@ public record User : Aggregate<UserId>
 
     public User GeneratePhoneVerificationToken()
     {
-        return this with
-        {
-            PhoneConfirmationToken = Helpers.GenerateCode(6),
-            PhoneConfirmationExpiresAt = DateTime.UtcNow.AddMinutes(30)
-        };
+        PhoneConfirmationToken = Helpers.GenerateCode(6);
+        PhoneConfirmationExpiresAt = DateTime.UtcNow.AddMinutes(30);
+        return this;
     }
 
 
     public User ToggleLikedProducts(params ProductId[] productIds)
     {
-        var (existing, nonExisting) = productIds.AsIterable().Partition(pId => LikedProductIds.Any(lpid => pId == lpid.ProductId));
+        var (existing, nonExisting) = productIds.AsIterable().Partition(pId => LikedProductIds.Contains(pId));
 
         if (existing.Any())
         {
             LikedProductIds = LikedProductIds
-                .Where(lpid => !existing.Contains<Iterable, ProductId>(lpid.ProductId))
+                .Where(lpid => !existing.Contains<Iterable, ProductId>(lpid))
                 .ToList();
         }
 
         if (nonExisting.Any())
         {
-            LikedProductIds = [.. LikedProductIds, .. nonExisting.Select(id => LikedProductId.Create(Id, id))];
+            LikedProductIds = [.. LikedProductIds, .. nonExisting];
         }
 
         return this;
+    }
+
+    public User SubscribeToProduct(string productId, string colorCode, string sizeCode)
+    {
+        var option = Optional(ProductSubscriptions.FirstOrDefault(s =>
+            s.Matches(productId, colorCode, sizeCode)));
+        return option.Match(subscription =>
+           {
+               ProductSubscriptions.Remove(subscription);
+               return this;
+           }, () =>
+           {
+
+               ProductSubscriptions.Add(ProductSubscription.Create(productId, colorCode, sizeCode));
+               return this;
+           });
+
     }
 
     public Fin<User> VerifyConfirmationToken(string? code, DateTime utcNow)
@@ -319,13 +337,12 @@ public record User : Aggregate<UserId>
             : this;
     }
 
-
-
-    private Fin<User> AddAddress(UpdateAddressDto address)
+    private Fin<User> UpdateAddress(UpdateAddressDto address)
     {
         return Optional(Addresses.FirstOrDefault(a => a.Id.Value == address.AddressId))
               .ToFin(NotFoundError.New($"Address with id: '{address.AddressId}' not found"))
               .Map(existingAddress => existingAddress.Update(
+                  address.ReceiverName,
                   address.Street,
                   address.City,
                   address.PostalCode,
@@ -339,10 +356,15 @@ public record User : Aggregate<UserId>
               });
 
     }
-    public User RemoveAddress(Address address)
+    public Fin<User> RemoveAddress(AddressId addressId)
     {
-        Addresses = Addresses.Where(a => a != address).ToList();
-        return this;
+        return Optional(Addresses.FirstOrDefault(address => address.Id.Value == addressId.Value))
+            .ToFin(NotFoundError.New($"Address with id: '{addressId.Value}' not found"))
+            .Bind(addressToDelete =>
+            {
+                Addresses = Addresses.Where(a => a.Id != addressId).ToList();
+                return FinSucc(this);
+            });
     }
 
     private Fin<User> UpdateEmail(string repr)
@@ -438,7 +460,7 @@ public record User : Aggregate<UserId>
         if (dto.AddressDto is not null)
         {
 
-            fin = fin.Bind(u => u.AddAddress(dto.AddressDto));
+            fin = fin.Bind(u => u.UpdateAddress(dto.AddressDto));
         }
 
         if (dto.Phone is not null)

@@ -31,13 +31,9 @@ public static class QueryableExtensions
                 queryable = queryable.AsSplitQuery();
             }
 
-            if (options.IgnoreGlobalFilters)
-            {
-                queryable = queryable.IgnoreQueryFilters();
-            }
-
             if (options.OrderByExpression is not null)
             {
+
                 queryable = options.OrderAsc
                     ? queryable.OrderBy(options.OrderByExpression)
                     : options.OrderDesc
@@ -55,6 +51,7 @@ public static class QueryableExtensions
 
     }
 
+
 }
 
 
@@ -63,7 +60,6 @@ public record QueryOptions<TAggregate>
     public string[] Includes { get; set; } = [];
     public bool AsSplitQuery { get; set; }
     public bool AsNoTracking { get; set; }
-    public bool IgnoreGlobalFilters { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
 
@@ -99,6 +95,24 @@ public record QueryOptions<TAggregate>
     }
 
 
+    public QueryOptions<TAggregate> AddOrFilters(params Expression<Func<TAggregate, bool>>[] _filters)
+    {
+        if (_filters.Length == 0)
+            return this;
+
+        if (_filters.Length == 1)
+        {
+            List<Expression<Func<TAggregate, bool>>> singleFilter = [.. FilterExpressions, _filters[0]];
+            return this with { FilterExpressions = singleFilter };
+        }
+
+        var orExpression = _filters.Aggregate((acc, curr) => acc.Or(curr));
+
+        List<Expression<Func<TAggregate, bool>>> filters = [.. FilterExpressions, orExpression];
+        return this with { FilterExpressions = filters };
+    }
+
+
 
     public QueryOptions<TAggregate> AddOrderBy(Expression<Func<TAggregate, object>> orderBy)
     {
@@ -118,12 +132,4 @@ public record QueryOptions<TAggregate>
     {
         return this with { WithPagination = true };
     }
-
-
-    public QueryOptions<TAggregate> IncludeDeleted()
-    {
-        return this with { IgnoreGlobalFilters = true };
-    }
-
-
 }

@@ -2,6 +2,6 @@
 
 public interface IPagination
 {
-	int PageNumber { get; init; }
-	int PageSize { get; init; }
+    int PageNumber { get; init; }
+    int PageSize { get; init; }
 }

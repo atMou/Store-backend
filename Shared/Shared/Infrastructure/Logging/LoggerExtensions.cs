@@ -110,6 +110,23 @@ public static class LoggerExtensions
             couponId, cartId, discount);
     }
 
+    public static void LogCartCheckoutFailed(this ILogger logger, Guid cartId, Error error)
+    {
+        logger.LogError(
+            LogEvents.CartCheckoutFailed,
+            error,
+            "Cart checkout failed for Cart {CartId}: {ErrorMessage}",
+            cartId, error.Message);
+    }
+
+    public static void LogCartCheckedOut(this ILogger logger, Guid cartId, Guid userId, decimal total)
+    {
+        logger.LogInformation(
+            LogEvents.CartCheckedOut,
+            "Cart {CartId} checked out for User {UserId}, Total: {Total}",
+            cartId, userId, total);
+    }
+
     // Order Module Logging
     public static void LogOrderCreated(this ILogger logger, Guid orderId, Guid userId, decimal total)
     {
@@ -117,6 +134,15 @@ public static class LoggerExtensions
             LogEvents.OrderCreated,
             "Order {OrderId} created for User {UserId}, Total: {Total}",
             orderId, userId, total);
+    }
+
+
+    public static void LogOrderCreateFail(this ILogger logger, Guid userId, Guid orderId)
+    {
+        logger.LogError(
+            LogEvents.OrderCreateFail,
+            "Failed to create order for User {UserId} and Order {OrderId}",
+            userId, orderId);
     }
 
     public static void LogOrderStatusChanged(this ILogger logger, Guid orderId, string oldStatus, string newStatus)
@@ -169,4 +195,15 @@ public static class LoggerExtensions
             "Database operation failed: {Operation}",
             operation);
     }
+
+    // Inventory Module Logging
+    public static void LogInventoryCreated(this ILogger logger, Guid inventoryId, Guid productId, int initialStock)
+    {
+        logger.LogInformation(
+            LogEvents.InventoryCreated,
+            "Inventory {InventoryId} created for Product {ProductId} with Initial Stock: {InitialStock}",
+            inventoryId, productId, initialStock);
+    }
+
+
 }

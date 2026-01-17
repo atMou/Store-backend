@@ -102,17 +102,17 @@ public record UpdateVariantRequest
     public int Stock { get; init; }
     public IEnumerable<UpdateImageRequest> ImageDtos { get; set; }
 
-    public UpdateVariantDto ToDto() => new UpdateVariantDto
+    public UpdateColorVariantDto ToDto() => new UpdateColorVariantDto
     {
-        VariantId = Shared.Domain.ValueObjects.VariantId.From(VariantId),
+        ColorVariantId = Shared.Domain.ValueObjects.ColorVariantId.From(VariantId),
         IsMain = IsMain ?? [],
         Images = Images ?? [],
         Color = Color,
-        Size = Size,
-        StockLow = StockLow,
-        StockMid = StockMid,
-        StockHigh = StockHigh,
-        Stock = Stock,
+        //Size = Size,
+        //StockLow = StockLow,
+        //StockMid = StockMid,
+        //StockHigh = StockHigh,
+        //Stock = Stock,
         ImageDtos = ImageDtos.Select(request => request.ToDto())
     };
 

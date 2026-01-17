@@ -1,11 +1,13 @@
 ﻿namespace Payment.Domain.Enums;
 public enum PaymentStatusCode
 {
-	Pending,
-	Failed,
-	Authorized,
-	Paid,
-	Refunded,
-	Voided,
-	Unknown
+    Pending,
+    Processing,
+    Failed,
+    Authorized,
+    Paid,
+    Refunded,
+    Voided,
+    Cancelled,
+    Unknown
 }

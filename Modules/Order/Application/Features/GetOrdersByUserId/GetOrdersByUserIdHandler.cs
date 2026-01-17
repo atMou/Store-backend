@@ -1,4 +1,6 @@
-﻿using Shared.Application.Contracts;
+﻿using Order.Persistence;
+
+using Shared.Application.Contracts;
 using Shared.Application.Contracts.Order.Results;
 
 namespace Order.Application.Features.GetOrdersByUserId;
@@ -19,7 +21,12 @@ internal class GetOrdersByUserIdQueryHandler(OrderDBContext dbContext)
         var db =
             from res in GetEntitiesWithPagination<OrderDBContext, Domain.Models.Order, OrderResult, GetOrdersByUserIdQuery>(
                 order => order.UserId == query.UserId,
-                opt => QueryEvaluator(opt, query),
+                opt =>
+                {
+                    opt = opt.AddInclude(order => order.OrderItems);
+                    opt = QueryEvaluator(opt, query);
+                    return opt;
+                },
                 query,
                 o => o.ToResult()
             )

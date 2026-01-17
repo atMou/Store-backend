@@ -6,8 +6,8 @@ namespace Shared.Infrastructure.Authentication;
 
 public sealed class HasPermissionAttribute : AuthorizeAttribute
 {
-	public HasPermissionAttribute(Permission permission)
-		: base(policy: $"Permission:{permission.ToString()}")
-	{
-	}
+    public HasPermissionAttribute(Permission permission)
+        : base(policy: $"Permission:{permission.ToString()}")
+    {
+    }
 }

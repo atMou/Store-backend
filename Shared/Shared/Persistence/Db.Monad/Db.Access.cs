@@ -2,7 +2,7 @@
 
 namespace Shared.Persistence.Db.Monad;
 
-public static class Db
+public static partial class Db
 {
     public static Db<Ctx, A> AddEntityIfNotExists<Ctx, A, B>(
         Expression<Func<A, bool>> predicate,
@@ -25,53 +25,6 @@ public static class Db
                select res;
     }
 
-
-    public static Db<Ctx, Unit> AddEntities<Ctx, A>(
-        IEnumerable<A> entities)
-        where Ctx : DbContext where A : class
-    {
-        return
-            from _2 in Db<Ctx>.lift(ctx =>
-            {
-                ctx.Set<A>().AddRange(entities);
-                return unit;
-            })
-            select unit;
-    }
-
-
-    public static Db<Ctx, Unit> AddEntities<Ctx, A>(
-        IEnumerable<Fin<A>> entities)
-        where Ctx : DbContext where A : class
-    {
-        return
-            from res in entities.AsIterable().Traverse(fn => fn).As()
-            from _2 in Db<Ctx>.lift(ctx =>
-            {
-                ctx.Set<A>().AddRange(res);
-                return unit;
-            })
-            select unit;
-    }
-
-
-    public static Db<Ctx, A> AddEntity<Ctx, A, B>(
-        B createDto,
-        Func<B, Fin<A>> create,
-        params Func<A, A>[] updates)
-        where Ctx : DbContext where A : class
-    {
-        return
-            from res in create(createDto).Map(a => updates.Aggregate(a, (current, fn) => fn(current)))
-            from _1 in Db<Ctx>.lift(ctx =>
-            {
-                ctx.Set<A>().Add(res);
-                return unit;
-            })
-            select res;
-    }
-
-
     public static Db<Ctx, A> AddEntity<Ctx, A, B>(
         B createDto,
         Func<B, Fin<A>> create,
@@ -88,7 +41,6 @@ public static class Db
              })
              select res2).As();
     }
-
 
     public static Db<Ctx, A> AddEntity<Ctx, A>(
         A entity)
@@ -181,10 +133,36 @@ public static class Db
                 : Db<Ctx>.liftIO(async (ctx, e) =>
                     await ctx.Set<A>().WithQueryOptions(fn)
                         .FirstOrDefaultAsync(predicate, e.Token))
-            from _1 in when(a.IsNull(),
+            from _ in when(a.IsNull(),
                 IO.fail<Unit>(error))
             let updatedA = updates.AsIterable().Fold(a, (current, func) => func(current))
-            from _2 in Db<Ctx>.lift(ctx =>
+            from __ in Db<Ctx>.lift(ctx =>
+            {
+                ctx.Set<A>().Update(updatedA);
+                return unit;
+            })
+            select updatedA;
+    }
+
+    public static Db<Ctx, A> GetUpdateEntity<Ctx, A>(
+        Expression<Func<A, bool>> predicate,
+        NotFoundError error,
+        Func<QueryOptions<A>, QueryOptions<A>>? fn = null,
+        params Func<A, IO<A>>[] updates
+    )
+        where Ctx : DbContext where A : class, IAggregate
+    {
+        return
+            from a in fn.IsNull()
+                ? Db<Ctx>.liftIO(async (ctx, e) =>
+                    await ctx.Set<A>().FirstOrDefaultAsync(predicate, e.Token))
+                : Db<Ctx>.liftIO(async (ctx, e) =>
+                    await ctx.Set<A>().WithQueryOptions(fn)
+                        .FirstOrDefaultAsync(predicate, e.Token))
+            from _ in when(a.IsNull(),
+                IO.fail<Unit>(error))
+            from updatedA in updates.AsIterable().Fold(IO.pure(a), (current, func) => current.Bind(a => func(a)))
+            from __ in Db<Ctx>.lift(ctx =>
             {
                 ctx.Set<A>().Update(updatedA);
                 return unit;
@@ -208,11 +186,11 @@ public static class Db
                 : Db<Ctx>.liftIO(async (ctx, e) =>
                     await ctx.Set<A>().WithQueryOptions(fn)
                         .FirstOrDefaultAsync(predicate, e.Token))
-            from _1 in when(a.IsNull(),
+            from _ in when(a.IsNull(),
                 IO.fail<Unit>(error))
             from a1 in update1(a)
             from element in update2(a1)
-            from _2 in Db<Ctx>.lift(ctx =>
+            from __ in Db<Ctx>.lift(ctx =>
             {
                 ctx.Set<A>().Update(element);
                 return unit;
@@ -226,27 +204,12 @@ public static class Db
         where Ctx : DbContext where A : class
     {
         return from updatedA in updates.Aggregate(FinSucc(entity), (acc, fn) => acc.Bind(fn))
-               from _2 in Db<Ctx>.lift(ctx =>
+               from __ in Db<Ctx>.lift(ctx =>
                {
                    ctx.Set<A>().Entry(entity).CurrentValues.SetValues(updatedA);
                    return unit;
                })
                select unit;
-    }
-
-    public static Db<Ctx, Unit> UpdateEntity<Ctx, A>(
-        A entity,
-        params Func<A, A>[] updates)
-        where Ctx : DbContext where A : class
-    {
-        var updatedA = updates.Aggregate(entity, (current, fn) => fn(current));
-        return
-            from _2 in Db<Ctx>.lift(ctx =>
-            {
-                ctx.Set<A>().Update(updatedA);
-                return unit;
-            })
-            select unit;
     }
 
     public static Db<Ctx, A> SoftDeleteEntity<Ctx, A>(
@@ -256,10 +219,10 @@ public static class Db
     {
         return from a in Db<Ctx>.liftIO(async (ctx, e) =>
                 await ctx.Set<A>().FirstOrDefaultAsync(predicate, e.Token))
-               from _1 in when(a.IsNull(),
+               from _ in when(a.IsNull(),
                    IO.fail<Unit>(error))
                let del = delete(a)
-               from _2 in Db<Ctx>.lift(ctx =>
+               from __ in Db<Ctx>.lift(ctx =>
                {
                    ctx.Set<A>().Entry(a).CurrentValues.SetValues(del);
                    return unit;
@@ -275,9 +238,9 @@ public static class Db
         return from a in Db<Ctx>.liftIO(async (ctx, e) =>
                 await ctx.Set<A>()
                     .FirstOrDefaultAsync(predicate, e.Token))
-               from _1 in when(a.IsNull(),
+               from _ in when(a.IsNull(),
                    IO.fail<Unit>(error))
-               from _2 in Db<Ctx>.lift(ctx =>
+               from __ in Db<Ctx>.lift(ctx =>
                {
                    ctx.Set<A>().Remove(a);
                    return unit;
@@ -293,10 +256,11 @@ public static class Db
     )
         where Ctx : DbContext where A : class, IAggregate
     {
+
         return from a in Db<Ctx>.liftIO(async (ctx, e) =>
                 await ctx.Set<A>().WithQueryOptions(fn)
                     .FirstOrDefaultAsync(predicate, e.Token))
-               from _1 in when(a.IsNull(),
+               from _ in when(a.IsNull(),
                    IO.fail<Unit>(error))
                select a;
     }
@@ -329,7 +293,7 @@ public static class Db
                      .Traverse(a => updates.Aggregate(FinSucc(a),
                          (current, func) => current.Bind(func))).As()
                  let entities = x.AsEnumerable()
-                 from _2 in Db<Ctx>.lift(ctx =>
+                 from __ in Db<Ctx>.lift(ctx =>
                  {
                      ctx.Set<A>().UpdateRange(entities);
                      return unit;

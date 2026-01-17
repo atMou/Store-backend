@@ -22,7 +22,7 @@ public static class Extensions
             Rating = p.Rating.ToResult(),
             Status = p.Status.ToResult(),
             Images = p.Images.Select(pi => pi.ToResult()).ToArray(),
-            Variants = p.Variants.Select(v => v.ToResult()).ToArray(),
+            ColorVariants = p.ColorVariants.Select(v => v.ToResult()).ToArray(),
             Reviews = p.Reviews.Select(r => r.ToResult()),
             Colors = p.Colors.Select(color => color.ToResult()),
             Sizes = p.Sizes.Select(size => size.ToResult()),
@@ -47,22 +47,35 @@ public static class Extensions
 
     }
 
-
     public static IEnumerable<ProductResult> ToResult(this IEnumerable<Models.Product> ps)
     {
         return ps.Select(p => p.ToResult());
     }
 
-    public static VariantsResult ToResult(this Variant v)
+    public static ColorVariantsResult ToResult(this ColorVariant v)
     {
-        return new VariantsResult()
+        return new ColorVariantsResult()
         {
+
             Id = v.Id.Value,
-            Sku = v.Sku.Value,
             Color = v.Color.ToResult(),
             Images = v.Images.Select(pi => pi.ToResult()).ToArray(),
+            SizeVariants = v.SizeVariants.Select(sv => sv.ToResult()).ToArray()
         };
     }
+
+    private static SizeVariantResult ToResult(this SizeVariant sv)
+    {
+        return new SizeVariantResult()
+        {
+            Id = sv.Id,
+            Size = sv.Size.ToResult(),
+            Stock = sv.Stock,
+            StockLevel = sv.StockLevel.ToString(),
+            Sku = sv.Sku.Value
+        };
+    }
+
 
     private static ReviewResult ToResult(this Review review)
     {
@@ -124,16 +137,6 @@ public static class Extensions
         };
     }
 
-    private static StockResult ToResult(this Stock stock)
-    {
-        return new StockResult
-        {
-            Stock = stock.Value,
-            Low = stock.Low,
-            Mid = stock.Mid,
-            High = stock.High
-        };
-    }
     private static SizeResult ToResult(this Size size)
     {
         return new SizeResult

@@ -15,7 +15,7 @@ public record Image
     public string AltText { get; private set; }
     public bool IsMain { get; private set; }
     public ProductId ProductId { get; set; }
-    public VariantId VariantId { get; set; }
+    public ColorVariantId ColorVariantId { get; set; }
 
     public static Fin<Image> From(string url, string publicId, string altText, bool IsMain)
     {

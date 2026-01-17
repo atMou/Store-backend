@@ -47,11 +47,13 @@ internal class EmailVerificationCommandHandler(
                     await endpoint.Publish(new UserEmailVerifiedIntegrationEvent(tuple.a.Id.Value,
                             new Shared.Domain.ValueObjects.Address()
                             {
+
                                 City = address.City,
                                 HouseNumber = address.HouseNumber,
                                 PostalCode = address.PostalCode,
                                 Street = address.Street,
-                                ExtraDetails = address.ExtraDetails
+                                ExtraDetails = address.ExtraDetails,
+                                ReceiverName = address.ReceiverName
                             }),
                         cancellationToken);
                     return new EmailVerificationResult(tuple.a.ToResult(), tuple.b, tuple.c);

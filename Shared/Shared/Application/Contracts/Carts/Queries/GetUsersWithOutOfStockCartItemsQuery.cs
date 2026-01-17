@@ -1,5 +1,5 @@
 ﻿namespace Shared.Application.Contracts.Carts.Queries;
 
-public record GetUsersWithOutOfStockCartItemsQuery(VariantId VariantId) : IQuery<Fin<IEnumerable<UserId>>>
+public record GetUsersWithOutOfStockCartItemsQuery(ColorVariantId ColorVariantId) : IQuery<Fin<IEnumerable<UserId>>>
 {
 }

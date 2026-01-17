@@ -2,10 +2,12 @@
 
 public record AddressResult
 {
-	public string Street { get; init; }
-	public string City { get; init; }
-	public uint PostalCode { get; init; }
-	public uint HouseNumber { get; set; }
-	public bool IsMain { get; init; }
-	public string? ExtraDetails { get; init; }
+    public Guid Id { get; init; }
+    public string ReceiverName { get; init; }
+    public string Street { get; init; }
+    public string City { get; init; }
+    public uint PostalCode { get; init; }
+    public uint HouseNumber { get; set; }
+    public bool IsMain { get; init; }
+    public string? ExtraDetails { get; init; }
 }

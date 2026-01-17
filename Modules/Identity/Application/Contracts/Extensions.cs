@@ -18,12 +18,16 @@ public static class Extensions
         CartId = user.CartId?.Value,
         Addresses = user.Addresses.Select(a => a.ToResult()),
         Roles = user.Roles.Select(r => r.ToResult()),
-        //Permissions = user.Permissions.Select(p => p.Name),
-        LikedProductIds = user.LikedProductIds.Select(lp => lp.ProductId.Value)
+        ProductSubscriptions = user.ProductSubscriptions.Select(subscription => subscription.Key),
+        LikedProductIds = user.LikedProductIds.Select(productId => productId.Value),
+        Permissions = user.Permissions.Select(permission => permission.Name)
 
     };
-    public static AddressResult ToResult(this Address address) => new()
+
+    private static AddressResult ToResult(this Address address) => new()
     {
+        Id = address.Id.Value,
+        ReceiverName = address.ReceiverName,
         Street = address.Street,
         City = address.City,
         PostalCode = address.PostalCode,
@@ -34,7 +38,7 @@ public static class Extensions
 
     };
 
-    public static RoleResult ToResult(this Role role) => new()
+    private static RoleResult ToResult(this Role role) => new()
     {
         Name = role.Name,
         Permissions = role.Permissions.Select(p => p.Name)

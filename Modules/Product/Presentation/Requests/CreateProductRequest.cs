@@ -1,6 +1,4 @@
-﻿using Product.Application.Features.CreateProduct;
-
-namespace Product.Presentation.Requests;
+﻿namespace Product.Presentation.Requests;
 
 public class CreateProductRequest
 {
@@ -15,13 +13,10 @@ public class CreateProductRequest
     public string Category { get; set; }
     public string SubCategory { get; set; }
     public string Description { get; set; }
-    public List<CreateVariantRequest> Variants { get; set; }
+    public List<CreateColorVariantRequest> ColorVariants { get; set; }
     public List<CreateAttributeRequest> DetailsAttributes { get; set; }
     public List<CreateAttributeRequest> SizeFitAttributes { get; set; }
     public List<CreateMaterialDetailRequest> MaterialDetails { get; set; }
-
-
-
 }
 
 public record CreateMaterialDetailRequest
@@ -29,28 +24,18 @@ public record CreateMaterialDetailRequest
     public string Material { get; init; }
     public decimal Percentage { get; init; }
     public string Detail { get; init; }
-
 }
+
 public class CreateAttributeRequest
 {
     public string Name { get; set; }
     public string Description { get; set; }
-
 }
 
-public class CreateVariantRequest
+public class CreateColorVariantRequest
 {
     public IFormFile[] Images { get; set; }
     public bool[] IsMain { get; set; }
     public string Color { get; set; }
-    public IEnumerable<CreateSizeVariantCommand> SizeVariants { get; init; }
 }
 
-public record CreateSizeVariantRequest
-{
-    public string Size { get; init; }
-    public int Stock { get; init; }
-    public int StockLow { get; init; }
-    public int StockMid { get; init; }
-    public int StockHigh { get; init; }
-}

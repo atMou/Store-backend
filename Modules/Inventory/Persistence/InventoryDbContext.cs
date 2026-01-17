@@ -10,11 +10,15 @@ public class InventoryDbContext(DbContextOptions<InventoryDbContext> options) : 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Ignore<VariantId>();
+        modelBuilder.Ignore<ColorVariantId>();
+        modelBuilder.Ignore<Size>();
+        modelBuilder.Ignore<ProductId>();
+        modelBuilder.Ignore<InventoryId>();
+        modelBuilder.Ignore<Warehouse>();
+        modelBuilder.Ignore<Stock>();
+
         modelBuilder.HasDefaultSchema("inventory");
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);
     }
-
-
 }

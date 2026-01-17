@@ -1,4 +1,6 @@
-﻿namespace Product.Application.Features.GetProducts;
+﻿using System.Runtime.CompilerServices;
+
+namespace Product.Application.Features.GetProducts;
 
 public static class QueryEvaluator
 {
@@ -60,7 +62,7 @@ public static class QueryEvaluator
             var cs = colors.Any() ? Color.Like(colors).ToList() : [];
             if (colors.Length > 0)
             {
-                options = options.AddFilters(p => p.Variants.Any(v => cs.Contains(v.Color)));
+                options = options.AddFilters(p => p.ColorVariants.Any(v => cs.Contains(v.Color)));
             }
 
         }
@@ -74,9 +76,7 @@ public static class QueryEvaluator
             var ss = sizes.Any() ? Size.Like(sizes).ToList() : [];
             if (sizes.Length > 0)
             {
-                options = options.AddFilters(p => p.Variants.Any(v => ss.Contains(v.Size)));
-
-
+                options = options.AddFilters(p => p.ColorVariants.Any(v => v.SizeVariants.Any(sv => ss.Contains(sv.Size))));
             }
 
         }
@@ -135,22 +135,10 @@ public static class QueryEvaluator
                 }
 
 
-                if (string.Equals(se, Images, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(se, ColorVariants, StringComparison.OrdinalIgnoreCase))
                 {
-                    options = options.AddInclude(p => p.Images);
+                    options = options.AddInclude(p => p.ColorVariants);
                 }
-
-
-                if (string.Equals(se, Variants, StringComparison.OrdinalIgnoreCase))
-                {
-                    options = options.AddInclude(p => p.Variants);
-                }
-
-                if (string.Equals(se, MaterialDetails, StringComparison.OrdinalIgnoreCase))
-                {
-                    options = options.AddInclude(p => p.MaterialDetails);
-                }
-
 
             }
         }
@@ -188,5 +176,50 @@ public static class QueryEvaluator
         }
 
         return options;
+    }
+
+    public static string GetCacheKey(this GetProductsQuery query)
+    {
+        var handler = new DefaultInterpolatedStringHandler(50, 17);
+        handler.AppendLiteral("products:");
+        handler.AppendFormatted(query.PageNumber);
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.PageSize);
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Category ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.SubCategory ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Brand ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Color ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Size ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Type ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Sub ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Search ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.MinPrice?.ToString() ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.MaxPrice?.ToString() ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.IsNew?.ToString() ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.IsFeatured?.ToString() ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.IsTrending?.ToString() ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.IsBestSeller?.ToString() ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.OrderBy ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.SortDir ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Include ?? "");
+
+        return handler.ToStringAndClear();
     }
 }

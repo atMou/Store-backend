@@ -1,5 +1,7 @@
-﻿using Basket.Application.Features.Cart.DeleteCartItem;
-using Basket.Application.Features.Cart.GetCart;
+﻿using Basket.Application.Features.Cart.GetCart;
+using Basket.Application.Features.Cart.UpdateCartItem;
+
+using Microsoft.AspNetCore.Authorization;
 
 using Shared.Application.Contracts.Carts.Results;
 
@@ -11,6 +13,7 @@ public class BasketsController(ISender sender) : ControllerBase
 
 {
     [HttpGet("{id:guid}", Name = "GetCartById")]
+    [Authorize]
     public async Task<ActionResult<CartResult>> GetCartById([FromRoute] Guid id, [FromQuery] string? include)
     {
         var result = await sender.Send(new GetCartByCartIdQuery()
@@ -21,12 +24,15 @@ public class BasketsController(ISender sender) : ControllerBase
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
-
-    [HttpPost]
-    public async Task<ActionResult<Guid>> Create([FromBody] CreateCartRequest request)
+    [HttpGet("{userId:guid}/user", Name = "GetCartByUserId")]
+    public async Task<ActionResult<CartResult>> GetCartByUserId([FromRoute] Guid userId, [FromQuery] string? include)
     {
-        var result = await sender.Send(request.ToCommand());
-        return result.ToActionResult(id => CreatedAtRoute(nameof(GetCartById), new { id }), HttpContext.Request.Path);
+        var result = await sender.Send(new GetCartByUserIdQuery()
+        {
+            UserId = UserId.From(userId)
+        });
+
+        return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
 
     [HttpPost("add-coupon")]
@@ -42,8 +48,8 @@ public class BasketsController(ISender sender) : ControllerBase
         var result = await sender.Send(request.ToCommand());
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
-
     [HttpPost("checkout")]
+    [Authorize]
     public async Task<ActionResult<Unit>> CheckOut([FromBody] CartCheckoutRequest request)
     {
         var result = await sender.Send(request.ToCommand());
@@ -59,16 +65,26 @@ public class BasketsController(ISender sender) : ControllerBase
 
     [HttpPost]
     [Route("add-line-item")]
-    public async Task<ActionResult<Unit>> AddLineItem([FromBody] AddLineItemRequest request)
+    public async Task<ActionResult<CartResult>> AddLineItem([FromBody] AddLineItemRequest request)
     {
         var result = await sender.Send(request.ToCommand());
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
+
     [HttpPost]
-    [Route("update-line-item")]
-    public async Task<ActionResult<Unit>> UpdateLineItem([FromBody] UpdateLineItemRequest request)
+    [Route("add-multiple-line-items")]
+    public async Task<ActionResult<CartResult>> AddMultipleLineItems([FromBody] AddMultipleLineItemsRequest request)
     {
         var result = await sender.Send(request.ToCommand());
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("update-line-item")]
+    public async Task<ActionResult<CartResult>> UpdateLineItem([FromBody] UpdateLineItemCommand request)
+    {
+        var result = await sender.Send(request);
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
 
@@ -80,7 +96,7 @@ public class BasketsController(ISender sender) : ControllerBase
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
 
-
+    [Authorize]
     [HttpPost]
     [Route("change-delivery-address")]
     public async Task<ActionResult<Unit>> ChangeDeliveryAddress([FromBody] ChangeDeliveryAddressRequest request)
@@ -91,18 +107,3 @@ public class BasketsController(ISender sender) : ControllerBase
 
 
 }
-
-public record DeleteLineItemRequest
-{
-    public Guid CartId { get; init; }
-    public Guid VariantId { get; init; }
-
-    public DeleteLineItemCommand ToCommand() =>
-        new DeleteLineItemCommand(
-            Shared.Domain.ValueObjects.VariantId.From(VariantId),
-            Shared.Domain.ValueObjects.CartId.From(CartId)
-        );
-
-}
-
-

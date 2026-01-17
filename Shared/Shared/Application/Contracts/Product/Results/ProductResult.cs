@@ -21,7 +21,7 @@ public record ProductResult
 
     public IEnumerable<ColorResult> Colors { get; init; }
     public IEnumerable<SizeResult> Sizes { get; init; }
-    public IEnumerable<VariantsResult> Variants { get; init; }
+    public IEnumerable<ColorVariantsResult> ColorVariants { get; init; }
     public IEnumerable<ImageResult> Images { get; init; }
     public IEnumerable<ProductResult> Alternatives { get; init; }
     public IEnumerable<ReviewResult> Reviews { get; init; }
@@ -63,17 +63,23 @@ public record StatusResult
     public bool IsBestSeller { get; init; }
 }
 
-public record VariantsResult
+public record ColorVariantsResult
 {
     public Guid Id { get; set; }
-    public string Sku { get; init; }
     public ColorResult Color { get; init; }
-
-    public SizeResult Size { get; init; }
     public IEnumerable<ImageResult> Images { get; init; }
-
+    public IEnumerable<SizeVariantResult> SizeVariants { get; init; }
+}
+public record SizeVariantResult
+{
+    public Guid Id { get; init; }
+    public SizeResult Size { get; init; }
+    public int Stock { get; init; }
+    public string StockLevel { get; init; }
+    public string Sku { get; init; }
 
 }
+
 public record StockResult
 {
     public int Stock { get; init; }

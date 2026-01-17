@@ -23,19 +23,6 @@ namespace Identity.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Identity.Domain.Models.LikedProductId", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("UserId", "ProductId");
-
-                    b.ToTable("liked_products_ids", "identity");
-                });
-
             modelBuilder.Entity("Identity.Domain.Models.RefreshToken", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -129,6 +116,10 @@ namespace Identity.Persistence.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("gender");
 
+                    b.Property<bool>("HasPendingOrders")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_pending_orders");
+
                     b.Property<string>("HashedPassword")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -192,15 +183,6 @@ namespace Identity.Persistence.Migrations
                     b.ToTable("users", "identity");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Models.LikedProductId", b =>
-                {
-                    b.HasOne("Identity.Domain.Models.User", null)
-                        .WithMany("LikedProductIds")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Identity.Domain.Models.RefreshToken", b =>
                 {
                     b.HasOne("Identity.Domain.Models.User", null)
@@ -243,6 +225,12 @@ namespace Identity.Persistence.Migrations
                                 .HasColumnType("bigint")
                                 .HasColumnName("postal_code");
 
+                            b1.Property<string>("ReceiverName")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)")
+                                .HasColumnName("receiver_name");
+
                             b1.Property<string>("Street")
                                 .IsRequired()
                                 .HasMaxLength(255)
@@ -257,19 +245,32 @@ namespace Identity.Persistence.Migrations
                                 .HasForeignKey("UserId");
                         });
 
-                    b.OwnsMany("Identity.Domain.Models.PendingOrderId", "PendingOrderIds", b1 =>
+                    b.OwnsMany("Identity.Domain.ValueObjects.ProductSubscription", "ProductSubscriptions", b1 =>
                         {
                             b1.Property<Guid>("UserId")
                                 .HasColumnType("uniqueidentifier")
                                 .HasColumnName("user_id");
 
-                            b1.Property<Guid>("OrderId")
-                                .HasColumnType("uniqueidentifier")
-                                .HasColumnName("order_id");
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int")
+                                .HasColumnName("id");
 
-                            b1.HasKey("UserId", "OrderId");
+                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
 
-                            b1.ToTable("user_pending_order_ids", "identity");
+                            b1.Property<string>("Key")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("nvarchar(255)")
+                                .HasColumnName("subscription_key");
+
+                            b1.HasKey("UserId", "Id");
+
+                            b1.HasIndex("UserId", "Key")
+                                .IsUnique()
+                                .HasDatabaseName("ix_user_product_subscriptions_user_key");
+
+                            b1.ToTable("user_product_subscriptions", "identity");
 
                             b1.WithOwner()
                                 .HasForeignKey("UserId");
@@ -300,17 +301,36 @@ namespace Identity.Persistence.Migrations
                                 .HasForeignKey("UserId");
                         });
 
+                    b.OwnsMany("Shared.Domain.ValueObjects.ProductId", "LikedProductIds", b1 =>
+                        {
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("user_id");
+
+                            b1.Property<Guid>("Value")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("product_id");
+
+                            b1.HasKey("UserId", "Value");
+
+                            b1.ToTable("user_liked_product_ids", "identity");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
                     b.Navigation("Addresses");
 
                     b.Navigation("Avatar");
 
-                    b.Navigation("PendingOrderIds");
+                    b.Navigation("LikedProductIds");
+
+                    b.Navigation("ProductSubscriptions");
                 });
 
             modelBuilder.Entity("Identity.Domain.Models.User", b =>
                 {
-                    b.Navigation("LikedProductIds");
-
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

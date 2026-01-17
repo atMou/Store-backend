@@ -1,14 +1,20 @@
-# services:
-  # api:
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_HTTP_PORTS=8080
-  #     - ASPNETCORE_HTTPS_PORTS=8081
-  #   ports:
-  #     - "8080"
-  #     - "8081"
-  #   volumes:
-  #     - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-  #     - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
-  #     - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-  #     - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+services:
+  api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=5000
+      - ASPNETCORE_HTTPS_PORTS=5001
+      - ConnectionStrings__PostgresIdentity=Server=postgresIdentityDb;Port=5432;Database=IdentityDb;User Id=postgres;Password=${POSTGRES_PASSWORD};Include Error Detail=true
+      - ConnectionStrings__PostgresInventory=Server=postgresInventoryDb;Port=5432;Database=InventoryDb;User Id=postgres;Password=${POSTGRES_PASSWORD};Include Error Detail=true
+      - ConnectionStrings__PostgresShipment=Server=postgresShipmentDb;Port=5432;Database=ShipmentDb;User Id=postgres;Password=${POSTGRES_PASSWORD};Include Error Detail=true
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=EShopDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true
+      - ConnectionStrings__SqlServer=Server=sqlserver,1433;Database=EShopDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true
+      - ConnectionStrings__Redis=distributedcache:6379,password=${REDIS_PASSWORD}
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro

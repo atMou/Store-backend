@@ -5,9 +5,9 @@ namespace Shared.Presentation.ObjectResults;
 
 public class TooManyRequestsObjectResult : ObjectResult
 {
-	public TooManyRequestsObjectResult(object value)
-		: base(value)
-	{
-		StatusCode = StatusCodes.Status429TooManyRequests;
-	}
+    public TooManyRequestsObjectResult(object value)
+        : base(value)
+    {
+        StatusCode = StatusCodes.Status429TooManyRequests;
+    }
 }

@@ -1,4 +1,6 @@
-﻿using Shared.Application.Contracts.Carts.Results;
+﻿using Basket.Application.Contracts;
+
+using Shared.Application.Contracts.Carts.Results;
 
 namespace Basket.Application.Features.Cart.GetCart;
 
@@ -15,8 +17,8 @@ internal class GetCartByUserIdQueryHandler(BasketDbContext dbContext)
     {
         var loadCart =
             GetEntity<BasketDbContext, Domain.Models.Cart>(
-                cart => cart.UserId == query.UserId,
-                NotFoundError.New($"Cart not found for user {query.UserId.Value}."),
+                cart => cart.UserId == query.UserId && cart.IsActive,
+                NotFoundError.New($"Active cart not found for user {query.UserId.Value}."),
                 opt => QueryEvaluator.Evaluate(opt, query)
                 );
 

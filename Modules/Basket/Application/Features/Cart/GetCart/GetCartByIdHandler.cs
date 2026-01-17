@@ -1,3 +1,5 @@
+using Basket.Application.Contracts;
+
 using Shared.Application.Contracts.Carts.Results;
 
 namespace Basket.Application.Features.Cart.GetCart;

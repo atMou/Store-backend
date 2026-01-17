@@ -15,15 +15,7 @@ public class GetLoggedInQueryHandler(IdentityDbContext dbContext, ISender sender
 
             from u in GetEntity<IdentityDbContext, User>(
                 user => user.Id == UserId.From(uc.Id),
-                NotFoundError.New($"User with id '{uc.Id}' does not exist"),
-                opt =>
-                {
-                    opt = opt.AddInclude(u => u.LikedProductIds);
-                    opt = opt.AddInclude(u => u.Addresses);
-                    opt = opt.AddInclude(u => u.Roles);
-                    opt = opt.AddInclude(u => u.Permissions);
-                    return opt;
-                }
+                NotFoundError.New($"User with id '{uc.Id}' does not exist")
             ).Map(u => u.ToResult())
             select u;
 

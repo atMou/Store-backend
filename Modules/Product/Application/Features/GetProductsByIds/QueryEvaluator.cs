@@ -1,4 +1,6 @@
-﻿namespace Product.Application.Features.GetProductsByIds;
+﻿using System.Runtime.CompilerServices;
+
+namespace Product.Application.Features.GetProductsByIds;
 
 public static class QueryEvaluator
 {
@@ -43,7 +45,7 @@ public static class QueryEvaluator
 
                 if (string.Equals(se, Variants, StringComparison.OrdinalIgnoreCase))
                 {
-                    options = options.AddInclude(p => p.Variants);
+                    options = options.AddInclude(p => p.ColorVariants);
                 }
 
                 if (string.Equals(se, MaterialDetails, StringComparison.OrdinalIgnoreCase))
@@ -88,5 +90,32 @@ public static class QueryEvaluator
         }
 
         return options;
+    }
+
+    internal static string GetCacheKey(this GetProductsByIdsQuery query)
+    {
+        // Sort ProductIds to ensure consistent cache keys regardless of order
+        var sortedIds = query.ProductIds
+            .Select(id => id.Value.ToString())
+            .OrderBy(id => id)
+            .ToArray();
+
+        var idsHash = string.Join(",", sortedIds);
+
+        var handler = new DefaultInterpolatedStringHandler(20, 5);
+        handler.AppendLiteral("products-by-ids:");
+        handler.AppendFormatted(idsHash);
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.PageNumber);
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.PageSize);
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.OrderBy ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.SortDir ?? "");
+        handler.AppendLiteral(":");
+        handler.AppendFormatted(query.Include ?? "");
+
+        return handler.ToStringAndClear();
     }
 }

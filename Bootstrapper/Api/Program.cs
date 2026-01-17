@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Security.Claims;
 
 using Inventory;
 
@@ -13,12 +14,13 @@ using Serilog.Events;
 
 using Shared;
 using Shared.Application.Extensions;
+using Shared.Infrastructure.Hubs.Extensions;
 
 using Shipment;
 
 namespace Api;
 
-internal class Program
+public partial class Program
 {
     public static void Main(string[] args)
     {
@@ -85,6 +87,7 @@ internal class Program
 
 
             builder.Services.AddSharedModule(builder.Configuration);
+            builder.Services.AddSharedHubs(builder.Configuration);
             builder.Services.AddIdentityModule(builder.Configuration);
             builder.Services.AddProductModule(builder.Configuration);
             builder.Services.AddBasketModule(builder.Configuration);
@@ -138,7 +141,6 @@ internal class Program
 
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Store Backend API", Version = "v1" });
 
-                // include XML comments
                 var asm = Assembly.GetExecutingAssembly();
                 var xmlFile = $"{asm.GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -179,7 +181,7 @@ internal class Program
 
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("allow", policy =>
+                options.AddPolicy("front", policy =>
                 {
                     policy.WithOrigins("http://localhost:3000")
                         .AllowAnyHeader()
@@ -213,9 +215,15 @@ internal class Program
                 c.DocumentTitle = "Store Backend API Documentation";
             });
 
-            app.UseCors("allow");
+            app.UseCors("front");
 
-            // Add Serilog request logging with custom enrichment
+            // Configure WebSockets BEFORE authentication and module middleware
+            var webSocketOptions = new WebSocketOptions
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(30)
+            };
+            app.UseWebSockets(webSocketOptions);
+
             app.UseSerilogRequestLogging(options =>
             {
                 options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000}ms";
@@ -227,11 +235,13 @@ internal class Program
 
                     if (httpContext.User.Identity?.IsAuthenticated == true)
                     {
-                        diagnosticContext.Set("UserId", httpContext.User.FindFirst("sub")?.Value);
+                        diagnosticContext.Set("UserId", httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                     }
                 };
             });
 
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseIdentityModule();
             app.UseProductModule();
             app.UseBasketModule();
@@ -239,9 +249,7 @@ internal class Program
             app.UseShipmentModule();
             app.UsePaymentModule();
             app.UseInventoryModule();
-            app.UseAuthentication();
-            app.UseAuthorization();
-
+            app.MapSharedHubs();
             app.MapControllers();
 
             Log.Information("Store Backend API is ready to accept requests");

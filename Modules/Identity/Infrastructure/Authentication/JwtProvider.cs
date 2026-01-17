@@ -8,8 +8,9 @@ internal sealed class JwtProvider : IJwtProvider
         var claims = new List<Claim>
     {
         new(JwtRegisteredClaimNames.Sub, user.Id.Value.ToString()),
+        new(ClaimTypes.NameIdentifier, user.Id.Value.ToString()),
         new(JwtRegisteredClaimNames.Email, user.Email.Value),
-
+        new(Claims.HasPendingOrders, user.HasPendingOrders.ToString())
     };
 
         var roles = user.Roles.Select(r => r.Name).Distinct().ToList();

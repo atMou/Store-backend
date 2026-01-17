@@ -7,12 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Order.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Shared\Shared\Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Infrastructure\" />
-    <Folder Include="Persistence\Extensions\" />
   </ItemGroup>
 
 </Project>

@@ -180,6 +180,6 @@ public record Category
     public override int GetHashCode() => HashCode.Combine(Main, Sub);
     public override string ToString()
     {
-        return $"{Main}-{Sub}";
+        return $"{Main.First()}-{Sub.First()}";
     }
 }

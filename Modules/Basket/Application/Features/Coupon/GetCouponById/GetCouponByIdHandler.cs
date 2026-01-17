@@ -1,4 +1,6 @@
-﻿using Shared.Application.Contracts.Carts.Results;
+﻿using Basket.Application.Contracts;
+
+using Shared.Application.Contracts.Carts.Results;
 
 namespace Basket.Application.Features.Coupon.GetCouponById;
 

@@ -2,5 +2,5 @@
 
 public class Clock : IClock
 {
-	public DateTime UtcNow { get; } = DateTime.UtcNow;
+    public DateTime UtcNow { get; } = DateTime.UtcNow;
 }

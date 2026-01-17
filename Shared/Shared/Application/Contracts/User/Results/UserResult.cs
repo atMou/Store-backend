@@ -13,5 +13,9 @@ public record UserResult
     public Guid? CartId { get; init; }
     public IEnumerable<AddressResult> Addresses { get; init; }
     public IEnumerable<RoleResult> Roles { get; init; }
+    public IEnumerable<string> Permissions { get; init; }
+
+    public IEnumerable<string> ProductSubscriptions { get; init; }
+
     public IEnumerable<Guid> LikedProductIds { get; init; }
 }

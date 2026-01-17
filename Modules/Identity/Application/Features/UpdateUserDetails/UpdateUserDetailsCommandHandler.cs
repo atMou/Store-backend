@@ -30,12 +30,10 @@ public record UpdateUserDetailsCommand : ICommand<Fin<Unit>>
     }
 }
 
-public class UpdateUserDetailsCommandHandler(
-    IOptions<JwtOptions> options,
+internal class UpdateUserDetailsCommandHandler(
     IClock clock,
     IdentityDbContext dbContext,
-    IImageService imageService,
-    IUserContext userContext)
+    IImageService imageService)
     : ICommandHandler<UpdateUserDetailsCommand, Fin<Unit>>
 {
 

@@ -218,5 +218,6 @@ public record Db<RT, A>(Eff<RT, A> runDB) : Fallible<Db<RT, A>, Db<RT>, Error, A
 
     public Fin<A> Run(RT rt) => runDB.Run(rt);
     public Fin<A> Run(RT rt, EnvIO envIo) => runDB.Run(rt, envIo);
+    public async Task<Fin<A>> RunAsync(RT rt, EnvIO envIo) => await runDB.RunAsync(rt, envIo);
 
 }

@@ -1,6 +1,6 @@
-﻿global using System.Diagnostics.CodeAnalysis;
-global using System.Linq.Expressions;
+﻿global using System.Linq.Expressions;
 global using System.Reflection;
+global using System.Text.Json;
 global using System.Text.RegularExpressions;
 
 global using Db.Errors;
@@ -16,6 +16,7 @@ global using MediatR;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.ChangeTracking;
 global using Microsoft.EntityFrameworkCore.Diagnostics;
+global using Microsoft.Extensions.Caching.Distributed;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Options;
@@ -33,8 +34,8 @@ global using Shared.Domain.ValueObjects;
 global using Shared.Infrastructure.Authentication;
 global using Shared.Infrastructure.Email.Options;
 global using Shared.Infrastructure.Errors;
+global using Shared.Persistence.Db.Monad;
 global using Shared.Persistence.Extensions;
-global using Shared.Presentation;
 
 global using SixLabors.ImageSharp;
 

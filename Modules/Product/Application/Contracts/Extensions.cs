@@ -34,19 +34,11 @@ public static class Extensions
         };
     }
 
-    public static CreateVariantDto ToDto(this CreateVariantCommand command)
+    public static CreateColorVariantDto ToDto(this CreateColorVariantCommand command)
     {
-        return new CreateVariantDto()
+        return new CreateColorVariantDto()
         {
             Color = command.Color,
-            SizeVariants = command.SizeVariants.Select(sv => new CreateSizeVariantDto
-            {
-                Size = sv.Size,
-                Stock = sv.Stock,
-                StockLow = sv.StockLow,
-                StockMid = sv.StockMid,
-                StockHigh = sv.StockHigh
-            }).ToList()
         };
     }
 

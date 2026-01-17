@@ -2,17 +2,10 @@
 
 namespace Product.Presentation.Requests;
 
-
-
 public static class Extensions
 {
-    private static CreateVariantCommand ToCommand(this CreateVariantRequest request) => new CreateVariantCommand
-    {
-        Images = request.Images,
-        IsMain = request.IsMain,
-        Color = request.Color,
-        ,
-    };
+
+
     public static CreateProductCommand ToCommand(this CreateProductRequest request)
     {
         return new CreateProductCommand
@@ -26,7 +19,7 @@ public static class Extensions
             Price = request.Price,
             NewPrice = request.NewPrice,
             Description = request.Description,
-            Variants = request.Variants.Select(v => v.ToCommand()),
+            Variants = request.ColorVariants.Select(v => v.ToCommand()),
             DetailsAttributes = request.DetailsAttributes.Select(a => a.ToCommand()).ToList(),
             SizeFitAttributes = request.SizeFitAttributes.Select(a => a.ToCommand()).ToList(),
             MaterialDetails = request.MaterialDetails.Select(md => new CreateMaterialDetailCommand
@@ -37,8 +30,6 @@ public static class Extensions
             }).ToList(),
             Type = request.Type,
             SubType = request.SubType
-
-
         };
     }
 
@@ -47,14 +38,11 @@ public static class Extensions
         Name = request.Name,
         Description = request.Description
     };
-
-    private static CreateSizeVariantCommand ToCommand(this CreateSizeVariantRequest request) => new()
+    private static CreateColorVariantCommand ToCommand(this CreateColorVariantRequest request) => new CreateColorVariantCommand
     {
-        Size = request.Size,
-        Stock = request.Stock,
-        StockLow = request.StockLow,
-        StockMid = request.StockMid,
-        StockHigh = request.StockHigh
+        Images = request.Images,
+        IsMain = request.IsMain,
+        Color = request.Color,
     };
 
 }

@@ -11,7 +11,7 @@ internal class GetUsersWithOutOfStockCartItemsQueryHandler(
     {
         var db =
               GetEntities<BasketDbContext, Domain.Models.Cart>(cart =>
-              cart.LineItems.Any(li => li.VariantId == query.VariantId),
+              cart.LineItems.Any(li => li.ColorVariantId == query.ColorVariantId),
                   opt => opt.AddInclude(cart => cart.LineItems)
 
               ).Map(list => list.Select(cart => cart.UserId));

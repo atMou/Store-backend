@@ -2,36 +2,41 @@ namespace Basket.Domain.Models;
 
 public record LineItem
 {
-    private LineItem() { }
+    private LineItem()
+    {
+    }
 
     private LineItem(
         CartId cartId,
         ProductId productId,
-        VariantId variantId,
+        ColorVariantId colorVariantId,
         Money unitPrice,
         string slug,
         string sku,
         string color,
         string size,
         string imageUrl,
-        int quantity)
+        int quantity,
+        Guid sizeVariantId)
     {
         CartId = cartId;
         ProductId = productId;
-        VariantId = variantId;
+        ColorVariantId = colorVariantId;
         Slug = slug;
-        SKU = sku;
+        Sku = sku;
         Color = color;
         Size = size;
         ImageUrl = imageUrl;
         Quantity = quantity;
+        SizeVariantId = sizeVariantId;
         UnitPrice = unitPrice;
     }
 
     public CartId CartId { get; private init; }
     public ProductId ProductId { get; private init; }
-    public VariantId VariantId { get; private init; }
-    public string SKU { get; private set; }
+    public ColorVariantId ColorVariantId { get; private init; }
+    public Guid SizeVariantId { get; private init; }
+    public string Sku { get; private set; }
     public string Slug { get; private init; }
     public string Color { get; private init; }
     public string Size { get; private init; }
@@ -43,7 +48,8 @@ public record LineItem
     public static LineItem Create(
         ProductId productId,
         CartId cartId,
-        VariantId variantId,
+        ColorVariantId colorVariantId,
+        Guid sizeVariantId,
         string slug,
         string sku,
         string color,
@@ -55,14 +61,15 @@ public record LineItem
         return new LineItem(
             cartId,
             productId,
-            variantId,
+            colorVariantId,
             Money.FromDecimal(unitPrice),
             slug,
             sku,
             color,
             size,
             imageUrl,
-            quantity
+            quantity,
+            sizeVariantId
         );
     }
 

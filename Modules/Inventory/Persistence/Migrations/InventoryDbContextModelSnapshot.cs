@@ -27,40 +27,48 @@ namespace Inventory.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnName("inventory_id");
+                        .HasColumnName("id");
 
                     b.Property<string>("Brand")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("brand");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("image_url");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("product_id");
 
-                    b.Property<int>("Reserved")
-                        .HasColumnType("int")
-                        .HasColumnName("reserved");
-
-                    b.Property<string>("Sku")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("slug");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("updated_by");
 
                     b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
@@ -71,42 +79,123 @@ namespace Inventory.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Brand");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("Slug");
+
                     b.ToTable("inventories", "inventory");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Models.Inventory", b =>
                 {
-                    b.OwnsOne("Shared.Domain.ValueObjects.Stock", "Stock", b1 =>
+                    b.OwnsMany("Inventory.Domain.Models.InventoryColorVariant", "ColorVariants", b1 =>
                         {
-                            b1.Property<Guid>("InventoryId")
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("Color")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)")
+                                .HasColumnName("color");
+
+                            b1.Property<Guid>("ColorVariantId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("color_variant_id");
+
+                            b1.Property<Guid>("inventory_id")
                                 .HasColumnType("uniqueidentifier");
 
-                            b1.Property<int>("High")
-                                .HasColumnType("int")
-                                .HasColumnName("stock_high");
+                            b1.HasKey("Id");
 
-                            b1.Property<int>("Low")
-                                .HasColumnType("int")
-                                .HasColumnName("stock_low");
+                            b1.HasIndex("ColorVariantId");
 
-                            b1.Property<int>("Mid")
-                                .HasColumnType("int")
-                                .HasColumnName("stock_mid");
+                            b1.HasIndex("inventory_id");
 
-                            b1.Property<int>("Value")
-                                .HasColumnType("int")
-                                .HasColumnName("stock_value");
-
-                            b1.HasKey("InventoryId");
-
-                            b1.ToTable("inventories", "inventory");
+                            b1.ToTable("inventory_color_variants", "inventory");
 
                             b1.WithOwner()
-                                .HasForeignKey("InventoryId");
+                                .HasForeignKey("inventory_id");
+
+                            b1.OwnsMany("Inventory.Domain.Models.InventorySizeVariant", "SizeVariants", b2 =>
+                                {
+                                    b2.Property<Guid>("Id")
+                                        .HasColumnType("uniqueidentifier")
+                                        .HasColumnName("id");
+
+                                    b2.Property<int>("Reserved")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("int")
+                                        .HasDefaultValue(0)
+                                        .HasColumnName("reserved");
+
+                                    b2.Property<string>("Size")
+                                        .IsRequired()
+                                        .HasMaxLength(50)
+                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnName("size");
+
+                                    b2.Property<string>("Warehouses")
+                                        .IsRequired()
+                                        .HasMaxLength(500)
+                                        .HasColumnType("nvarchar(500)")
+                                        .HasColumnName("warehouse_codes");
+
+                                    b2.Property<Guid>("color_variant_id")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.HasKey("Id");
+
+                                    b2.HasIndex("Size");
+
+                                    b2.HasIndex("color_variant_id");
+
+                                    b2.ToTable("inventory_size_variants", "inventory");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("color_variant_id");
+
+                                    b2.OwnsOne("Shared.Domain.ValueObjects.Stock", "Stock", b3 =>
+                                        {
+                                            b3.Property<Guid>("InventorySizeVariantId")
+                                                .HasColumnType("uniqueidentifier");
+
+                                            b3.Property<int>("High")
+                                                .HasColumnType("int")
+                                                .HasColumnName("high_threshold");
+
+                                            b3.Property<int>("Low")
+                                                .HasColumnType("int")
+                                                .HasColumnName("low_threshold");
+
+                                            b3.Property<int>("Mid")
+                                                .HasColumnType("int")
+                                                .HasColumnName("mid_threshold");
+
+                                            b3.Property<int>("Value")
+                                                .HasColumnType("int")
+                                                .HasColumnName("stock_value");
+
+                                            b3.HasKey("InventorySizeVariantId");
+
+                                            b3.ToTable("inventory_size_variants", "inventory");
+
+                                            b3.WithOwner()
+                                                .HasForeignKey("InventorySizeVariantId");
+                                        });
+
+                                    b2.Navigation("Stock")
+                                        .IsRequired();
+                                });
+
+                            b1.Navigation("SizeVariants");
                         });
 
-                    b.Navigation("Stock")
-                        .IsRequired();
+                    b.Navigation("ColorVariants");
                 });
 #pragma warning restore 612, 618
         }

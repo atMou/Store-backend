@@ -12,39 +12,27 @@ public record CreateProductDto
     public string Description { get; init; } = null!;
     public decimal Price { get; init; }
     public decimal? NewPrice { get; init; }
-    public IEnumerable<CreateAttributeDto> DetailsAttributes { get; init; }
-    public IEnumerable<CreateAttributeDto> SizeFitAttributes { get; init; }
-    public IEnumerable<CreateMaterialDetailDto> MaterialDetails { get; init; }
+    public IEnumerable<CreateAttributeDto> DetailsAttributes { get; init; } = null!;
+    public IEnumerable<CreateAttributeDto> SizeFitAttributes { get; init; } = null!;
+    public IEnumerable<CreateMaterialDetailDto> MaterialDetails { get; init; } = null!;
 
 }
 
 public record CreateAttributeDto
 {
-    public string Name { get; init; }
-    public string Description { get; init; }
+    public string Name { get; init; } = null!;
+    public string Description { get; init; } = null!;
 }
 public record CreateMaterialDetailDto
 {
-    public string Material { get; init; }
+    public string Material { get; init; } = null!;
     public decimal Percentage { get; init; }
-    public string Detail { get; init; }
+    public string Detail { get; init; } = null!;
 
 }
 
-public record CreateSizeVariantDto
+public record CreateColorVariantDto
 {
-    public string Size { get; init; } = null!;
-    public int Stock { get; init; }
-    public int StockLow { get; init; }
-    public int StockMid { get; init; }
-    public int StockHigh { get; init; }
-
-}
-
-public record CreateVariantDto
-{
-    public string Color { get; init; }
-    public IEnumerable<CreateSizeVariantDto> SizeVariants { get; init; }
-
+    public string Color { get; init; } = null!;
 
 }

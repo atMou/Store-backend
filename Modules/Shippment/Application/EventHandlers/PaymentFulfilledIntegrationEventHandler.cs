@@ -1,36 +1,58 @@
-﻿using LanguageExt.Traits;
-using MassTransit;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+
 using Shared.Application.Contracts.Order.Queries;
 using Shared.Application.Features.Payment.Events;
-using Shared.Infrastructure.Clock;
-using Shared.Persistence.Db.Monad;
-using Shipment.Persistence.Data;
+using Shared.Application.Features.Shipment.Events;
+
+using Shipment.Persistence;
 
 namespace Shipment.Application.EventHandlers;
 
 public class PaymentFulfilledIntegrationEventHandler(
-	ShipmentDbContext dbContext,
-	ILogger<PaymentFulfilledIntegrationEventHandler> logger,
-	IClock clock,
-	ISender sender
+    ISender sender,
+    ShipmentDbContext dbContext,
+    IPublishEndpoint endpoint,
+    ILogger<PaymentFulfilledIntegrationEventHandler> logger
 ) : IConsumer<PaymentFulfilledIntegrationEvent>
 {
-	public async Task Consume(ConsumeContext<PaymentFulfilledIntegrationEvent> context)
-	{
-		K<Db<ShipmentDbContext>, Unit> db = from result in IO.liftAsync(async e =>
-				await sender.Send(new GetOrderByIdQuery
-				{
-					OrderId = context.Message.OrderId
-				}, e.Token))
-											from a in AddEntity<ShipmentDbContext, Domain.Models.Shipment>(result.Map(o =>
-												Domain.Models.Shipment.Create(
-													OrderId.From(o.OrderId),
-													o.ShippingAddress,
-													o.TrackingCode
-												)))
-											select unit;
-		await db.RunSaveAsync(dbContext, EnvIO.New(null, context.CancellationToken))
-			.RaiseOnFail(err => logger.LogError($"Error occurred while saving shipment: {err.Message}"));
-	}
+    public async Task Consume(ConsumeContext<PaymentFulfilledIntegrationEvent> context)
+    {
+        var message = context.Message;
+
+
+        var db = from orderResult in liftIO(async e =>
+                await sender.Send(new GetOrderByIdQuery { OrderId = OrderId.From(message.OrderId) }, e.Token))
+                 from order in orderResult
+                 let address = new Address
+                 {
+                     Street = order.ShippingAddress.Street,
+                     City = order.ShippingAddress.City,
+                     PostalCode = order.ShippingAddress.PostalCode,
+                     HouseNumber = order.ShippingAddress.HouseNumber,
+                     ExtraDetails = order.ShippingAddress.ExtraDetails
+                 }
+                 let shipment = Domain.Models.Shipment.Create(
+                     OrderId.From(message.OrderId),
+                     address, order.TrackingCode)
+                 from s in AddEntity<ShipmentDbContext, Domain.Models.Shipment>(shipment)
+                 select s;
+
+        var result = await db.RunSaveAsync(dbContext, EnvIO.New(null, context.CancellationToken))
+            .RaiseOnSuccess(async s =>
+            {
+                var integrationEvent = new ShipmentCreatedIntegrationEvent(
+                    s.Id.Value,
+                    s.OrderId.Value,
+                    s.TrackingCode
+                );
+                await endpoint.Publish(integrationEvent, context.CancellationToken);
+                return unit;
+            });
+
+
+        result.Match(
+            _ => logger.LogInformation($"Shipment created successfully for Order {message.OrderId}"),
+            err => logger.LogError($"Error creating shipment for Order {message.OrderId}: {err.Message}")
+        );
+    }
 }

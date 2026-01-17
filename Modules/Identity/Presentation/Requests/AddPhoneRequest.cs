@@ -2,6 +2,6 @@
 
 public record AddPhoneRequest
 {
-	public Guid UserId { get; init; }
-	public string PhoneNumber { get; init; }
+    public Guid UserId { get; init; }
+    public string PhoneNumber { get; init; }
 }

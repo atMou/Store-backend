@@ -1,4 +1,5 @@
-﻿using Product.Application.Features.GetMaterials;
+﻿using Product.Application.Features.CreateProduct;
+using Product.Application.Features.GetMaterials;
 
 using Shared.Application.Contracts;
 
@@ -34,11 +35,12 @@ public class ProductsController(ISender sender) : ControllerBase
 
     [HttpPost]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult<Guid>> Create([FromForm] CreateProductRequest request)
+    public async Task<ActionResult<Guid>> Create([FromForm] CreateProductCommand request)
     {
-        var result = await sender.Send(request.ToCommand());
+        var result = await sender.Send(request);
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
+
     [HttpPut]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<Unit>> Update([FromForm] UpdateProductRequest request)
@@ -46,6 +48,14 @@ public class ProductsController(ISender sender) : ControllerBase
         var result = await sender.Send(request.ToCommand());
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
+
+    [HttpPost("alternatives")]
+    public async Task<ActionResult<Unit>> AddAlternatives([FromBody] AddProductAlternativesRequest request)
+    {
+        var result = await sender.Send(request.ToCommand());
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult<Unit>> Delete([FromRoute] Guid id)
     {
@@ -53,13 +63,7 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
-    //[HttpDelete]
-    //public async Task<ActionResult<Unit>> DeleteImages([FromBody] IEnumerable<Guid> ids)
-    //{
-    //	var result = await sender.Send(new DeleteImagesCommand(ids.Select(guid => ImageId.From(guid))));
 
-    //	return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
-    //}
     [HttpGet("categories")]
     public async Task<ActionResult<IEnumerable<CategoryResult>>> GetCategories()
     {
@@ -99,8 +103,6 @@ public class ProductsController(ISender sender) : ControllerBase
 
         return Ok(result);
     }
-
-
 
 
 }

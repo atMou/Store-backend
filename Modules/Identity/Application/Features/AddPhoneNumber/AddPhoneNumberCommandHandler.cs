@@ -7,7 +7,7 @@ public record AddPhoneNumberCommand : ICommand<Fin<Unit>>
 }
 
 
-public class AddPhoneNumberCommandHandler(
+public class AddAddressCommandHandler(
     IOptions<JwtOptions> options,
     IClock clock,
     IdentityDbContext dbContext)

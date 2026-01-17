@@ -1,6 +1,6 @@
 namespace Basket.Application.Features.Cart.DeleteCartItem;
 
-public record DeleteLineItemCommand(VariantId VariantId, CartId CartId) : ICommand<Fin<Unit>>;
+public record DeleteLineItemCommand(ColorVariantId ColorVariantId, CartId CartId) : ICommand<Fin<Unit>>;
 
 internal class DeleteLineItemHandler(
     IUserContext userContext,
@@ -21,7 +21,7 @@ internal class DeleteLineItemHandler(
                     opt = opt.AddInclude(cart => cart.LineItems);
                     return opt;
                 },
-                cart => cart.DeleteLineItem(command.VariantId))
+                cart => cart.DeleteLineItem(command.ColorVariantId))
             from x in userContext.IsSameUser<IO>(c.UserId,
                           UnAuthorizedError.New("You are not authorized to delete this cart item."))
                       | userContext.HasRole<IO>(Role.Admin,

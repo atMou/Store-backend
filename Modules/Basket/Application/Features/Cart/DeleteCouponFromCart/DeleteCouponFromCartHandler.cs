@@ -12,13 +12,7 @@ internal class DeleteCouponFromCartCommandHandler(
         var loadCart =
             GetEntity<BasketDbContext, Domain.Models.Cart>(
                 cart => cart.Id == command.CartId,
-                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
-                opt =>
-                {
-                    opt.AddInclude(cart => cart.CouponIds);
-                    return opt;
-                });
-
+                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."));
         var loadCoupon = GetEntity<BasketDbContext, Domain.Models.Coupon>(
             coupon => coupon.Id == command.CouponId,
             NotFoundError.New($"Coupon with Id {command.CouponId.Value} not found."));
@@ -29,7 +23,8 @@ internal class DeleteCouponFromCartCommandHandler(
                 (cart, coupon));
 
         var db = from t in result
-                 from res in UpdateEntity<BasketDbContext, Domain.Models.Cart>(t.cart,
+                 from _ in UpdateEntity<BasketDbContext, Domain.Models.Coupon>(t.coupon, coupon => coupon.RemoveFromCart())
+                 from __ in UpdateEntity<BasketDbContext, Domain.Models.Cart>(t.cart,
                      c => c.RemoveDiscount(t.coupon.Discount, t.coupon.Id))
                  select unit;
 

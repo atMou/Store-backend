@@ -34,4 +34,8 @@
     <ProjectReference Include="..\..\Modules\Shippment\Shipment.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="logs\" />
+  </ItemGroup>
+
 </Project>

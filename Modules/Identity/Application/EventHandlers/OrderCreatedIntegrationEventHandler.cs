@@ -1,20 +1,21 @@
-﻿using Identity.Application.Features.AddPendingOrder;
-
-using Shared.Application.Features.Order.Events;
+﻿using Shared.Application.Features.Order.Events;
 
 namespace Identity.Application.EventHandlers;
-internal class OrderCreatedIntegrationEventHandler(ISender sender, ILogger<OrderCreatedIntegrationEventHandler> logger) : IConsumer<OrderCreatedIntegrationEvent>
+internal class OrderCreatedIntegrationEventHandler(IdentityDbContext dbContext, ILogger<OrderCreatedIntegrationEventHandler> logger) : IConsumer<OrderCreatedIntegrationEvent>
 {
-	public async Task Consume(ConsumeContext<OrderCreatedIntegrationEvent> context)
-	{
-		var orderId = context.Message.OrderId;
-		var userId = context.Message.UserId;
-		var results = await sender.Send(new AddPendingOrderCommand
-		{
-			OrderId = OrderId.From(orderId),
-			UserId = UserId.From(userId)
-		});
+    public async Task Consume(ConsumeContext<OrderCreatedIntegrationEvent> context)
+    {
+        var userId = UserId.From(context.Message.OrderDto.UserId);
 
-		results.IfFail(err => logger.LogCritical("Failed to add pending order. {err}", err));
-	}
+        var db = GetUpdateEntity<IdentityDbContext, User>(
+            u => u.Id == userId,
+            NotFoundError.New($"User with id '{userId}' does not exist."),
+            opt => opt,
+            user => user.SetHasPendingOrders(true)
+        );
+
+        var results = await db.RunSaveAsync(dbContext, EnvIO.New(null, context.CancellationToken));
+
+        results.IfFail(err => logger.LogCritical("Failed to set pending order flag for user {UserId}. {Error}", userId, err));
+    }
 }

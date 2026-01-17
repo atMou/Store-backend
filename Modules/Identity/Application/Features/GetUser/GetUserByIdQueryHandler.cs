@@ -13,9 +13,6 @@ public class GetUserByIdQueryHandler(IdentityDbContext dbContext, ISender sender
             opt =>
             {
                 opt.AddInclude(u => u.LikedProductIds);
-                opt.AddInclude(u => u.Addresses);
-                opt.AddInclude(u => u.Roles);
-                opt.AddInclude(u => u.Permissions);
                 return opt;
             }
         ).Map(u => u.ToResult());

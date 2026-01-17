@@ -55,6 +55,10 @@ namespace Basket.Persistence.Migrations
                         .HasColumnType("decimal(5,2)")
                         .HasColumnName("tax_rate");
 
+                    b.Property<decimal>("TotalDiscount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("total_discount");
+
                     b.Property<decimal>("TotalSub")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_sub");
@@ -95,7 +99,7 @@ namespace Basket.Persistence.Migrations
 
                     b.Property<string>("CouponStatus")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("status");
 
                     b.Property<DateTime>("CreatedAt")
@@ -146,6 +150,8 @@ namespace Basket.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("CouponStatus");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("coupons", "basket");
@@ -153,27 +159,6 @@ namespace Basket.Persistence.Migrations
 
             modelBuilder.Entity("Basket.Domain.Models.Cart", b =>
                 {
-                    b.OwnsOne("Basket.Domain.ValueObjects.Discount", "Discount", b1 =>
-                        {
-                            b1.Property<Guid>("CartId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<int>("DiscountType")
-                                .HasColumnType("int")
-                                .HasColumnName("discount_type");
-
-                            b1.Property<decimal>("DiscountValue")
-                                .HasColumnType("decimal(6,2)")
-                                .HasColumnName("discount_value");
-
-                            b1.HasKey("CartId");
-
-                            b1.ToTable("carts", "basket");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CartId");
-                        });
-
                     b.OwnsOne("Shared.Domain.ValueObjects.Address", "DeliveryAddress", b1 =>
                         {
                             b1.Property<Guid>("CartId")
@@ -181,11 +166,13 @@ namespace Basket.Persistence.Migrations
 
                             b1.Property<string>("City")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)")
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)")
                                 .HasColumnName("delivery_address_city");
 
                             b1.Property<string>("ExtraDetails")
-                                .HasColumnType("nvarchar(max)")
+                                .HasMaxLength(500)
+                                .HasColumnType("nvarchar(500)")
                                 .HasColumnName("delivery_address_extra_details");
 
                             b1.Property<long>("HouseNumber")
@@ -196,9 +183,16 @@ namespace Basket.Persistence.Migrations
                                 .HasColumnType("bigint")
                                 .HasColumnName("delivery_address_postal_code");
 
+                            b1.Property<string>("ReceiverName")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)")
+                                .HasColumnName("delivery_address_receiver_name");
+
                             b1.Property<string>("Street")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)")
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)")
                                 .HasColumnName("delivery_address_street");
 
                             b1.HasKey("CartId");
@@ -219,9 +213,19 @@ namespace Basket.Persistence.Migrations
                                 .HasColumnType("uniqueidentifier")
                                 .HasColumnName("product_id");
 
+                            b1.Property<Guid>("ColorVariantId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("color_variant_id");
+
+                            b1.Property<Guid>("SizeVariantId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("size_variant_id");
+
                             b1.Property<string>("Color")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)")
+                                .HasColumnName("color");
 
                             b1.Property<string>("ImageUrl")
                                 .IsRequired()
@@ -233,13 +237,17 @@ namespace Basket.Persistence.Migrations
                                 .HasColumnType("int")
                                 .HasColumnName("quantity");
 
-                            b1.Property<string>("SKU")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
                             b1.Property<string>("Size")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)")
+                                .HasColumnName("size");
+
+                            b1.Property<string>("Sku")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)")
+                                .HasColumnName("sku");
 
                             b1.Property<string>("Slug")
                                 .IsRequired()
@@ -251,20 +259,18 @@ namespace Basket.Persistence.Migrations
                                 .HasColumnType("decimal(18,2)")
                                 .HasColumnName("unit_price");
 
-                            b1.Property<Guid>("VariantId")
-                                .HasColumnType("uniqueidentifier")
-                                .HasColumnName("variant_id");
-
                             b1.Property<Guid>("cart_id")
                                 .HasColumnType("uniqueidentifier");
 
-                            b1.HasKey("CartId", "ProductId");
+                            b1.HasKey("CartId", "ProductId", "ColorVariantId", "SizeVariantId");
 
                             b1.HasIndex("CartId");
 
                             b1.HasIndex("ProductId");
 
                             b1.HasIndex("cart_id");
+
+                            b1.HasIndex("ColorVariantId", "SizeVariantId");
 
                             b1.ToTable("line_items", "basket", t =>
                                 {
@@ -302,9 +308,6 @@ namespace Basket.Persistence.Migrations
                     b.Navigation("CouponIds");
 
                     b.Navigation("DeliveryAddress")
-                        .IsRequired();
-
-                    b.Navigation("Discount")
                         .IsRequired();
 
                     b.Navigation("LineItems");

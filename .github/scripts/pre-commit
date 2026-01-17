@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Pre-commit hook to run formatting and tests
+# Install: Copy this file to .git/hooks/pre-commit and make it executable
+# chmod +x .git/hooks/pre-commit
+
+echo "?? Running pre-commit checks..."
+
+# Check if dotnet is installed
+if ! command -v dotnet &> /dev/null; then
+    echo "? dotnet CLI is not installed"
+    exit 1
+fi
+
+SOLUTION_FILE="Store Backend.sln"
+
+# Run format check
+echo "?? Checking code formatting..."
+dotnet format "$SOLUTION_FILE" --verify-no-changes --verbosity quiet
+FORMAT_EXIT_CODE=$?
+
+if [ $FORMAT_EXIT_CODE -ne 0 ]; then
+    echo "? Code formatting issues detected!"
+    echo "?? Run 'dotnet format \"$SOLUTION_FILE\"' to fix formatting"
+    read -p "Do you want to auto-format now? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        dotnet format "$SOLUTION_FILE"
+        echo "? Code formatted. Please review changes and commit again."
+    fi
+    exit 1
+fi
+
+# Build the solution
+echo "?? Building solution..."
+dotnet build "$SOLUTION_FILE" --configuration Release --verbosity quiet --nologo
+BUILD_EXIT_CODE=$?
+
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+    echo "? Build failed!"
+    exit 1
+fi
+
+# Run tests
+echo "?? Running tests..."
+dotnet test "$SOLUTION_FILE" --configuration Release --no-build --verbosity quiet --nologo
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+    echo "? Tests failed!"
+    exit 1
+fi
+
+echo "? All pre-commit checks passed!"
+exit 0

@@ -14,6 +14,9 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
+        <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
         <PackageReference Include="Twilio" Version="7.13.6" />
         <PackageReference Include="LanguageExt.Core" Version="5.0.0-beta-54" />
         <PackageReference Include="LanguageExt.Sys" Version="5.0.0-beta-54" />
@@ -39,8 +42,8 @@
         <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.9" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
    
-
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.9">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -48,7 +51,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Persistence\Data\" />
+      <Folder Include="Application\Contracts\Inventory\Dtos\" />
+      <Folder Include="Application\Contracts\Product\Dtos\" />
     </ItemGroup>
 
 

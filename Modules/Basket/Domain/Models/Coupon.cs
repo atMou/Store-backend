@@ -1,8 +1,6 @@
-using Basket.Domain.Enums;
-
 namespace Basket.Domain.Models;
 
-public record Coupon : Aggregate<CouponId>
+public class Coupon : Aggregate<CouponId>
 {
     private Coupon() : base(CouponId.New)
     {
@@ -12,7 +10,8 @@ public record Coupon : Aggregate<CouponId>
         string code,
         Description description,
         ExpiryDate expiryDate,
-        Discount discount, decimal minimumPurchaseAmount) : base(CouponId.New)
+        Discount discount,
+        decimal minimumPurchaseAmount) : base(CouponId.New)
     {
         Code = code;
         Description = description;
@@ -35,19 +34,23 @@ public record Coupon : Aggregate<CouponId>
         string description,
         decimal discountValue,
         DateTime expiryDate,
-        DiscountType discountType,
-        DateTime currentDate,
-        decimal minimumPurchaseAmount
+        string discountType,
+        decimal minimumPurchaseAmount,
+        DateTime currentDate
     )
     {
         return (
-                Description.From(10, 200, description),
-                ExpiryDate.From(expiryDate, currentDate),
-                Discount.From((discountType, discountValue)))
-            .Apply((desc, exp, discount) =>
-                new Coupon(GenerateCode(), desc, exp, discount, minimumPurchaseAmount)).As();
+                from desc in Description.From(10, 200, description)
+                from exp in ExpiryDate.From(expiryDate, currentDate)
+                from discount in Discount.From(discountType, discountValue)
+                select new Coupon(GenerateCode(), desc, exp, discount, minimumPurchaseAmount)
+            ).As();
     }
-
+    public Coupon AddUserId(UserId userId)
+    {
+        UserId = userId;
+        return this;
+    }
     public Fin<Coupon> MarkAsRedeemed(DateTime utcNow)
     {
         return EnsureIsValid(utcNow).Bind(_ =>
@@ -61,51 +64,73 @@ public record Coupon : Aggregate<CouponId>
 
     public Fin<Coupon> ApplyToCart(CartId cartId, UserId userId, DateTime utcNow)
     {
-        return (EnsureHasNoUser(), EnsureHasNoCart(), ExpiryDate.EnsureIsValid(utcNow))
-            .Apply((_, _, _) =>
-            {
-                CartId = cartId;
-                UserId = userId;
-                CouponStatus = CouponStatus.AppliedToCart;
-                return this;
-            })
-            .As();
+        return (
+                from _ in EnsureHasNoUserOrItsSameUser(userId)
+                from __ in CouponStatus.EnsureCanTransitionTo(CouponStatus.AppliedToCart)
+                    .MapFail(_ => InvalidOperationError.New($"Coupon you trying to add is in use."))
+                from ___ in EnsureHasNoCart()
+                from c in ExpiryDate.EnsureIsValid(utcNow).Map(_ =>
+                {
+                    CartId = cartId;
+                    UserId = userId;
+                    CouponStatus = CouponStatus.AppliedToCart;
+                    return this;
+                })
+                select c
+            ).As();
+    }
 
+    public Fin<Coupon> RemoveFromCart()
+    {
+        return ChangeCouponStatus(CouponStatus.AssignedToUser).Map(coupon =>
+        {
+            CouponStatus = CouponStatus.AssignedToUser;
+            CartId = null;
+            return this;
+        });
     }
 
     public Fin<Coupon> AssignToUser(UserId userId, DateTime utcNow)
     {
-        return (CouponStatus.EnsureCanTransitionTo(CouponStatus.AssignedToUser),
-                ExpiryDate.EnsureIsValid(utcNow), EnsureHasNoUser())
-                .Apply((_, _, _) =>
+        return (
+                from _ in CouponStatus.EnsureCanTransitionTo(CouponStatus.AssignedToUser)
+                from __ in ExpiryDate.EnsureIsValid(utcNow)
+                from c in EnsureHasNoUserOrItsSameUser(userId).Map(_ =>
                 {
                     UserId = userId;
                     CouponStatus = CouponStatus.AssignedToUser;
                     return this;
-                }).As();
+
+                })
+                select c
+            ).As();
     }
 
-    private Fin<Unit> EnsureHasNoUser()
+    private Fin<Unit> EnsureHasNoUserOrItsSameUser(UserId userId)
     {
-        return UserId.IsNull() ? unit
+        return UserId.IsNull() || UserId == userId
+            ? unit
             : FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a user."));
     }
+
     private Fin<Unit> EnsureHasAUser()
     {
         return UserId.IsNull()
-            ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a user.")) :
-            unit;
+            ? FinFail<Unit>(InvalidOperationError.New("Coupon must be assigned to a user."))
+            : unit;
     }
 
     private Fin<Unit> EnsureHasNoCart()
     {
-        return CartId.IsNull() ? unit
-    : FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."));
+        return CartId.IsNull()
+            ? unit
+            : FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."));
     }
+
     private Fin<Unit> EnsureHasACart()
     {
         return CartId.IsNull()
-            ? FinFail<Unit>(InvalidOperationError.New("Coupon is already assigned to a cart."))
+            ? FinFail<Unit>(InvalidOperationError.New("Coupon must be assigned to a cart."))
             : unit;
     }
 
@@ -115,7 +140,6 @@ public record Coupon : Aggregate<CouponId>
         ExpiryDate = ExpiryDate.FromUnsafe(DateTime.UtcNow);
         return this;
     }
-
 
     public Fin<Coupon> MarkAsExpired(DateTime utcNow)
     {
@@ -138,11 +162,16 @@ public record Coupon : Aggregate<CouponId>
         });
     }
 
-
-    public Fin<Coupon> EnsureCanDelete()
+    public Fin<Coupon> EnsureCanDelete(UserId userId)
     {
-        if (IsDeleted) return FinFail<Coupon>(InvalidOperationError.New("Coupon is already deleted."));
-        return (EnsureHasNoCart(), EnsureHasNoUser()).Apply((_, _) => this).As();
+        if (IsDeleted)
+            return FinFail<Coupon>(InvalidOperationError.New("Coupon is already deleted."));
+
+        return (
+                from _ in EnsureHasNoCart()
+                from __ in EnsureHasNoUserOrItsSameUser(userId)
+                select this
+            ).As();
     }
 
     private Fin<Coupon> UpdateDescription(string repr)
@@ -153,6 +182,7 @@ public record Coupon : Aggregate<CouponId>
             return this;
         });
     }
+
     private Fin<Coupon> UpdateExpiryDate(DateTime dateTime, DateTime utcNow)
     {
         return ExpiryDate.From(dateTime, utcNow).Map(e =>
@@ -161,9 +191,11 @@ public record Coupon : Aggregate<CouponId>
             return this;
         });
     }
+
     public Fin<Coupon> Update(UpdateCouponDto dto, DateTime utcNow)
     {
         var fin = FinSucc(this);
+
         if (dto.Description is not null)
             fin = fin.Bind(coupon => coupon.UpdateDescription(dto.Description));
 

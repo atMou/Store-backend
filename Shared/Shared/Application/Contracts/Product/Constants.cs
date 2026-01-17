@@ -9,6 +9,7 @@ public static class Constants
     public const string MaterialDetails = "materialDetails";
     public const string LineItems = "lineItems";
     public const string CouponIds = "couponIds";
+    public const string ColorVariants = "colorVariants";
 
 
 }

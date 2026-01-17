@@ -24,7 +24,7 @@ internal class UpdateProductCommandHandler(
                 opt =>
                 {
                     opt.AsSplitQuery = true;
-                    opt = opt.AddInclude(p => p.Alternatives, p => p.Variants);
+                    opt = opt.AddInclude(p => p.Alternatives, p => p.ColorVariants);
                     return opt;
                 },
                 p => p.Update(dto, ps),
@@ -48,14 +48,14 @@ internal class UpdateProductCommandHandler(
     }
 
     private IO<Domain.Models.Product> UploadVariantImages(Domain.Models.Product product,
-        IEnumerable<UpdateVariantDto> dtos)
+        IEnumerable<UpdateColorVariantDto> dtos)
     {
         return dtos.AsIterable().Traverse(dto =>
         {
             return imageService.UploadProductImages(dto.Images, dto.IsMain, product.Slug.Value,
                 product.Category.ToString(), product.Brand.Name, dto.Color)
                 .Map(results =>
-                product.AddImages(dto.VariantId, [.. results]));
+                product.AddImages(dto.ColorVariantId, [.. results]));
         }).Map(_ => product).As();
     }
 
@@ -79,7 +79,7 @@ internal class UpdateProductCommandHandler(
             .Where(image => deletedProductImageIds.Contains(image.Id))
             .Select(image => image.ImageUrl.PublicId);
 
-        var variantPublicIds = product.Variants
+        var variantPublicIds = product.ColorVariants
             .SelectMany(variant => variant.Images)
             .Where(image => deletedVariantImageIds.Contains(image.Id))
             .Select(image => image.ImageUrl.PublicId);

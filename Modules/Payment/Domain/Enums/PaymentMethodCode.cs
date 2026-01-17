@@ -1,10 +1,11 @@
-﻿namespace Order.Domain.Enums;
+﻿namespace Payment.Domain.Enums;
 public enum PaymentMethodCode
 {
-	CreditCard,
-	DebitCard,
-	PayPal,
-	BankTransfer,
-	CashOnDelivery,
-	Unknown
+    Stripe,
+    CreditCard,
+    DebitCard,
+    PayPal,
+    BankTransfer,
+    CashOnDelivery,
+    Unknown
 }

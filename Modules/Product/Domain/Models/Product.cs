@@ -1,21 +1,15 @@
+using Product.Domain.Events;
+
+using Shared.Domain.Enums;
+
+using Brand = Shared.Domain.ValueObjects.Brand;
+using UpdateColorVariantDto = Shared.Application.Features.Inventory.Events.UpdateColorVariantDto;
 
 namespace Product.Domain.Models;
-//add-migration init -OutputDir Persistence/Migrations -context ProductDBContext -Project Product -StartUpProject Api
-//add-migration init -OutputDir Persistence/Migrations -context BasketDBContext -Project Basket -StartUpProject Api
-//add-migration init -OutputDir Persistence/Migrations -context IdentityDBContext -Project Identity -StartUpProject Api
-//add-migration init -OutputDir Persistence/Migrations -context InventoryDBContext -Project Inventory -StartUpProject Api
-//add-migration init -OutputDir Persistence/Migrations -context OrderDbContext -Project Order -StartUpProject Api
-//update-database -context ProductDBContext
-//update-database -context BasketDBContext 
-//update-database -context IdentityDBContext
-//update-database -context OrderDbContext
-//remove-migration -context ProductDBContext 
-//remove-migration -context BasketDBContext
-public record Product : Aggregate<ProductId>, ISoftDeletable
+
+public class Product : Aggregate<ProductId>
 {
-    private Product() : base(ProductId.New())
-    {
-    }
+    private Product() : base(ProductId.New()) { }
 
     private Product(
         Slug slug,
@@ -28,7 +22,8 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         IEnumerable<Attribute> sizeFitAttributes,
         IEnumerable<Attribute> detailsAttributes,
         IEnumerable<MaterialDetail> materialDetails,
-        ProductType productType) : this()
+        ProductType productType
+        ) : this()
     {
         Slug = slug;
         Brand = brand;
@@ -55,27 +50,29 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
     public Status Status { get; private set; }
     public int TotalReviews { get; private set; }
 
-    public int TotalSales { get; private init; }
+    public int TotalSales { get; private set; }
     public double AverageRating { get; private set; }
     public bool IsDeleted { get; private set; }
+    public bool HasInventory { get; private set; }
     public ProductId? ParentProductId { get; private init; }
     public Product? ParentProduct { get; private init; }
     public ICollection<Product> Alternatives { get; private set; } = [];
     public ICollection<MaterialDetail> MaterialDetails { get; private set; } = [];
     public ICollection<Attribute> DetailsAttributes { get; private set; } = [];
     public ICollection<Attribute> SizeFitAttributes { get; private set; } = [];
-    public ICollection<Variant> Variants { get; private set; } = [];
+    public ICollection<ColorVariant> ColorVariants { get; private set; } = [];
     public ICollection<Review> Reviews { get; private set; } = [];
     public ICollection<Image> Images { get; private set; } = [];
 
     [NotMapped]
-    public IEnumerable<Color> Colors => Variants
+    public IEnumerable<Color> Colors => ColorVariants
         .Select(v => v.Color)
         .DistinctBy(c => c.Code);
 
     [NotMapped]
-    public IEnumerable<Size> Sizes => Variants
-        .Select(v => v.Size)
+    public IEnumerable<Size> Sizes => ColorVariants
+        .SelectMany(v => v.SizeVariants)
+        .Select(sv => sv.Size)
         .DistinctBy(s => s.Code)
         .OrderBy(size => size.Order);
 
@@ -91,6 +88,8 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
 
     public static Fin<Product> Create(CreateProductDto dto)
     {
+
+
         var sizeFitAttribute = dto.SizeFitAttributes
             .AsIterable()
             .Traverse(a => Attribute.From(a.Name, a.Description))
@@ -143,6 +142,33 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         return this;
     }
 
+    public Fin<Product> UpdateStock(Guid colorVariantId, Guid sizeVariantId, string size, int stock, StockLevel level)
+    {
+        var colorVariant = ColorVariants.FirstOrDefault(v => v.Id.Value == colorVariantId);
+
+        if (colorVariant is null)
+            return FinFail<Product>(NotFoundError.New($"Color variant with ID '{colorVariantId}' not found"));
+
+        return colorVariant.UpdateStock(sizeVariantId, size, stock, level, Brand.Code.ToString(), Category.ToString(), colorVariant.Color.Code.ToString())
+            .Map(_ => this);
+    }
+
+    // internal use only
+    public Fin<Product> UpdateColorVariants(params UpdateColorVariantDto[] colorVariants)
+    {
+
+        return ColorVariants.AsIterable().Fold(FinSucc(this), (current, cv) =>
+         {
+             var dto = colorVariants.FirstOrDefault(d => d.ColorVariantId == cv.Id.Value);
+             if (dto is null)
+                 return current;
+             return dto.SizeVariants.AsIterable().Fold(current, (curr, usv) =>
+                 curr.Bind(p => p.UpdateStock(dto.ColorVariantId, usv.SizeVariantId, usv.Size, usv.Stock, usv.Level))
+             );
+         });
+
+    }
+
     private Fin<Product> UpdateSlug(string slug)
     {
         return Slug.From(slug).Map(s =>
@@ -151,10 +177,64 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
             return this;
         });
     }
+    private Fin<Product> UpdateBrand(string brand)
+    {
+        return Brand.From(brand).Map(b =>
+        {
+            foreach (var colorVariant in ColorVariants)
+            {
+                foreach (var sizeVariant in colorVariant.SizeVariants)
+                {
+                    sizeVariant.BrandChangeHandle(b.Code.ToString(), Category.ToString(), colorVariant.Color.Code.ToString());
+                }
+            }
+            Brand = b;
+
+            return this;
+        });
+    }
+
+    private Fin<Product> UpdateCategory(string main, string sub, string productType, string productSub)
+    {
+        return Category.From(main, sub)(ProductType.From(productType, productSub)).Map(c =>
+        {
+            foreach (var colorVariant in ColorVariants)
+            {
+                foreach (var sizeVariant in colorVariant.SizeVariants)
+                {
+                    sizeVariant.CategoryChangeHandle(Category.ToString(), Brand.Code.ToString(), colorVariant.Color.Code.ToString());
+                }
+            }
+            Category = c;
+            return this;
+        });
+    }
+
+    public Fin<Product> UpdateColorVariants(params Contracts.UpdateColorVariantDto[] colorVariants)
+    {
+        var (toUpdate, toCreate) = colorVariants.AsIterable().Partition(dto => ColorVariants.Any(cv => dto.ColorVariantId == cv.Id));
+
+        var updated = toUpdate.Traverse(dto => ColorVariants.First(cv => cv.Id == dto.ColorVariantId).UpdateColor(dto.Color, Category.ToString(), Brand.Name));
+        var created = toCreate.Traverse(dto => ColorVariant.Create(new CreateColorVariantDto() { Color = dto.Color }));
+
+        return (updated, created)
+            .Apply((u, c) =>
+            {
+                ColorVariants = [.. u, .. c];
+                return this;
+            }).As();
+
+
+    }
+
 
     public Product AddImages(params Image[] images)
     {
-        Images = [.. Images, .. images];
+        foreach (var image in images)
+        {
+            image.ProductId = Id;
+            Images.Add(image);
+        }
         return this;
     }
 
@@ -164,62 +244,39 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         return this;
     }
 
-    public Product AddImages(VariantId variantId, params Image[] images)
+    public Product AddImages(ColorVariantId colorVariantId, params Image[] images)
     {
-        var variant = Variants.FirstOrDefault(v => v.Id == variantId);
+        var variant = ColorVariants.FirstOrDefault(v => v.Id == colorVariantId);
         if (variant is null) return this;
 
-        var updatedVariant = variant.AddImages(images);
-        Variants = Variants
-            .Where(v => v.Id != variantId)
-            .Append(updatedVariant)
-            .ToList();
-
+        variant.AddImages(images);
         return this;
     }
 
     private Product UpdateImages(params UpdateImageDto[] dtos)
     {
-        var _dtos = dtos.Where(dto => !dto.IsDeleted).ToList();
-        var imagesToUpdate = Images.Where(img => _dtos.Any(dto => dto.ImageId == img.Id)).ToList();
-
-        Images = imagesToUpdate.Select(UpdateFunc).ToList();
-        return this;
-
-        Image UpdateFunc(Image img)
+        // Handle deletions
+        var imagesToDelete = dtos.Where(dto => dto.IsDeleted).Select(dto => dto.ImageId).ToList();
+        foreach (var imageId in imagesToDelete)
         {
-            return Optional(_dtos.FirstOrDefault(dto => dto.ImageId == img.Id))
-                .Match(
-                    dto => img.Update(dto.AltText, dto.IsMain),
-                    () => img
-                );
-        }
-    }
-
-    public Fin<Product> UpdateVariants(params UpdateVariantDto[] dtos)
-    {
-        var _dtos = Seq([.. dtos]);
-        var validationSeq = Seq<Fin<Variant>>();
-
-        var result = _dtos.Fold(validationSeq, (current, dto) =>
-        {
-            var variant = Variants.FirstOrDefault(v => v.Id == dto.VariantId);
-            return variant is not null
-                ? current.Add(variant.Update(dto, Category, Brand))
-                : current.Add(Variant.Create(
-                    new CreateVariantDto
-                    {
-                        Color = dto.Color,
-                        SizeVariants = dto.SizeVariants,
-                    }, Brand.Name, Category.ToString()));
-        });
-
-        return result.Traverse(identity)
-            .Map(vs =>
+            var imageToRemove = Images.FirstOrDefault(img => img.Id == imageId);
+            if (imageToRemove != null)
             {
-                Variants = vs.ToList();
-                return this;
-            }).As();
+                Images.Remove(imageToRemove);
+            }
+        }
+
+        var _dtos = dtos.Where(dto => !dto.IsDeleted).ToList();
+        foreach (var dto in _dtos)
+        {
+            var image = Images.FirstOrDefault(img => img.Id == dto.ImageId);
+            if (image != null)
+            {
+                image.Update(dto.AltText, dto.IsMain);
+            }
+        }
+
+        return this;
     }
 
     private Fin<Product> UpdateMaterialDetails(params UpdateMaterialDetailDto[] dtos)
@@ -285,9 +342,12 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
             }).As();
     }
 
-    public Product AddVariants(IEnumerable<Variant> variants)
+    public Product AddColorVariants(IEnumerable<ColorVariant> variants)
     {
-        Variants = variants.ToList();
+        foreach (var variant in variants)
+        {
+            ColorVariants.Add(variant);
+        }
         return this;
     }
 
@@ -296,32 +356,7 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         Images = Images.Where(pi => !ids.Contains(pi.Id)).ToList();
         return this;
     }
-    public Product UpdateVariantsStock(IEnumerable<Variant> variants)
-    {
-        Variants = variants.ToList();
-        return this;
-    }
-    private Fin<Product> UpdateBrand(string brand)
-    {
-        return Brand.From(brand).Map(b =>
-        {
-            Brand = b;
-            Variants = Variants.Select(v => v.UpdateSkuForBrand(b, Category)).ToList();
-            return this;
-        });
-    }
 
-    private Fin<Product> UpdateCategory(string category, string sub)
-    {
-        var p = Category.From(category, sub)(ProductType)
-            .Map(c =>
-            {
-                Category = c;
-                Variants = Variants.Select(v => v.UpdateSkuForCategory(Brand, c)).ToList();
-                return this;
-            });
-        return p;
-    }
 
     private Fin<Product> UpdateProductType(string type, string sub)
     {
@@ -346,7 +381,8 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
     private Product UpdateTotalSales(int soldItems = 1)
     {
         var newTotal = TotalSales + soldItems;
-        return this with { TotalSales = newTotal };
+        TotalSales = newTotal;
+        return this;
     }
 
     private Product UpdatePrice(decimal price)
@@ -361,12 +397,11 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         return this;
     }
 
-    private Product AddAlternatives(params Product[] products)
+    public Product AddAlternatives(params Product[] products)
     {
-        if (!products.Any()) return this;
-        var newVariants = new List<Product>([.. products, .. Alternatives])
+        var alternatives = new List<Product>([.. products, .. Alternatives])
             .DistinctBy(p => p.Id.Value);
-        Alternatives = newVariants.ToList();
+        Alternatives = alternatives.ToList();
         return this;
     }
 
@@ -436,7 +471,7 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
             fin = fin.Bind(p => p.UpdateBrand(dto.Brand));
 
         if (dto.Category != Category.Main || dto.SubCategory != Category.Sub)
-            fin = fin.Bind(p => p.UpdateCategory(dto.Category, dto.SubCategory));
+            fin = fin.Bind(p => p.UpdateCategory(dto.Category, dto.SubCategory, dto.Type, dto.SubType));
 
         if (dto.Type != ProductType.Type || dto.SubType != ProductType.SubType)
             fin = fin.Bind(p => p.UpdateProductType(dto.Type, dto.SubType));
@@ -444,7 +479,8 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         if (Description.Value != dto.Description)
             fin = fin.Bind(p => p.UpdateDescription(dto.Description));
 
-        fin = fin.Bind(p => p.UpdateVariants([.. dto.Variants]));
+        if (dto.Variants.Any())
+            fin = fin.Bind(p => p.UpdateColorVariants([.. dto.Variants]));
 
         if (Price.Value != dto.Price)
             fin = fin.Map(p => p.UpdatePrice(dto.Price));
@@ -472,7 +508,8 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
             fin = fin.Map(p => p.UpdateStatus(dto.IsFeatured, dto.IsTrending, dto.IsBestSeller, dto.IsNew));
         }
 
-        fin = fin.Map(p => p.UpdateImages([.. dto.ImageDtos]));
+        if (dto.ImageDtos.Any())
+            fin = fin.Map(p => p.UpdateImages([.. dto.ImageDtos]));
 
         return fin;
     }
@@ -482,6 +519,15 @@ public record Product : Aggregate<ProductId>, ISoftDeletable
         return Id.GetHashCode();
     }
 
+    public Fin<Product> UpdateVariantImages(params Contracts.UpdateColorVariantDto[] variantDtos)
+    {
+        foreach (var dto in variantDtos.Where(d => d.ImageDtos?.Any() == true))
+        {
+            var variant = ColorVariants.FirstOrDefault(v => v.Id == dto.ColorVariantId);
+            variant?.UpdateImages([.. dto.ImageDtos]);
+        }
+        return this;
+    }
 
 
 }

@@ -1,25 +1,24 @@
 ﻿using Basket.Application.Features.Coupon.CreateCoupon;
-using Basket.Domain.Enums;
 
 namespace Basket.Presentation.Requests;
 
 public record CreateCouponRequest
 {
-	public string Description { get; init; } = null!;
-	public DiscountType DiscountType { get; init; }
-	public decimal DiscountValue { get; init; }
-	public DateTime ExpiryDate { get; init; }
+    public string Description { get; init; } = null!;
+    public string DiscountType { get; init; } = null!;
+    public decimal DiscountValue { get; init; }
+    public decimal? MinimumPurchaseAmount { get; init; }
+    public DateTime ExpiryDate { get; init; }
 
-
-	public CreateCouponCommand ToCommand()
-	{
-		var dto = new CreateCouponDto
-		{
-			Description = Description,
-			DiscountType = DiscountType,
-			DiscountValue = DiscountValue,
-			ExpiryDate = ExpiryDate,
-		};
-		return new CreateCouponCommand(dto);
-	}
+    public CreateCouponCommand ToCommand()
+    {
+        return new CreateCouponCommand
+        {
+            Description = Description,
+            DiscountType = DiscountType,
+            DiscountValue = DiscountValue,
+            MinimumPurchaseAmount = MinimumPurchaseAmount,
+            ExpiryDate = ExpiryDate
+        };
+    }
 }

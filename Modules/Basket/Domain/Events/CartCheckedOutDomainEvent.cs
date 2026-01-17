@@ -4,17 +4,17 @@ namespace Basket.Domain.Events;
 
 internal record CartCheckedOutDomainEvent : IDomainEvent
 {
-	public Guid CartId { get; init; }
-	public Guid UserId { get; init; }
-	public decimal Total { get; init; }
-	public decimal TotalSub { get; init; }
-	public decimal Tax { get; init; }
-	public decimal Discount { get; init; }
-	public decimal TotalAfterDiscounted { get; init; }
-	public Address DeliveryAddress { get; init; }
-	public decimal ShipmentCost { get; init; }
-	public List<Guid> CouponIds { get; init; }
-	public List<LineItemResult> LineItems { get; init; }
+    public Guid CartId { get; init; }
+    public Guid UserId { get; init; }
+    public decimal Total { get; init; }
+    public decimal TotalSub { get; init; }
+    public decimal Tax { get; init; }
+    public decimal Discount { get; init; }
+    public decimal TotalAfterDiscounted { get; init; }
+    public Address DeliveryAddress { get; init; }
+    public decimal ShipmentCost { get; init; }
+    public List<Guid> CouponIds { get; init; }
+    public List<LineItemResult> LineItems { get; init; }
 }
 
 

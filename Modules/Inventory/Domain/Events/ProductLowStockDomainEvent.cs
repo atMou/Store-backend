@@ -1,5 +1,5 @@
 ﻿namespace Inventory.Domain.Events;
 
-public record ProductLowStockDomainEvent(ProductId ProductId, VariantId VariantId, string Sku, int Value) : IDomainEvent
+public record ProductLowStockDomainEvent(ProductId ProductId, ColorVariantId ColorVariantId, int Value) : IDomainEvent
 {
 }

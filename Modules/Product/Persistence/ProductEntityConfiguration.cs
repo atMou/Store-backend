@@ -9,12 +9,15 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
 {
     public void Configure(EntityTypeBuilder<Domain.Models.Product> builder)
     {
+        builder.ToTable("products");
+
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Id)
             .HasConversion(
                 id => id.Value,
                 value => ProductId.From(value)
             )
+            .ValueGeneratedNever()
             .HasColumnName("id");
 
         builder.Property(p => p.Discount).HasColumnName("discount");
@@ -23,7 +26,8 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
 
         builder.Property(p => p.TotalSales).HasColumnName("total_sold_items");
         builder.Property(p => p.TotalReviews).HasColumnName("total_reviews");
-        builder.Property(p => p.IsDeleted).HasColumnName("is_Deleted");
+        builder.Property(p => p.IsDeleted).HasColumnName("is_deleted");
+        builder.Property(p => p.HasInventory).HasColumnName("has_inventory");
         builder.Property(p => p.Brand).HasColumnName("brand");
         builder.Property(p => p.CreatedAt).HasColumnName("created_at");
         builder.Property(p => p.CreatedBy).HasColumnName("created_by");
@@ -47,23 +51,21 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
         {
             md.ToTable("product_material_details");
 
-            // shadow FK to the owning Product
             md.WithOwner().HasForeignKey("product_id");
 
             md.HasKey("product_id", nameof(MaterialDetail.Detail));
-            // scalar properties
+
             md.Property(m => m.Detail).HasColumnName("detail");
+
             md.Property(m => m.Percentage).HasColumnName("percentage");
 
-            // map Material value object as an owned object and persist its Name
             md.OwnsOne(m => m.Material, mat =>
             {
                 mat.Property(x => x.Name)
                     .HasColumnName("material")
                     .HasColumnType("nvarchar(450)");
 
-                // optional: index on material column
-                mat.HasIndex(x => x.Name).HasDatabaseName("IX_ProductMaterialDetails_Material");
+                mat.HasIndex(x => x.Name).HasDatabaseName("ix_product_material_details_material");
             });
 
             // index on FK for queries
@@ -78,6 +80,7 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
             c.HasIndex(x => x.Main);
             c.HasIndex(x => x.Sub);
         });
+
         builder.OwnsOne(p => p.Status,
             ps =>
             {
@@ -150,11 +153,11 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
                 ps.Property(slug => slug.Value)
                     .HasColumnName("slug");
 
-                ps.HasIndex(slug => slug.Value);
+                ps.HasIndex(slug => slug.Value).IsUnique();
             });
 
 
-        builder.HasMany(p => p.Variants)
+        builder.HasMany(p => p.ColorVariants)
             .WithOne(v => v.Product)
             .HasForeignKey(v => v.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -175,30 +178,32 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
         builder.OwnsMany(p => p.Images,
             img =>
             {
-                img.ToTable("images");
+                img.ToTable("product_images");
 
                 img.WithOwner().HasForeignKey(image => image.ProductId);
                 img.HasKey(image => image.Id);
 
                 img.Property(i => i.Id)
                     .HasConversion(id => id.Value, v => ImageId.From(v))
-                    .ValueGeneratedNever();
+                    .ValueGeneratedNever()
+                    .HasColumnName("id");
 
                 img.OwnsOne(i => i.ImageUrl, nb =>
                 {
-                    nb.Property(url => url.Value).HasColumnName("image_url");
-                    nb.Property(url => url.PublicId).HasColumnName("image_publicId");
+                    nb.Property(url => url.Value).HasColumnName("image_url").IsRequired();
+                    nb.Property(url => url.PublicId).HasColumnName("image_public_id");
                 });
 
                 img.Property(i => i.AltText).HasColumnName("alt_text");
 
                 img.Property(i => i.IsMain)
                     .HasColumnName("is_main");
+
+                img.HasIndex(i => i.ProductId);
             });
 
         builder.Property(p => p.AverageRating)
             .HasColumnName("average_rating");
-        ;
 
 
         builder.HasMany(p => p.Reviews)
@@ -207,14 +212,13 @@ public class ProductEntityConfiguration : IEntityTypeConfiguration<Domain.Models
             .OnDelete(DeleteBehavior.Cascade);
 
 
-        //builder.HasIndex(p => p.Slug);
         builder.HasIndex(p => p.Brand);
-        //builder.HasIndex(p => p.Category);
         builder.HasIndex(p => p.Price);
         builder.HasIndex(p => p.TotalSales);
         builder.HasIndex(p => p.TotalReviews);
         builder.HasIndex(p => p.AverageRating);
         builder.HasIndex(p => p.Discount);
-        builder.ToTable("Products");
+        builder.HasIndex(p => p.IsDeleted);
+        builder.HasIndex(p => p.HasInventory);
     }
 }

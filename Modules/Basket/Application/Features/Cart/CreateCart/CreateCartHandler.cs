@@ -1,6 +1,4 @@
-
-
-using Shared.Application.Contracts.User.Queries;
+﻿using Shared.Application.Contracts.User.Queries;
 
 namespace Basket.Application.Features.Cart.CreateCart;
 
@@ -11,8 +9,8 @@ public record CreateCartCommand : ICommand<Fin<Guid>>
 
 internal class CreateCartCommandHandler(
     BasketDbContext dbContext,
-    IUserContext userContext,
-    ISender sender)
+    ISender sender,
+    IConfiguration configuration)
     : ICommandHandler<CreateCartCommand, Fin<Guid>>
 {
     public async Task<Fin<Guid>> Handle(CreateCartCommand command, CancellationToken cancellationToken)
@@ -31,14 +29,18 @@ internal class CreateCartCommandHandler(
 
                 var deliveryAddressResult = u.Addresses.FirstOrDefault(a => a.IsMain) ?? u.Addresses.First();
 
-                return Domain.Models.Cart.Create(command.UserId, GetTaxService(), new Address
-                {
-                    City = deliveryAddressResult.City,
-                    Street = deliveryAddressResult.Street,
-                    PostalCode = deliveryAddressResult.PostalCode,
-                    HouseNumber = deliveryAddressResult.HouseNumber,
-                    ExtraDetails = deliveryAddressResult?.ExtraDetails
-                });
+                return Domain.Models.Cart.Create(
+                    command.UserId,
+                    GetTaxRate(),
+                    new Address
+                    {
+                        ReceiverName = $"{u.FirstName} {u.LastName}",
+                        City = deliveryAddressResult.City,
+                        Street = deliveryAddressResult.Street,
+                        PostalCode = deliveryAddressResult.PostalCode,
+                        HouseNumber = deliveryAddressResult.HouseNumber,
+                        ExtraDetails = deliveryAddressResult?.ExtraDetails
+                    });
             })
 
             from _3 in AddEntity<BasketDbContext, Domain.Models.Cart>(cart)
@@ -47,13 +49,12 @@ internal class CreateCartCommandHandler(
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
-    private decimal GetTaxService()
+
+    private decimal GetTaxRate()
     {
-
-        return 0.15m;
+        var taxRateFromConfig = configuration.GetValue<decimal?>("TaxSettings:Rate");
+        return taxRateFromConfig ?? 15m;
     }
-
-
 }
 
 

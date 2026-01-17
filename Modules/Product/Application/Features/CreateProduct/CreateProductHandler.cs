@@ -1,7 +1,6 @@
 using Product.Application.Contracts;
 using Product.Domain.Models;
 
-using Shared.Application.Contracts.Product.Dtos;
 using Shared.Application.Features.Product.Events;
 using Shared.Infrastructure.Images;
 
@@ -20,7 +19,7 @@ public record CreateProductCommand : ICommand<Fin<Guid>>
     public string Description { get; init; } = null!;
     public string Type { get; init; } = null!;
     public string SubType { get; init; } = null!;
-    public IEnumerable<CreateVariantCommand> Variants { get; init; } = null!;
+    public IEnumerable<CreateColorVariantCommand> Variants { get; init; } = null!;
     public List<CreateAttributeCommand> DetailsAttributes { get; init; } = null!;
     public List<CreateAttributeCommand> SizeFitAttributes { get; init; } = null!;
     public List<CreateMaterialDetailCommand> MaterialDetails { get; init; } = null!;
@@ -33,22 +32,11 @@ public record CreateMaterialDetailCommand
     public string Detail { get; init; } = null!;
 }
 
-public record CreateVariantCommand
+public record CreateColorVariantCommand
 {
     public IFormFile[] Images { get; init; } = [];
     public bool[] IsMain { get; init; } = [];
     public string Color { get; init; } = null!;
-    public IEnumerable<CreateSizeVariantCommand> SizeVariants { get; init; } = null!;
-
-}
-
-public record CreateSizeVariantCommand
-{
-    public string Size { get; init; } = null!;
-    public int Stock { get; init; }
-    public int StockLow { get; init; }
-    public int StockMid { get; init; }
-    public int StockHigh { get; init; }
 }
 
 public record CreateAttributeCommand
@@ -66,32 +54,35 @@ internal class CreateProductHandlerCommandHandler(
     public async Task<Fin<Guid>> Handle(CreateProductCommand command,
         CancellationToken cancellationToken)
     {
-        IEnumerable<VariantDto> variants = [];
+        var createProductDto = command.ToDto();
         var db =
             from p in AddEntity<ProductDBContext, Domain.Models.Product, CreateProductDto>(
-                command.ToDto(),
+                createProductDto,
                 Domain.Models.Product.Create,
                 product =>
                     UploadProductImages(product, command),
-                product => (
-                    AddVariant(product, command.Variants, cancellationToken)
-                        .Map(vs =>
-                        {
-                            variants = vs.SelectMany(v => v.VariantDtos).ToList();
-                            return product.AddVariants(vs.Select(v => v.Variant));
-                        })
-                ))
+                product => UploadVariantsImages(product, command.Variants)
+                    .Map(vs => product.AddColorVariants(vs.ToArray())))
             select p;
 
-        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken)).RaiseOnSuccess(async p =>
+        return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken)).RaiseOnSuccess(async p
+            =>
         {
-            await endpoint.Publish(new ProductCreatedIntegrationEvent()
-            {
-                ProductId = p.Id.Value,
-                Slug = p.Slug.Value,
-                Brand = p.Brand.Name,
-                Variants = variants
-            }, cancellationToken);
+            await endpoint.Publish(
+                new ProductCreatedIntegrationEvent
+                {
+                    ProductId = p.Id.Value,
+                    Brand = p.Brand.Code.ToString(),
+                    Slug = p.Slug.Value,
+                    ImageUrl = p.Images.FirstOrDefault(image => image.IsMain)?.ImageUrl.Value ??
+                               p.Images.First().ImageUrl.Value,
+                    ColorVariants = p.ColorVariants.Select(cv => new Shared.Application.Features.Product.Events.CreateColorVariantDto
+                    {
+                        ColorVariantId = cv.Id.Value,
+                        Color = cv.Color.Code.ToString()
+                    })
+                },
+                cancellationToken);
             return p.Id.Value;
         });
     }
@@ -104,28 +95,17 @@ internal class CreateProductHandlerCommandHandler(
                select product.AddImages([.. ims]);
     }
 
-    private IO<Iterable<(Variant Variant, IEnumerable<VariantDto> VariantDtos)>> AddVariant(
+    private IO<IEnumerable<ColorVariant>> UploadVariantsImages(
         Domain.Models.Product product,
-        IEnumerable<CreateVariantCommand> variants,
-        CancellationToken token)
+        IEnumerable<CreateColorVariantCommand> commands)
     {
-        return variants.AsIterable().Traverse(command =>
+        return commands.AsIterable().Traverse(command =>
         {
             return from x in imageService.UploadProductImages(command.Images, command.IsMain, product.Slug.Value,
                     product.Category.ToString(), product.Brand.Name, command.Color)
-                   from v in Variant.Create(command.ToDto(), product.Brand.Name, product.Category.ToString())
+                   from v in ColorVariant.Create(command.ToDto())
                        .Map(variant => variant.AddImages([.. x]))
-                   select (v, command.SizeVariants.Select(variant => new VariantDto()
-                   {
-                       Color = v.Color.Name,
-                       Size = variant.Size,
-                       Sku = v.Sku.Value,
-                       Stock = variant.Stock,
-                       Low = variant.StockLow,
-                       Mid = variant.StockMid,
-                       High = variant.StockHigh
-
-                   }));
-        }).As();
+                   select v;
+        }).Map(it => it.AsEnumerable()).As();
     }
 }

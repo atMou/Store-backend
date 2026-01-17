@@ -1,4 +1,6 @@
-﻿namespace Product.Domain.Contracts;
+﻿using Shared.Domain.Enums;
+
+namespace Product.Domain.Contracts;
 
 public record UpdateProductDto
 {
@@ -19,7 +21,7 @@ public record UpdateProductDto
     public decimal? NewPrice { get; init; }
     public string Description { get; init; }
     public IEnumerable<UpdateImageDto> ImageDtos { get; set; }
-    public IEnumerable<UpdateVariantDto> Variants { get; set; }
+    public IEnumerable<UpdateColorVariantDto> Variants { get; set; }
     public IEnumerable<ProductId> AlternativesIds { get; set; }
     public IEnumerable<UpdateAttributeDto> DetailsAttributes { get; set; }
     public IEnumerable<UpdateAttributeDto> SizeFitAttributes { get; set; }
@@ -40,20 +42,16 @@ public record UpdateAttributeDto
     public string Description { get; set; }
 }
 
-public record UpdateVariantDto
+public record UpdateColorVariantDto
 {
-    public VariantId VariantId { get; init; }
+    public ColorVariantId ColorVariantId { get; init; }
     public bool[] IsMain { get; set; }
     public IFormFile[] Images { get; init; }
     public string Color { get; init; }
-    public string Size { get; init; }
-    public int StockLow { get; init; }
-    public int StockMid { get; init; }
-    public int StockHigh { get; init; }
-    public int Stock { get; init; }
     public IEnumerable<UpdateImageDto> ImageDtos { get; set; }
-
 }
+
+
 public class UpdateImageDto
 {
     public ImageId ImageId { get; set; }

@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 public class ForbiddenObjectResult : ObjectResult
 {
-	public ForbiddenObjectResult(object value)
-		: base(value)
-	{
-		StatusCode = StatusCodes.Status403Forbidden;
-	}
+    public ForbiddenObjectResult(object value)
+        : base(value)
+    {
+        StatusCode = StatusCodes.Status403Forbidden;
+    }
 }

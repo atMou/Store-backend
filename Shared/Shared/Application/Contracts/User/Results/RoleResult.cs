@@ -2,6 +2,6 @@
 
 public record RoleResult
 {
-	public string Name { get; init; }
-	public IEnumerable<string> Permissions { get; init; }
+    public string Name { get; init; }
+    public IEnumerable<string> Permissions { get; init; }
 }

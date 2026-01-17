@@ -3,29 +3,7 @@ public static class CartModule
 {
     public static IServiceCollection AddBasketModule(this IServiceCollection services, IConfiguration configuration)
     {
-        //services.AddMediatR(conf =>
-        //{
-        //    conf.RegisterServicesFromAssembly(typeof(SharedModule).Assembly);
-        //});
-        //services.AddModuleMassTransit<BasketDbContext>(typeof(CartModule).Assembly);
-
-        //services.AddMassTransit(cfg =>
-        //{
-        //    cfg.AddConsumers(Assembly.GetExecutingAssembly());
-
-        //    cfg.AddEntityFrameworkOutbox<BasketDbContext>(o =>
-        //    {
-        //        o.UseBusOutbox();
-        //    });
-
-        //    cfg.UsingRabbitMq((context, rabbit) =>
-        //    {
-        //        rabbit.ConfigureEndpoints(context);
-        //    });
-        //});
         services.AddBasketModuleServices(configuration);
-        //services.AddScoped<ICartRepository, CartRepository>();
-        //services.AddScoped<ICouponRepository, CouponRepository>();
         return services;
     }
 
@@ -33,7 +11,6 @@ public static class CartModule
     {
         return app;
     }
-
 
     private static IServiceCollection AddBasketModuleServices(this IServiceCollection services, IConfiguration configuration)
     {
@@ -50,17 +27,26 @@ public static class CartModule
             options.AddInterceptors(new AuditableEntityInterceptor(clock, userContext),
                 new DispatchDomainEventInterceptor(mediatr));
 
-
-
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sqlServerOptionsAction: sqlOptions =>
+                {
+                    // Add connection resiliency for Docker/development scenarios
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorNumbersToAdd: null);
+                    
+                    sqlOptions.CommandTimeout(30);
+                })
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();
+                
             options.LogTo(Log.Logger.Information,
                 Microsoft.Extensions.Logging.LogLevel.Information,
                 DbContextLoggerOptions.DefaultWithLocalTime);
         });
         return services;
     }
-
 }
 

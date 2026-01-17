@@ -15,7 +15,7 @@ public class UsersController(ISender sender) : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<ActionResult<UserResult>> Get()
+    public async Task<ActionResult<UserResult>> GetLoggedInUser()
     {
         var result = await sender.Send(new GetLoggedInUserQuery());
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
@@ -57,6 +57,27 @@ public class UsersController(ISender sender) : ControllerBase
     }
     [Authorize]
     [HttpPost]
+    [Route("add-address")]
+    public async Task<ActionResult<UserResult>> AddAddress([FromBody] AddAddressRequest request)
+    {
+        var result = await sender.Send(request.ToCommand());
+
+        return result.ToActionResult(u => Ok(u), HttpContext.Request.Path);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [Route("delete-address")]
+    public async Task<ActionResult<Unit>> DeleteAddress([FromBody] DeleteAddressRequest request)
+    {
+        var result = await sender.Send(request.ToCommand());
+
+        return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
+
+    }
+
+    [Authorize]
+    [HttpPost]
     [Route("toggle-liked-products")]
     public async Task<ActionResult<Unit>> ToggleLike([FromBody] ToggleLikeRequest request)
     {
@@ -67,4 +88,3 @@ public class UsersController(ISender sender) : ControllerBase
 
 
 }
-

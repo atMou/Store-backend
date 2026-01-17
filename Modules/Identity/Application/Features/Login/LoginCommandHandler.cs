@@ -23,7 +23,7 @@ public class LoginCommandHandler(
                      NotFoundError.New("Invalid credentials."),
                      opt =>
                      {
-                         opt = opt.AddInclude(user => user.RefreshTokens, user => user.LikedProductIds);
+                         opt = opt.AddInclude(user => user.RefreshTokens);
                          opt.AsSplitQuery = true;
                          return opt;
                      })

@@ -7,12 +7,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Domain\Enums\**" />
+    <EmbeddedResource Remove="Domain\Enums\**" />
+    <None Remove="Domain\Enums\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Shared\Shared\Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Domain\Enums\" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Domain\ValueObjects\" />
+    <Folder Include="Infrastructure\" />
   </ItemGroup>
 
 </Project>

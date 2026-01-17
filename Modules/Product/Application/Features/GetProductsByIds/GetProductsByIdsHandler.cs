@@ -1,13 +1,15 @@
+using Microsoft.Extensions.Caching.Distributed;
+
 using Shared.Application.Contracts;
 
 namespace Product.Application.Features.GetProductsByIds;
-public record GetProductsQueryResult(PaginatedResult<ProductResult> PaginatedResult);
 
-internal class GetProductsQueryHandler(ProductDBContext dbContext)
+internal class GetProductsQueryHandler(ProductDBContext dbContext, IDistributedCache cache)
     : IQueryHandler<GetProductsByIdsQuery, Fin<PaginatedResult<ProductResult>>>
 {
     public async Task<Fin<PaginatedResult<ProductResult>>> Handle(GetProductsByIdsQuery query, CancellationToken cancellationToken)
     {
+        var cacheKey = query.GetCacheKey();
         var db = GetEntitiesWithPagination<ProductDBContext,
             Domain.Models.Product,
             ProductResult, GetProductsByIdsQuery>(
@@ -16,8 +18,14 @@ internal class GetProductsQueryHandler(ProductDBContext dbContext)
             query,
             product => product.ToResult()
         );
-        return await db.RunAsync(dbContext, EnvIO.New(null, cancellationToken));
+        return await db.WithPaginatedCache<Domain.Models.Product, ProductResult, ProductDBContext, IDistributedCache>(
+            cacheKey,
+            cache,
+            dbContext,
+            EnvIO.New(null, cancellationToken));
+
     }
+
 
 }
 

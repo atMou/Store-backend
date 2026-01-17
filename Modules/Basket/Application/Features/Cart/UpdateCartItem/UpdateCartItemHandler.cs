@@ -1,80 +1,48 @@
+using Basket.Application.Contracts;
+
+using Shared.Application.Contracts.Carts.Results;
+
 namespace Basket.Application.Features.Cart.UpdateCartItem;
 
-public record UpdateLineItemCommand : ICommand<Fin<Unit>>
+public record UpdateLineItemCommand : ICommand<Fin<CartResult>>
 {
-    public CartId CartId { get; init; }
-    //public VariantId VariantId { get; init; }
-    public VariantId VariantId { get; init; }
+    public Guid CartId { get; init; }
+    public Guid ColorVariantId { get; init; }
+    public Guid SizeVariantId { get; init; }
     public int Quantity { get; init; }
 }
 
 internal class UpdateLineItemCommandHandler(
     ISender sender,
     BasketDbContext dbContext
-) : ICommandHandler<UpdateLineItemCommand, Fin<Unit>>
+) : ICommandHandler<UpdateLineItemCommand, Fin<CartResult>>
 {
-    public async Task<Fin<Unit>> Handle(UpdateLineItemCommand command,
+    public async Task<Fin<CartResult>> Handle(UpdateLineItemCommand command,
         CancellationToken cancellationToken)
     {
+        var cartId = CartId.From(command.CartId);
+        var colorVariantId = ColorVariantId.From(command.ColorVariantId);
 
-        var db = GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
-               cart => cart.Id == command.CartId,
-               NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
+        var loadCart = GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
+               cart => cart.Id == cartId,
+               NotFoundError.New($"Cart with Id {cartId.Value} not found."),
                opt =>
                {
                    opt.AsSplitQuery = true;
                    opt = opt.AddInclude(cart => cart.LineItems);
                    return opt;
                },
-              cart => cart.UpdateLineItemQuantity(command.VariantId, command.Quantity)
+              cart => cart.UpdateLineItemQuantity(colorVariantId, command.SizeVariantId, command.Quantity)
 
-           ).Map(_ => unit);
+           );
 
+        var loadCoupons =
+            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == cartId);
 
-        //var loadCart = GetEntity<BasketDbContext, Domain.Models.Cart>(
-        //    cart => cart.Id == command.CartId,
-        //    NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
-        //    opt =>
-        //    {
-        //        opt.AsSplitQuery = true;
-        //        opt.AddInclude(cart => cart.LineItems);
-        //        return opt;
-        //    });
-
-        //var loadProduct = from product in Db<BasketDbContext>.liftIO(async (_, e) =>
-        //        await sender.Send(new GetProductByIdQuery(command.VariantId), e.Token))
-        //                  select product;
-
-        //var db =
-        //    from t in (loadCart, loadProduct).Apply((c, product) => (c, fin: product))
-        //    from _ in UpdateEntity<BasketDbContext, Domain.Models.Cart>(t.c, _ =>
-        //        t.fin
-        //        .Bind(pr => GetUpdatedCart(pr, command.VariantId, t.c, command.Quantity)))
-        //    select unit;
-
-
+        var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToResult(coupons));
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 
-    //private Fin<Domain.Models.Cart> GetUpdatedCart(ProductResult productResult, VariantId variantId, Domain.Models.Cart cart, int quantity)
-    //{
-    //    var v = productResult.Variants.FirstOrDefault(var => var.Id == variantId.Value);
-    //    if (v is null)
-    //    {
-    //        return NotFoundError.New($"Variant with Id {variantId.Value} not found in Product {productResult.Id}.");
-    //    }
-    //    return cart.UpdateLineItemQuantity(
-    //        LineItem.Create(
-    //            VariantId.From(productResult.Id),
-    //            cart.Id,
-    //            variantId,
-    //            productResult.Slug,
-    //            v.Sku,
-    //            productResult.Images.FirstOrDefault(dto => dto.IsMain)?.Url ?? productResult.Images.First().Url,
-    //            quantity,
-    //            productResult.Price
-    //        ));
-    //}
 }
 
 

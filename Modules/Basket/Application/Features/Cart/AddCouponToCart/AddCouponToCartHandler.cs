@@ -1,9 +1,10 @@
 ﻿namespace Basket.Application.Features.Cart.AddCouponToCart;
 
-public record AddCouponToCartCommand(CartId CartId, CouponId CouponId) : ICommand<Fin<Unit>>;
+public record AddCouponToCartCommand(CartId CartId, string CouponCode) : ICommand<Fin<Unit>>;
 
 internal class AddCouponToCartCommandHandler(
     BasketDbContext dbContext,
+    IUserContext userContext,
     IClock clock)
     : ICommandHandler<AddCouponToCartCommand, Fin<Unit>>
 {
@@ -12,16 +13,11 @@ internal class AddCouponToCartCommandHandler(
         var loadCart =
             GetEntity<BasketDbContext, Domain.Models.Cart>(
                 cart => cart.Id == command.CartId,
-                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
-                opt =>
-                {
-                    opt.AddInclude(cart => cart.CouponIds);
-                    return opt;
-                });
+                NotFoundError.New($"Cart with Id {command.CartId.Value} not found."));
 
         var loadCoupon = GetEntity<BasketDbContext, Domain.Models.Coupon>(
-            coupon => coupon.Id == command.CouponId,
-            NotFoundError.New($"Coupon with Id {command.CouponId.Value} not found."));
+            coupon => coupon.Code == command.CouponCode,
+            NotFoundError.New($"Coupon with code {command.CouponCode} not found."));
 
 
         var result = (loadCart, loadCoupon)
@@ -29,7 +25,10 @@ internal class AddCouponToCartCommandHandler(
                 (cart, coupon));
 
         var db = from res in result
-                 from _ in UpdateEntity<BasketDbContext, Domain.Models.Cart>(res.cart,
+                 from user in userContext.GetCurrentUser<IO>().As()
+                 from _ in UpdateEntity<BasketDbContext, Domain.Models.Coupon>(res.coupon,
+                     coupon => coupon.ApplyToCart(res.cart.Id, UserId.From(user.Id), clock.UtcNow))
+                 from __ in UpdateEntity<BasketDbContext, Domain.Models.Cart>(res.cart,
                      c => c.AddDiscount(res.coupon.Id, res.coupon.Discount))
                  select unit;
 

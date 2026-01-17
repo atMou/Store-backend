@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 public class BadGatewayObjectResult : ObjectResult
 {
-	public BadGatewayObjectResult(object value)
-		: base(value)
-	{
-		StatusCode = StatusCodes.Status502BadGateway;
-	}
+    public BadGatewayObjectResult(object value)
+        : base(value)
+    {
+        StatusCode = StatusCodes.Status502BadGateway;
+    }
 }

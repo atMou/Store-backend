@@ -12,12 +12,8 @@ public class SetUserCartIdCommandHandler(IOptions<JwtOptions> options, IClock cl
             from _1 in GetUpdateEntity<IdentityDbContext, User>(
                 user => user.Id == UserId.From(command.UserId),
                 NotFoundError.New($"User with id: '{command.UserId}' does not exists"),
-                opt =>
-                {
-                    opt.AddInclude(user => user.PendingOrderIds);
-                    return opt;
-                }, user => user.HasNoPendingOrders(),
-                user => user.MarkAsDeleted())
+                opt => opt,
+                user => user.EnsureNoPendingOrders().Map(u => u.MarkAsDeleted()))
 
             select unit;
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));

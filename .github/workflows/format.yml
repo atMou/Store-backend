@@ -1,0 +1,50 @@
+name: Auto Format Code
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  SOLUTION_FILE: 'Store Backend.sln'
+
+jobs:
+  format:
+    name: Format Code
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore "${{ env.SOLUTION_FILE }}"
+      
+    - name: Format code
+      run: dotnet format "${{ env.SOLUTION_FILE }}" --verbosity diagnostic
+      
+    - name: Check for changes
+      id: git-check
+      run: |
+        git diff --exit-code || echo "has_changes=true" >> $GITHUB_OUTPUT
+        
+    - name: Commit and push changes
+      if: steps.git-check.outputs.has_changes == 'true'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add .
+        git commit -m "style: auto-format code [skip ci]"
+        git push

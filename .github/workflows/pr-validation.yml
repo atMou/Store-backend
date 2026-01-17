@@ -1,0 +1,85 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  SOLUTION_FILE: 'Store Backend.sln'
+
+jobs:
+  validate-pr:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore "${{ env.SOLUTION_FILE }}"
+      
+    - name: Check formatting
+      id: format
+      continue-on-error: true
+      run: dotnet format "${{ env.SOLUTION_FILE }}" --verify-no-changes --verbosity diagnostic
+      
+    - name: Build
+      id: build
+      continue-on-error: true
+      run: dotnet build "${{ env.SOLUTION_FILE }}" --configuration Release --no-restore
+      
+    - name: Run tests
+      id: test
+      continue-on-error: true
+      run: dotnet test "${{ env.SOLUTION_FILE }}" --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+      
+    - name: Create PR Comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const formatStatus = '${{ steps.format.outcome }}' === 'success' ? '?' : '?';
+          const buildStatus = '${{ steps.build.outcome }}' === 'success' ? '?' : '?';
+          const testStatus = '${{ steps.test.outcome }}' === 'success' ? '?' : '?';
+          
+          const body = `## ?? Pull Request Validation Results
+          
+          | Check | Status |
+          |-------|--------|
+          | Code Formatting | ${formatStatus} |
+          | Build | ${buildStatus} |
+          | Tests | ${testStatus} |
+          
+          ${formatStatus === '?' ? '?? **Code formatting issues detected.** Run `dotnet format` locally to fix.\n' : ''}
+          ${buildStatus === '?' ? '?? **Build failed.** Please fix compilation errors.\n' : ''}
+          ${testStatus === '?' ? '?? **Tests failed.** Please ensure all tests pass.\n' : ''}
+          
+          <details>
+          <summary>How to fix formatting issues</summary>
+          
+          Run the following command in your local repository:
+          \`\`\`bash
+          dotnet format "Store Backend.sln"
+          \`\`\`
+          </details>
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+      
+    - name: Fail if checks failed
+      if: steps.format.outcome != 'success' || steps.build.outcome != 'success' || steps.test.outcome != 'success'
+      run: exit 1

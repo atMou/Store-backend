@@ -1,33 +1,47 @@
 ﻿
-using Inventory.Application.Features.ReserveStock;
-
-using MassTransit;
-
-using MediatR;
-
-using Microsoft.Extensions.Logging;
-
-using Shared.Application.Features.Order.Events;
-
 namespace Inventory.Application.EventHandlers;
 
-public class OrderCreatedIntegrationEventHandler(ISender sender, ILogger<OrderCreatedIntegrationEventHandler> logger)
-	: IConsumer<OrderCreatedIntegrationEvent>
+public class OrderCreatedIntegrationEventHandler(
+    InventoryDbContext dbContext,
+    ILogger<OrderCreatedIntegrationEventHandler> logger)
+    : IConsumer<OrderCreatedIntegrationEvent>
 {
-	public async Task Consume(ConsumeContext<OrderCreatedIntegrationEvent> context)
-	{
-		var orderId = context.Message.OrderId;
-		var traverse = context.Message.OrderItemsDtos.AsIterable().Traverse(dto =>
-			IO.liftAsync(async e => await sender.Send(new ReserveStockCommand { ProductId = ProductId.From(dto.ProductId), Quantity = dto.Quantity }))
-		).As();
+    public async Task Consume(ConsumeContext<OrderCreatedIntegrationEvent> context)
+    {
+        var message = context.Message;
+        var orderId = message.OrderDto.OrderId;
 
-		var result = await traverse.RunSafeAsync(EnvIO.New(null, context.CancellationToken));
+        logger.LogInformation(
+            LogEvents.StockReserved,
+            "Processing stock reservation for Order {OrderId} with {ItemCount} items",
+            orderId,
+            message.OrderDto.OrderItemsDtos.Count());
 
-		result.Match(iterable =>
-		{
-			var res = iterable.Traverse(identity).As();
-			res.IfFail(err => logger.LogCritical("Failed to process reservation for order {orderId}. {err}", orderId, err));
-		}, err => logger.LogCritical("Failed to reserve stock for order {orderId}. {err}", orderId, err));
+        var db = message.OrderDto.OrderItemsDtos.AsIterable().Traverse(orderItem =>
+            GetUpdateEntity<InventoryDbContext, Domain.Models.Inventory>(
+                inv => inv.ProductId == ProductId.From(orderItem.ProductId),
+                NotFoundError.New($"Inventory for product {orderItem.ProductId} not found"),
+                null,
+                inv => inv.ReserveStock(
+                    ColorVariantId.From(orderItem.ColorVariantId),
+                    orderItem.Size,
+                    orderItem.Quantity))
+        ).As();
 
-	}
+        var result = await db.RunSaveAsync(dbContext, EnvIO.New(null, context.CancellationToken));
+
+        result.Match(
+            _ => logger.LogInformation(
+                LogEvents.StockReserved,
+                "Successfully reserved stock for order {OrderId} with {ItemCount} items",
+                orderId,
+                message.OrderDto.OrderItemsDtos.Count()),
+            err => logger.LogError(
+                LogEvents.StockReserved,
+                err,
+                "Failed to reserve stock for order {OrderId}. Error: {Error}",
+                orderId,
+                err.Message)
+        );
+    }
 }

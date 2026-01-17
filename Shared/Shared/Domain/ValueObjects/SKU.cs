@@ -7,17 +7,17 @@ public record Sku
     {
     }
 
-    private Sku(string category, string color, string brand, string code)
+    private Sku(string category, string color, string brand, string size, string code)
     {
-        Value = $"{category}-{color}-{brand}-{code}";
+        Value = $"{category}-{brand}-{color}-{size}-{code}";
     }
 
     public string Value { get; private init; }
 
 
-    public static Sku From(string category, string color, string brand)
+    public static Sku From(string category, string color, string size, string brand)
     {
-        return new Sku(category, color, brand, Helpers.GenerateCode(6));
+        return new Sku(category, color, brand, size, Helpers.GenerateCode(6));
     }
 
     public static Sku FromUnsafe(string sku)
