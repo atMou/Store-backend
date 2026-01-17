@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 using Shared.Application.Contracts.User.Queries;
 using Shared.Application.Contracts.User.Results;
-using Shared.Contracts.IntegrationEvents;
+using Shared.Application.Features.Product.Events;
 using Shared.Infrastructure.Hubs.Services;
 
 namespace Shared.Infrastructure.Hubs;

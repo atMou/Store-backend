@@ -1,4 +1,4 @@
-using Shared.Contracts.IntegrationEvents;
+using Shared.Application.Features.Product.Events;
 
 namespace Identity.Application.EventHandlers;
 

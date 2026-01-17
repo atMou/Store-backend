@@ -1,4 +1,4 @@
-namespace Shared.Contracts.IntegrationEvents;
+namespace Shared.Application.Features.Product.Events;
 
 public record SubscriptionToProductIntegrationEvent(
     Guid UserId,
