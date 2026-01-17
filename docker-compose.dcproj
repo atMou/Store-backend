@@ -16,7 +16,6 @@
     <None Include=".github\workflows\format.yml" />
     <None Include=".github\workflows\pr-validation.yml" />
     <None Include=".github\workflows\README.md" />
-    <None Include="CONTRIBUTING.md" />
     <None Include="docker-compose.override.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>

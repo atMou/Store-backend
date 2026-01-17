@@ -31,9 +31,12 @@ README.md
 .env
 .env.*
 docker-compose.override.yml
-docs/
 
+# Documentation and scripts
+docs/
 scripts/
+
+# IDE and Git files
 .dockerignore
 .vscode/
 .gitignore
