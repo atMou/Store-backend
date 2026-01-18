@@ -467,6 +467,18 @@ Store-Backend/
 
 ```
 
+## 📊 Architecture Diagrams
+
+For detailed architecture diagrams including:
+- System Context (C4 Model)
+- Container Architecture
+- Order Placement Flow
+- CQRS Implementation
+- Event-Driven Communication
+- And more...
+
+See the [Complete Architecture Diagrams](ARCHITECTURE_DIAGRAM.md)
+
 ## 🔄 Event Flow Example
 
 ### Order Placement Flow

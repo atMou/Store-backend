@@ -23,6 +23,7 @@
     <None Include=".dockerignore" />
     <None Include="docs\API_DOCUMENTATION.md" />
     <None Include="docs\ARCHITECTURE.md" />
+    <None Include="ARCHITECTURE_DIAGRAM.md" />
     <None Include="docs\FUNCTIONAL_PROGRAMMING.md" />
     <None Include="docs\LANGUAGEEXT_VISUAL_GUIDE.md" />
     <None Include="LICENSE" />
