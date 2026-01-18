@@ -470,14 +470,17 @@ Store-Backend/
 ## 📊 Architecture Diagrams
 
 For detailed architecture diagrams including:
-- System Context (C4 Model)
-- Container Architecture
-- Order Placement Flow
-- CQRS Implementation
-- Event-Driven Communication
+- **System Context (C4 Model)** - Overall system architecture
+- **Container Architecture** - Module boundaries and interactions
+- **Vertical Slice Architecture** - Feature-based organization ⭐ **NEW**
+- **Order Placement Flow** - Complete user journey
+- **CQRS Implementation** - Command/Query separation
+- **Event-Driven Communication** - Inter-module messaging
 - And more...
 
-See the [Complete Architecture Diagrams](ARCHITECTURE_DIAGRAM.md)
+**📐 Diagrams:**
+- [Complete Architecture Diagrams](ARCHITECTURE_DIAGRAM.md) - Detailed system diagrams
+- [Vertical Slice Architecture](VERTICAL_SLICE_ARCHITECTURE.md) - Feature-based architecture ⭐ **NEW**
 
 ## 🔄 Event Flow Example
 

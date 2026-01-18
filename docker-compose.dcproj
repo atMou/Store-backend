@@ -28,5 +28,6 @@
     <None Include="docs\LANGUAGEEXT_VISUAL_GUIDE.md" />
     <None Include="LICENSE" />
     <None Include="README.md" />
+    <None Include="VERTICAL_SLICE_ARCHITECTURE.md" />
   </ItemGroup>
 </Project>
