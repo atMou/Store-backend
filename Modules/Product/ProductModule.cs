@@ -43,7 +43,7 @@ public static class ProductModule
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
-                    
+
                     sqlOptions.CommandTimeout(30);
                 })
                 .EnableSensitiveDataLogging()

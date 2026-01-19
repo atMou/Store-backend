@@ -54,7 +54,7 @@ public static class InventoryModule
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
-                    
+
                     sqlOptions.CommandTimeout(30);
                 })
                 .EnableSensitiveDataLogging()

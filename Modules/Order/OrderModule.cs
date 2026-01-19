@@ -38,7 +38,7 @@ public static class OrderModule
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
-                    
+
                     sqlOptions.CommandTimeout(30);
                 })
                 .EnableSensitiveDataLogging()

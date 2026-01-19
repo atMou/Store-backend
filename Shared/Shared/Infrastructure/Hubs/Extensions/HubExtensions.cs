@@ -91,13 +91,13 @@ public static class HubExtensions
         endpoints.MapHub<NotificationHub>("/hubs/notifications", options =>
         {
             // Support WebSockets (preferred), ServerSentEvents, and LongPolling (last resort)
-            options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets | 
+            options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
                                 Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents |
                                 Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
-            
+
             // Configure long polling timeout (only used as fallback)
             options.LongPolling.PollTimeout = TimeSpan.FromSeconds(30);
-            
+
             // Configure WebSocket options
             options.WebSockets.CloseTimeout = TimeSpan.FromSeconds(5);
         });

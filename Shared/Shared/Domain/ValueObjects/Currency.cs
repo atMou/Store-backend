@@ -24,7 +24,7 @@ public sealed record Currency
     // Predefined currencies - EUR is the primary currency for this application
     public static readonly Currency None = new("NONE", "No Currency Specified", 0);
     public static readonly Currency EUR = new("EUR", "Euro", 1.0); // EUR is base currency (1.0 conversion rate)
-    
+
     // Other currencies are kept for reference but not actively used
     public static readonly Currency USD = new("USD", "US Dollar", 1.09); // Updated to EUR base
     public static readonly Currency GBP = new("GBP", "British Pound", 0.85); // Updated to EUR base
@@ -39,7 +39,7 @@ public sealed record Currency
     public static readonly Currency Default = EUR;
 
     public bool IsNone => this == None;
-    
+
     public bool IsDefault => this == Default;
 
     public override string ToString()
@@ -64,7 +64,7 @@ public sealed record Currency
     {
         return _all.FirstOrDefault(c => c.Code == code.ToUpperInvariant()) ?? Default;
     }
-    
+
     /// <summary>
     /// Get the default currency (EUR) for the application
     /// </summary>

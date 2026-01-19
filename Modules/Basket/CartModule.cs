@@ -36,12 +36,12 @@ public static class CartModule
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
-                    
+
                     sqlOptions.CommandTimeout(30);
                 })
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();
-                
+
             options.LogTo(Log.Logger.Information,
                 Microsoft.Extensions.Logging.LogLevel.Information,
                 DbContextLoggerOptions.DefaultWithLocalTime);

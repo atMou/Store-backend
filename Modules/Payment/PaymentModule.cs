@@ -48,7 +48,7 @@ public static class PaymentModule
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
-                    
+
                     sqlOptions.CommandTimeout(30);
                 })
                 .EnableSensitiveDataLogging()
