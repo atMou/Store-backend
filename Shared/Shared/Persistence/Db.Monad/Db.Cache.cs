@@ -42,7 +42,7 @@ public static partial class Db
                    var options = new DistributedCacheEntryOptions();
 
                    if (absoluteExpiration.HasValue)
-                       options.SetAbsoluteExpiration(absoluteExpiration.Value);
+                       options.AbsoluteExpirationRelativeToNow = absoluteExpiration.Value;
 
                    if (slidingExpiration.HasValue)
                        options.SetSlidingExpiration(slidingExpiration.Value);
@@ -67,7 +67,7 @@ public static partial class Db
                    var options = new DistributedCacheEntryOptions();
 
                    if (absoluteExpiration.HasValue)
-                       options.SetAbsoluteExpiration(absoluteExpiration.Value);
+                       options.AbsoluteExpirationRelativeToNow = absoluteExpiration.Value;
 
                    if (slidingExpiration.HasValue)
                        options.SetSlidingExpiration(slidingExpiration.Value);

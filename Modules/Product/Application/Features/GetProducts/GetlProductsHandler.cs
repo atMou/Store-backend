@@ -41,8 +41,13 @@ internal class GetProductsQueryHandler(ProductDBContext dbContext, IDistributedC
             query,
             product => product.ToResult()
         );
-        return await db.WithPaginatedCache<Domain.Models.Product, ProductResult, ProductDBContext, IDistributedCache>(cacheKey,
-            cache, dbContext, EnvIO.New(null, cancellationToken));
+        return await db.WithPaginatedCache<Domain.Models.Product, ProductResult, ProductDBContext, IDistributedCache>(
+            cacheKey,
+            cache,
+            dbContext,
+            EnvIO.New(null, cancellationToken),
+            TimeSpan.FromSeconds(30)
+            );
 
     }
 }

@@ -7,12 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Shared\Shared\Shared.csproj" />
+    <Compile Remove="Domain\Enums\**" />
+    <Compile Remove="Infrastructure\**" />
+    <EmbeddedResource Remove="Domain\Enums\**" />
+    <EmbeddedResource Remove="Infrastructure\**" />
+    <None Remove="Domain\Enums\**" />
+    <None Remove="Infrastructure\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Domain\Enums\" />
-    <Folder Include="Infrastructure\" />
+    <ProjectReference Include="..\..\Shared\Shared\Shared.csproj" />
   </ItemGroup>
 
 

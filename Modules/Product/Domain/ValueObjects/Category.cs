@@ -4,17 +4,10 @@ public record Category
 {
     private const string Men = "Men";
     private const string Women = "Women";
-    private const string Baby = "Baby";
-    private const string Boy = "Boy";
-    private const string Girl = "Girl";
 
-
-    private const string Tops = "Tops";
-    private const string Bottoms = "Bottoms";
-    private const string Outerwear = "Outerwear";
     private const string Shoes = "Shoes";
     private const string Accessories = "Accessories";
-    private const string Sleepwear = "Sleepwear";
+    private const string Clothing = "Clothing";
 
     private static readonly List<Category> _all = [];
 
@@ -23,53 +16,20 @@ public record Category
     {
         Main = main;
         Sub = sub;
-
         ProductTypes = productTypes ?? [];
         _all.Add(this);
     }
 
     static Category()
     {
-        // NONE
-        _ = None;
 
-        // MEN
-        _ = MenTops;
-        _ = MenBottoms;
-        _ = MenOuterwear;
-        _ = MenShoes;
-        _ = MenAccessories;
+        _ = MenClothing;
+        _ = MenShoesSidebar;
+        _ = MenAccessoriesSidebar;
 
-        // WOMEN
-        _ = WomenTops;
-        _ = WomenBottoms;
-        _ = WomenOuterwear;
-        _ = WomenShoes;
-        _ = WomenAccessories;
-
-        // BOY
-        _ = BoyTops;
-        _ = BoyBottoms;
-        _ = BoyOuterwear;
-        _ = BoySleepwear;
-        _ = BoyShoes;
-        _ = BoyAccessories;
-
-        // GIRL
-        _ = GirlTops;
-        _ = GirlBottoms;
-        _ = GirlOuterwear;
-        _ = GirlSleepwear;
-        _ = GirlShoes;
-        _ = GirlAccessories;
-
-        // BABY
-        _ = BabyTops;
-        _ = BabyBottoms;
-        _ = BabyOuterwear;
-        _ = BabySleepwear;
-        _ = BabyShoes;
-        _ = BabyAccessories;
+        _ = WomenClothing;
+        _ = WomenShoesSidebar;
+        _ = WomenAccessoriesSidebar;
     }
 
     public string Main { get; }
@@ -77,72 +37,86 @@ public record Category
     [NotMapped]
     public IEnumerable<ProductType> ProductTypes { get; }
 
-    public static Category None => new("", "", []);
 
 
-    public static Category MenTops => new(Men, Tops,
-        [ProductType.MenTShirts, ProductType.MenShirts, ProductType.MenPolos, ProductType.MenSweaters]);
-    public static Category MenBottoms => new(Men, Bottoms,
-        [ProductType.MenJeans, ProductType.MenShorts, ProductType.MenSweatpants, ProductType.MenTrousers]);
-    public static Category MenOuterwear => new(Men, Outerwear,
-        [ProductType.MenJackets, ProductType.MenCoats, ProductType.MenBlazers, ProductType.MenParkas]);
-    public static Category MenShoes => new(Men, Shoes,
-        [ProductType.MenSneakers, ProductType.MenBoots, ProductType.MenLoafers, ProductType.MenSandals]);
-    public static Category MenAccessories => new(Men, Accessories,
-        [ProductType.MenBelts, ProductType.MenHats, ProductType.MenBags, ProductType.MenScarves]);
 
-    public static Category WomenTops => new(Women, Tops,
-        [ProductType.WomenTShirts, ProductType.WomenBlouses, ProductType.WomenShirts, ProductType.WomenKnitwear]);
-    public static Category WomenBottoms => new(Women, Bottoms,
-        [ProductType.WomenJeans, ProductType.WomenTrousers, ProductType.WomenSkirts, ProductType.WomenShorts]);
-    public static Category WomenOuterwear => new(Women, Outerwear,
-        [ProductType.WomenJackets, ProductType.WomenCoats, ProductType.WomenBlazers, ProductType.WomenParkas]);
-    public static Category WomenShoes => new(Women, Shoes,
-        [ProductType.WomenHeels, ProductType.WomenFlats, ProductType.WomenBoots, ProductType.WomenSneakers]);
-    public static Category WomenAccessories => new(Women, Accessories,
-        [ProductType.WomenBags, ProductType.WomenScarves, ProductType.WomenHats, ProductType.WomenJewelry]);
+    public static Category MenClothing => new(Men, Clothing,
+    [
+        ProductType.MenKnitwear,
+        ProductType.MenJacketsSidebar,
+        ProductType.MenCoatsSidebar,
+        ProductType.MenSweatshirtsHoodies,
+        ProductType.MenShirtsSidebar,
+        ProductType.MenTShirtsPolos,
+        ProductType.MenTrousersSidebar,
+        ProductType.MenJeansSidebar,
+        ProductType.MenSuitsTailoring,
+        ProductType.MenTracksuitsJoggers,
+        ProductType.MenShortsSidebar,
+        ProductType.MenUnderwearSocks,
+        ProductType.MenLoungeSleepwear,
+        ProductType.MenPlusSize,
+        ProductType.MenAdaptiveFashion,
+        ProductType.MenSwimwear
+    ]);
 
-    // BOY
-    public static Category BoyTops => new(Boy, Tops,
-        [ProductType.BoyTShirts, ProductType.BoyShirts, ProductType.BoyOuterwear]);
-    public static Category BoyBottoms => new(Boy, Bottoms,
-        [ProductType.BoyShorts, ProductType.BoyShorts]);
-    public static Category BoyOuterwear => new(Boy, Outerwear,
-        [ProductType.BoyOuterwear, ProductType.BoyTShirts, ProductType.BoyShirts]);
-    public static Category BoySleepwear => new(Boy, Sleepwear,
-        [ProductType.BoyOuterwear, ProductType.BabySleepwear]);
-    public static Category BoyShoes => new(Boy, Shoes,
-        [ProductType.BabyAccessories]);
-    public static Category BoyAccessories => new(Boy, Accessories,
-        [ProductType.BabyAccessories, ProductType.BoyShirts]);
+    public static Category MenShoesSidebar => new(Men, Shoes,
+    [
+        ProductType.MenTrainers,
+        ProductType.MenBootsSidebar,
+        ProductType.MenFormalShoes,
+        ProductType.MenSandalsSlides
+    ]);
 
-    // GIRL
-    public static Category GirlTops => new(Girl, Tops,
-        [ProductType.GirlTops, ProductType.GirlDresses, ProductType.GirlSkirts]);
-    public static Category GirlBottoms => new(Girl, Bottoms,
-        [ProductType.GirlSkirts, ProductType.GirlDresses, ProductType.GirlOuterwear]);
-    public static Category GirlOuterwear => new(Girl, Outerwear,
-        [ProductType.GirlOuterwear, ProductType.GirlTops, ProductType.GirlSkirts]);
-    public static Category GirlSleepwear => new(Girl, Sleepwear,
-        [ProductType.BabySleepwear, ProductType.GirlTops]);
-    public static Category GirlShoes => new(Girl, Shoes,
-        [ProductType.BabyAccessories]);
-    public static Category GirlAccessories => new(Girl, Accessories,
-        [ProductType.BabyAccessories, ProductType.GirlTops]);
+    public static Category MenAccessoriesSidebar => new(Men, Accessories,
+    [
+        ProductType.MenBagsSidebar,
+        ProductType.MenWatches,
+        ProductType.MenWalletsCardHolders,
+        ProductType.MenBeltsSidebar,
+        ProductType.MenHatsCaps,
+        ProductType.MenSunglasses,
+        ProductType.MenJewellery
+    ]);
 
-    // BABY
-    public static Category BabyTops => new(Baby, Tops,
-        [ProductType.BabyOnesies, ProductType.BabySets, ProductType.BabySleepwear]);
-    public static Category BabyBottoms => new(Baby, Bottoms,
-        [ProductType.BabySets, ProductType.BabyAccessories]);
-    public static Category BabyOuterwear => new(Baby, Outerwear,
-        [ProductType.BabyOnesies, ProductType.BabySleepwear]);
-    public static Category BabySleepwear => new(Baby, Sleepwear,
-        [ProductType.BabySleepwear, ProductType.BabyOnesies]);
-    public static Category BabyShoes => new(Baby, Shoes,
-        [ProductType.BabyAccessories, ProductType.BabySets]);
-    public static Category BabyAccessories => new(Baby, Accessories,
-        [ProductType.BabyAccessories, ProductType.BabyOnesies]);
+    public static Category WomenClothing => new(Women, Clothing,
+    [
+        ProductType.WomenKnitwearCardigans,
+        ProductType.WomenCoatsSidebar,
+        ProductType.WomenJacketsSidebar,
+        ProductType.WomenDresses,
+        ProductType.WomenSkirtsSidebar,
+        ProductType.WomenUnderwear,
+        ProductType.WomenSwimwear
+    ]);
+
+    public static Category WomenShoesSidebar => new(Women, Shoes,
+    [
+        ProductType.WomenBootsSidebar,
+        ProductType.WomenAnkleBoots,
+        ProductType.WomenFlatShoes,
+        ProductType.WomenTrainers,
+        ProductType.WomenHighHeels,
+        ProductType.WomenBalletPumps,
+        ProductType.WomenPumps,
+        ProductType.WomenMules,
+        ProductType.WomenSlippers,
+        ProductType.WomenSandals
+    ]);
+
+    public static Category WomenAccessoriesSidebar => new(Women, Accessories,
+    [
+        ProductType.WomenBeanies,
+        ProductType.WomenBalaclava,
+        ProductType.WomenScarvesSidebar,
+        ProductType.WomenGloves,
+        ProductType.WomenBagsCases,
+        ProductType.WomenJewellerySidebar,
+        ProductType.WomenBelts,
+        ProductType.WomenWatches,
+        ProductType.WomenWallets,
+        ProductType.WomenSunglasses
+    ]);
 
     public static IReadOnlyList<Category> All => _all;
 

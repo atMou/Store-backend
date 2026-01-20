@@ -14,9 +14,17 @@
 *.userprefs
 
 # Custom ignores
-docs/
+docs/*
 .env
 logs/
+
+.gitignore
+.env.local
+.env.*.local
+.env
+logs/*
+global.json
+
 
 # Mono auto generated files
 mono_crash.*
@@ -365,3 +373,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+
+.github/scripts/

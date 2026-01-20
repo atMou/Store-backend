@@ -18,6 +18,7 @@ A modern, enterprise-grade e-commerce backend built with **Domain-Driven Design 
 - 📦 **Shipping Management** - Dynamic shipping cost calculation
 - 🔐 **JWT Authentication** - Role and permission-based authorization
 - 🎭 **CQRS Pattern** - Command Query Responsibility Segregation
+- 🏛️ **Vertical Slice Architecture** - Feature-focused organization
 
 ## 🏗️ Architecture Overview
 
@@ -106,47 +107,153 @@ This project heavily utilizes [LanguageExt](https://github.com/louthy/language-e
 
 #### 1️⃣ **Monadic Error Handling with `Fin<T>`**
 
+Real example from the Order module:
+
 ```csharp
-public async Task<Fin<Order>> CreateOrder(CreateOrderCommand command)
+// Order.Domain.Models.Order.cs
+public class Order : Aggregate<OrderId>
 {
-    return await (
-        from cart in GetCart(command.CartId)
-        from user in GetUser(command.UserId)
-        from order in ValidateAndCreateOrder(cart, user)
-        from _ in SaveOrder(order)
-        select order
-    ).RunAsync();
+    public Fin<Order> MarkAsPaid(PaymentId paymentId, DateTime dateTime)
+    {
+        return OrderStatus.CanTransitionTo(OrderStatus.Paid).Map(_ =>
+        {
+            var oldStatus = OrderStatus;
+            
+            PaymentId = paymentId;
+            OrderStatus = OrderStatus.Paid;
+            PaidAt = dateTime;
+            
+            // Raise domain events
+            AddDomainEvent(new OrderStatusChangedDomainEvent(
+                Id, oldStatus, OrderStatus.Paid, dateTime));
+            
+            AddDomainEvent(new OrderPaidDomainEvent(
+                Id, paymentId, dateTime));
+            
+            return this;
+        });
+    }
 }
 ```
 
 #### 2️⃣ **Railway-Oriented Programming**
 
+Real example from the Cart module:
+
 ```csharp
-public Fin<Cart> AddLineItems(LineItem[] items)
+// Basket.Domain.Models.Cart.cs
+public class Cart : Aggregate<CartId>
 {
-    return from validItems in ValidateItems(items)
-           from cart in UpdateCart(validItems)
-           from _ in RecalculateTotals(cart)
-           select cart;
+    public Fin<Cart> AddDiscount(CouponId couponId, Discount discount)
+    {
+        // Validation
+        if (CouponIds.Contains(couponId)) 
+            return FinFail<Cart>(InvalidOperationError.New("Coupon is already applied."));
+        
+        // Apply discount
+        CouponIds.Add(couponId);
+        Discounts.Add(discount);
+        TotalDiscount = RecalculateTotalDiscount();
+        ShipmentCost = UpdateShippingCost();
+        
+        return this;
+    }
+    
+    public Fin<Cart> UpdateLineItemQuantity(ColorVariantId colorVariantId, Guid sizeVariant, int quantity)
+    {
+        if (quantity <= 0)
+        {
+            return DeleteLineItem(colorVariantId); // Railway switch
+        }
+        
+        LineItems = LineItems.Select(li =>
+            li.ColorVariantId.Value == colorVariantId.Value && li.SizeVariantId == sizeVariant
+                ? li.UpdateQuantity(quantity)
+                : li).ToList();
+                
+        TotalSub = GetSubTotal(LineItems);
+        ShipmentCost = UpdateShippingCost();
+        
+        return this;
+    }
 }
 ```
 
 #### 3️⃣ **Option Type for Null Safety**
 
+Real example from the Order module showing `Option<DateTime>` usage:
+
 ```csharp
-public Option<User> FindUserByEmail(string email) =>
-    Optional(users.FirstOrDefault(u => u.Email == email));
+// Order.Domain.Models.Order.cs
+public class Order : Aggregate<OrderId>
+{
+    // Using Option<T> for optional dates
+    [NotMapped]
+    public Option<DateTime> PaidAt { get; private set; } = Option<DateTime>.None;
+    
+    [NotMapped]
+    public Option<DateTime> ShippedAt { get; private set; } = Option<DateTime>.None;
+    
+    [NotMapped]
+    public Option<DateTime> DeliveredAt { get; private set; } = Option<DateTime>.None;
+    
+    // EF Core mapping helper
+    public DateTime? _paidAt
+    {
+        get => PaidAt.Match<DateTime?>(date => date, () => null);
+        set => PaidAt = Optional(value);
+    }
+}
 ```
 
-#### 4️⃣ **IO Monad for Side Effects**
+#### 4️⃣ **Functional Database Operations with Db Monad**
+
+Real example from the Shared infrastructure:
 
 ```csharp
-var io = from template in ReadEmailTemplate()
-         from email in BuildEmail(template, orderData)
-         from response in SendEmail(email)
-         select response;
+// Shared.Persistence.Db.Monad.Db.Access.cs
+public static Db<Ctx, A> GetUpdateEntity<Ctx, A>(
+    Expression<Func<A, bool>> predicate,
+    NotFoundError error,
+    Func<QueryOptions<A>, QueryOptions<A>>? fn = null,
+    params Func<A, Fin<A>>[] updates)
+    where Ctx : DbContext 
+    where A : class, IAggregate
+{
+    return
+        from a in fn.IsNull()
+            ? Db<Ctx>.liftIO(async (ctx, e) =>
+                await ctx.Set<A>().FirstOrDefaultAsync(predicate, e.Token))
+            : Db<Ctx>.liftIO(async (ctx, e) =>
+                await ctx.Set<A>().WithQueryOptions(fn)
+                    .FirstOrDefaultAsync(predicate, e.Token))
+        from _ in when(a.IsNull(), IO.fail<Unit>(error))
+        from updatedA in updates.Aggregate(FinSucc(a), (current, func) => current.Bind(func))
+        from __ in Db<Ctx>.lift(ctx =>
+        {
+            ctx.Set<A>().Update(updatedA);
+            return unit;
+        })
+        select updatedA;
+}
+```
 
-var result = await io.RunSafeAsync();
+Usage in handlers:
+
+```csharp
+// Real handler example
+var db = from order in GetEntity<OrderDBContext, Order>(
+            o => o.Id == orderId,
+            NotFoundError.New($"Order {orderId} not found"),
+            opt => opt.AddInclude(o => o.OrderItems))
+         from updated in GetUpdateEntity<OrderDBContext, Order>(
+            o => o.Id == orderId,
+            NotFoundError.New($"Order not found"),
+            null,
+            o => o.MarkAsShipped(shipmentId, DateTime.UtcNow))
+         select updated;
+
+var result = await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
 ```
 
 #### 5️⃣ **Try Monad for Exception Handling**
@@ -164,72 +271,192 @@ Try.lift(async () =>
 
 #### 🎯 Aggregates & Entities
 
+Real aggregate example from the Order module:
+
 ```csharp
-public record Order : Aggregate<OrderId>
+// Order.Domain.Models.Order.cs
+public class Order : Aggregate<OrderId>
 {
-    private Order(UserId userId, CartId cartId, Money total) : base(OrderId.New)
+    // Private constructor for EF Core
+    private Order() : base(OrderId.New) { }
+    
+    // Factory method with validation
+    private Order(
+        UserId userId,
+        IEnumerable<OrderItem> orderItems,
+        decimal subtotal,
+        decimal total,
+        decimal tax,
+        decimal discount,
+        Address address,
+        decimal shipmentCost,
+        IEnumerable<CouponId> couponIds,
+        CartId cartId,
+        decimal totalAfterDiscounted)
+        : base(OrderId.New)
     {
         UserId = userId;
-        CartId = cartId;
+        Subtotal = subtotal;
         Total = total;
-        AddDomainEvent(new OrderCreatedDomainEvent(Id, UserId, Total));
+        Tax = tax;
+        Discount = discount;
+        ShippingAddress = address;
+        ShipmentCost = shipmentCost;
+        CouponIds = couponIds.ToList();
+        CartId = cartId;
+        TotalAfterDiscounted = totalAfterDiscounted;
+        OrderItems = orderItems.ToList();
+        TrackingCode = TrackingCode.Create();
     }
-
-    public UserId UserId { get; }
-    public OrderStatus Status { get; private set; }
-    public Money Total { get; }
     
-    public Fin<Order> MarkAsPaid(PaymentId paymentId, DateTime paidAt)
+    // Aggregate properties
+    public UserId UserId { get; private init; }
+    public CartId CartId { get; private init; }
+    public ShipmentId? ShipmentId { get; private set; }
+    public PaymentId? PaymentId { get; private set; }
+    public decimal Total { get; private init; }
+    public OrderStatus OrderStatus { get; private set; } = OrderStatus.Pending;
+    public ICollection<OrderItem> OrderItems { get; private init; }
+    
+    // Factory method
+    public static Fin<Order> Create(CreateOrderDto dto)
     {
-        return Status.CanTransitionTo(OrderStatus.Paid)
-            .Map(_ => {
-                var updated = this with { Status = OrderStatus.Paid };
-                updated.AddDomainEvent(new OrderPaidDomainEvent(Id, paymentId, paidAt));
-                return updated;
-            });
+        var items = dto.OrderItems
+            .Select(item => OrderItem.Create(new CreateOrderItemDto { /* ... */ }))
+            .AsIterable();
+        
+        return items.Traverse(identity).Map(itms =>
+        {
+            var order = new Order(
+                dto.UserId,
+                itms.AsEnumerable(),
+                dto.Subtotal,
+                dto.Total,
+                dto.Tax,
+                dto.Discount,
+                dto.DeliveryAddress,
+                dto.ShipmentCost,
+                dto.CouponIds,
+                dto.CartId,
+                dto.TotalAfterDiscounted
+            );
+            return order;
+        }).As();
+    }
+    
+    // State transitions with business rules
+    public Fin<Order> MarkAsShipped(ShipmentId shipmentId, DateTime dateTime)
+    {
+        return OrderStatus.CanTransitionTo(OrderStatus.Shipped).Map(_ =>
+        {
+            var oldStatus = OrderStatus;
+            ShipmentId = shipmentId;
+            OrderStatus = OrderStatus.Shipped;
+            ShippedAt = dateTime;
+            
+            AddDomainEvent(new OrderStatusChangedDomainEvent(
+                Id, oldStatus, OrderStatus.Shipped, dateTime));
+            
+            AddDomainEvent(new OrderShippedDomainEvent(
+                Id, shipmentId, dateTime));
+            
+            return this;
+        });
     }
 }
 ```
 
+**Key Design Principles:**
+- ✅ **Encapsulation** - Private constructors, private setters
+- ✅ **Immutability** - Properties are `init` where possible
+- ✅ **Domain Events** - Raised for all state changes
+- ✅ **Invariants** - Business rules enforced in methods
+- ✅ **Factory Methods** - Validated creation through `Create()`
+- ✅ **Explicit State Transitions** - `Fin<T>` for validated transitions
+
 #### 💎 Value Objects
 
+Real examples from the domain:
+
 ```csharp
+// Money Value Object
 public record Money
 {
     private Money(decimal value) => Value = value;
     
     public decimal Value { get; }
     
+    public static Money Zero => new(0);
+    
     public static Money FromDecimal(decimal value) =>
         value >= 0 
             ? new Money(value)
             : throw new ArgumentException("Money cannot be negative");
     
+    // Domain operations
     public static Money operator +(Money a, Money b) =>
         FromDecimal(a.Value + b.Value);
+    
+    public static Money operator -(Money a, Money b) =>
+        FromDecimal(a.Value - b.Value);
+    
+    public static Money operator *(Money money, int multiplier) =>
+        FromDecimal(money.Value * multiplier);
+    
+    public static bool operator >(Money a, Money b) => a.Value > b.Value;
+    public static bool operator <(Money a, Money b) => a.Value < b.Value;
 }
 
+// Email Value Object with validation
 public record Email
 {
     private Email(string value) => Value = value;
     
     public string Value { get; }
     
+    private static readonly Regex EmailRegex = new(
+        @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        RegexOptions.Compiled);
+    
     public static Fin<Email> From(string value) =>
-        IsValid(value)
-            ? FinSucc(new Email(value))
-            : FinFail<Email>(ValidationError.New("Invalid email format"));
+        string.IsNullOrWhiteSpace(value)
+            ? FinFail<Email>(ValidationError.New("Email cannot be empty"))
+            : EmailRegex.IsMatch(value)
+                ? FinSucc(new Email(value))
+                : FinFail<Email>(ValidationError.New("Invalid email format"));
+}
+
+// Strongly-typed IDs
+public record OrderId(Guid Value) : IId
+{
+    public static OrderId New => new(Guid.NewGuid());
+    public static OrderId From(Guid value) => new(value);
 }
 ```
 
 #### 📢 Domain Events
 
+Real examples from the project:
+
 ```csharp
+// Domain Event (internal to module)
 public record OrderCreatedDomainEvent(
     OrderId OrderId,
     UserId UserId,
-    Money Total) : IDomainEvent;
+    Money Total,
+    DateTime CreatedAt) : IDomainEvent;
 
+public record OrderPaidDomainEvent(
+    OrderId OrderId,
+    PaymentId PaymentId,
+    DateTime PaidAt) : IDomainEvent;
+
+public record OrderShippedDomainEvent(
+    OrderId OrderId,
+    ShipmentId ShipmentId,
+    DateTime ShippedAt) : IDomainEvent;
+
+// Integration Event (cross-module communication)
 public record PaymentFulfilledIntegrationEvent : IntegrationEvent
 {
     public Guid PaymentId { get; init; }
@@ -239,21 +466,39 @@ public record PaymentFulfilledIntegrationEvent : IntegrationEvent
 }
 ```
 
-#### 🗄️ Repositories with Functional Queries
+#### 🗄️ Aggregate Base Class
+
+The foundation for all aggregates:
 
 ```csharp
-// Db Monad for database operations
-var db = from order in GetEntity<OrderDBContext, Order>(
-            o => o.Id == orderId,
-            NotFoundError.New($"Order {orderId} not found"),
-            opt => opt.AddInclude(o => o.OrderItems))
-         from updated in UpdateEntity<OrderDBContext, Order>(
-            order,
-            o => o.MarkAsShipped(shipmentId, DateTime.UtcNow))
-         select updated;
-
-var result = await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
+// Shared.Domain.Abstractions.Aggregate.cs
+public class Aggregate<TId>(TId Id) : Entity<TId>(Id), IAggregate<TId> 
+    where TId : IId
+{
+    private readonly List<IDomainEvent> _domainEvents = [];
+    
+    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    
+    public IDomainEvent[] ClearDomainEvents()
+    {
+        var events = _domainEvents.ToArray();
+        _domainEvents.Clear();
+        return events;
+    }
+    
+    protected Unit AddDomainEvent(IDomainEvent domainEvent)
+    {
+        _domainEvents.Add(domainEvent);
+        return Unit.Default;
+    }
+}
 ```
+
+**Features:**
+- ✅ Primary constructor with ID
+- ✅ Domain event collection management
+- ✅ Protected event addition
+- ✅ Event clearing for publishing
 
 ### Strategic Patterns
 
