@@ -31,7 +31,7 @@ A modern, enterprise-grade e-commerce backend built with **Domain-Driven Design 
 <div align="center">
   <h3>⚡ Powered by Functional Programming</h3>
   <a href="https://github.com/louthy/language-ext">
-    <img src="https://raw.githubusercontent.com/louthy/language-ext/main/Images/language-ext.png" alt="LanguageExt" width="350"/>
+    <img src="https://raw.githubusercontent.com/louthy/language-ext/main/Images/banner.png" alt="LanguageExt" width="350"/>
   </a>
   <p><em>Building reliable software with monadic composition and functional principles</em></p>
 </div>
