@@ -1,22 +1,3 @@
-using System.Reflection;
-using System.Security.Claims;
-
-using Inventory;
-
-using MassTransit;
-
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
-
-using Payment;
-
-using Serilog.Events;
-
-using Shared;
-using Shared.Application.Extensions;
-using Shared.Infrastructure.Hubs.Extensions;
-
-using Shipment;
 
 namespace Api;
 
@@ -155,7 +136,6 @@ public partial class Program
                     return [ns ?? "API"];
                 });
 
-                // JWT Security
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -217,7 +197,6 @@ public partial class Program
 
             app.UseCors("front");
 
-            // Configure WebSockets BEFORE authentication and module middleware
             var webSocketOptions = new WebSocketOptions
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(30)

@@ -1,11 +1,42 @@
 ﻿# 🛍️ Store Backend - E-Commerce Platform
+# 🛍️ Store Backend - E-Commerce Platform
 
-[![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![C# 13](https://img.shields.io/badge/C%23-13.0-239120?logo=csharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
-[![LanguageExt](https://img.shields.io/badge/LanguageExt-Functional-blue)](https://github.com/louthy/language-ext)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![C# 13](https://img.shields.io/badge/C%23-13.0-239120?style=for-the-badge&logo=csharp&logoColor=white)
+![Entity Framework Core](https://img.shields.io/badge/EF_Core-9.0-512BD4?style=for-the-badge&logo=microsoft&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL_Server-Database-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Alternative-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+
+![LanguageExt](https://img.shields.io/badge/LanguageExt-Functional-5C2D91?style=for-the-badge&logo=fsharp&logoColor=white)
+![MediatR](https://img.shields.io/badge/MediatR-CQRS-FF6347?style=for-the-badge&logo=dotnet&logoColor=white)
+![MassTransit](https://img.shields.io/badge/MassTransit-Messaging-0072C6?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Event_Bus-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![SignalR](https://img.shields.io/badge/SignalR-Realtime-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+
+![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white)
+![SendGrid](https://img.shields.io/badge/SendGrid-Email-3368E5?style=for-the-badge&logo=sendgrid&logoColor=white)
+![Twilio](https://img.shields.io/badge/Twilio-SMS-F22F46?style=for-the-badge&logo=twilio&logoColor=white)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-Images-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)
+
+![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Serilog](https://img.shields.io/badge/Serilog-Logging-0E83CD?style=for-the-badge&logo=serilog&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-API_Docs-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 A modern, enterprise-grade e-commerce backend built with **Domain-Driven Design (DDD)**, **Functional Programming**, and **Event-Driven Architecture** using .NET 9 and C# 13.
+---
+
+<div align="center">
+  <h3>⚡ Powered by Functional Programming</h3>
+  <a href="https://github.com/louthy/language-ext">
+    <img src="https://raw.githubusercontent.com/louthy/language-ext/main/Images/language-ext.png" alt="LanguageExt" width="350"/>
+  </a>
+  <p><em>Building reliable software with monadic composition and functional principles</em></p>
+</div>
+
+---
 
 ## 🎯 Key Features
 
@@ -20,71 +51,7 @@ A modern, enterprise-grade e-commerce backend built with **Domain-Driven Design 
 - 🎭 **CQRS Pattern** - Command Query Responsibility Segregation
 - 🏛️ **Vertical Slice Architecture** - Feature-focused organization
 
-## 🏗️ Architecture Overview
 
-This project follows a **modular monolith architecture** with strict bounded contexts, implementing DDD principles with a functional programming approach.
-
-```mermaid
-graph TB
-    subgraph API["🌐 API Gateway"]
-        Gateway["<b>Bootstrapper/Api</b><br/>ASP.NET Core Web API<br/>SignalR Hubs"]
-    end
-
-    subgraph CoreModules["🔷 Core Business Modules"]
-        Identity["👤 <b>Identity</b><br/>Authentication<br/>Authorization"]
-        Product["📦 <b>Product</b><br/>Catalog<br/>Management"]
-        Basket["🛒 <b>Basket</b><br/>Shopping Cart<br/>Coupons"]
-        Inventory["📊 <b>Inventory</b><br/>Stock<br/>Management"]
-    end
-
-    subgraph TransactionModules["💰 Transaction Modules"]
-        Order["📋 <b>Order</b><br/>Order<br/>Processing"]
-        Payment["💳 <b>Payment</b><br/>Stripe<br/>Integration"]
-        Shipment["🚚 <b>Shipment</b><br/>Delivery &<br/>Tracking"]
-    end
-
-    subgraph Infrastructure["⚙️ Shared Infrastructure"]
-        Shared["🔧 <b>Shared Kernel</b><br/>• Domain Primitives<br/>• Event Bus (MassTransit)<br/>• Common Services<br/>• Email & SMS"]
-    end
-
-    Gateway -->|HTTP/REST| Identity
-    Gateway -->|HTTP/REST| Product
-    Gateway -->|HTTP/REST| Basket
-    Gateway -->|HTTP/REST| Inventory
-    Gateway -->|HTTP/REST| Order
-    Gateway -->|HTTP/REST| Payment
-    Gateway -->|HTTP/REST| Shipment
-
-    Identity -.->|Domain Events| Shared
-    Product -.->|Domain Events| Shared
-    Basket -.->|Domain Events| Shared
-    Inventory -.->|Domain Events| Shared
-    Order -.->|Domain Events| Shared
-    Payment -.->|Domain Events| Shared
-    Shipment -.->|Domain Events| Shared
-
-    Shared ==>|Integration Events| Identity
-    Shared ==>|Integration Events| Product
-    Shared ==>|Integration Events| Basket
-    Shared ==>|Integration Events| Order
-    Shared ==>|Integration Events| Payment
-    Shared ==>|Integration Events| Shipment
-    Shared ==>|Integration Events| Inventory
-
-    style API fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
-    style CoreModules fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style TransactionModules fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    style Infrastructure fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style Gateway fill:#42a5f5,stroke:#1565c0,stroke-width:2px,color:#fff
-    style Shared fill:#ab47bc,stroke:#4a148c,stroke-width:2px,color:#fff
-    style Identity fill:#ffcc80,stroke:#e65100,stroke-width:2px
-    style Product fill:#ffcc80,stroke:#e65100,stroke-width:2px
-    style Basket fill:#ffcc80,stroke:#e65100,stroke-width:2px
-    style Inventory fill:#ffcc80,stroke:#e65100,stroke-width:2px
-    style Order fill:#a5d6a7,stroke:#1b5e20,stroke-width:2px
-    style Payment fill:#a5d6a7,stroke:#1b5e20,stroke-width:2px
-    style Shipment fill:#a5d6a7,stroke:#1b5e20,stroke-width:2px
-```
 
 ### 📦 Modules (Bounded Contexts)
 
