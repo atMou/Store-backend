@@ -19,7 +19,7 @@ public static class Extensions
         Addresses = user.Addresses.Select(a => a.ToResult()),
         Roles = user.Roles.Select(r => r.ToResult()),
         ProductSubscriptions = user.ProductSubscriptions.Select(subscription => subscription.Key),
-        LikedProductIds = user.LikedProductIds.Select(productId => productId.Value),
+        LikedProductIds = user.LikedProducts.Select(likedProduct => likedProduct.ProductId.Value),
         Permissions = user.Permissions.Select(permission => permission.Name)
 
     };

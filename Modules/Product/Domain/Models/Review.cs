@@ -4,18 +4,20 @@ public class Review : Entity<ReviewId>
 {
     private Review() : base(ReviewId.New)
     {
-
     }
-    private Review(UserId userId, ProductId productId, Comment comment, Rating rating) : base(ReviewId.New)
+    private Review(UserId userId, ProductId productId, Comment comment, Rating rating, string userName, string avatarUrl) : base(ReviewId.New)
     {
         UserId = userId;
         ProductId = productId;
         Comment = comment;
         Rating = rating;
+        UserName = userName;
+        AvatarUrl = avatarUrl;
     }
 
     public UserId UserId { get; private init; }
-
+    public string UserName { get; private init; }
+    public string AvatarUrl { get; private init; }
     public Comment Comment { get; private set; }
 
     public Rating Rating { get; private set; }
@@ -24,10 +26,10 @@ public class Review : Entity<ReviewId>
 
     public Product Product { get; private init; }
 
-    public static Fin<Review> Create(UserId userId, ProductId productId, string comment, double rating)
+    public static Fin<Review> Create(UserId userId, ProductId productId, string comment, double rating, string userName, string avatarUrl)
     {
         return (Comment.From(comment), Rating.From(rating))
-            .Apply((c, r) => new Review(userId, productId, c, r)).As();
+            .Apply((c, r) => new Review(userId, productId, c, r, userName, avatarUrl)).As();
     }
 
 

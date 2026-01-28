@@ -24,6 +24,7 @@ public class LoginCommandHandler(
                      opt =>
                      {
                          opt = opt.AddInclude(user => user.RefreshTokens);
+                         opt = opt.AddInclude(user => user.LikedProducts);
                          opt.AsSplitQuery = true;
                          return opt;
                      })

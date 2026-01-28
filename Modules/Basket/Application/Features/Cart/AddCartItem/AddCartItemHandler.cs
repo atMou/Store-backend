@@ -22,7 +22,11 @@ internal class AddLineItemCommandHandler(
     public async Task<Fin<CartResult>> Handle(AddLineItemCommand command,
         CancellationToken cancellationToken)
     {
+        var loadCoupons =
+            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == command.CartId);
+
         var loadCart =
+            from coupons in loadCoupons
             from product in Db<BasketDbContext>.liftIO(async (_, e) =>
                 await sender.Send(new GetProductByIdQuery(command.ProductId, $"{Variants}"), e.Token))
             from cart in GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
@@ -37,12 +41,9 @@ internal class AddLineItemCommandHandler(
                 cart => product.Bind(p => CreateLineItem(p,
                     cart, command.ColorVariantId,
                     command.Quantity, command.SizeVariantId)).Map(item =>
-                    cart.AddLineItems(item)
-
+                    cart.LoadDiscountsFromCoupons(coupons).AddLineItems(item)
                 ))
             select cart;
-        var loadCoupons =
-            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == command.CartId);
 
         var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToResult(coupons));
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));

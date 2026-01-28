@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -27,7 +26,6 @@ namespace Identity.Persistence.Migrations
                 schema: "identity",
                 table: "user_liked_product_ids");
 
-            // Check if the foreign key already exists before adding it
             migrationBuilder.Sql(@"
                 IF NOT EXISTS (
                     SELECT 1 

@@ -70,6 +70,14 @@ public record InventorySizeVariant
 
         return (st, ls).Apply((_stock, _locations) =>
         {
+            //if (_stock.Value > Stock.Value)
+            //    notify((Size.Name, _stock.Value, true,
+            //        $"Stock for size {Size.Name} is available."));
+            //if (_stock.Value < Stock.Value)
+            //    notify((Size.Name, _stock.Value, true,
+            //        $"Stock for size {Size.Name} is Low Stock."));
+
+
             Stock = _stock;
             Warehouses = _locations.ToList();
             return this;

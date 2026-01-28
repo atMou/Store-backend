@@ -86,6 +86,8 @@ public static class Extensions
             ProductId = review.ProductId.Value,
             Comment = review.Comment.Value,
             Rating = review.Rating.Value,
+            UserName = review.UserName,
+            AvatarUrl = review.AvatarUrl,
             RatingDescription = review.Rating.Description,
             CreatedAt = review.CreatedAt
         };

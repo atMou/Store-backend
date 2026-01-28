@@ -51,8 +51,11 @@ public record InventoryColorVariant
         var (toUpdate, toCreate) =
             dtos.AsIterable().Partition(dto => SizeVariants.Any(sv => sv.Id == dto.SizeVariantId));
 
-        var updatedVariants = toUpdate.AsIterable().Traverse(dto => SizeVariants.First(sv => sv.Id == dto.SizeVariantId).Update(dto.Warehouses, dto.Stock, dto.Low, dto.Mid, dto.High))
-            .Map(it => it.AsEnumerable());
+        var updatedVariants = toUpdate.AsIterable().Traverse(dto =>
+
+                SizeVariants.First(sv => sv.Id == dto.SizeVariantId)
+                    .Update(dto.Warehouses, dto.Stock, dto.Low, dto.Mid, dto.High)
+            ).Map(it => it.AsEnumerable());
         var createdVariants = toCreate.AsIterable().Traverse(dto =>
           InventorySizeVariant.Create(dto.Size, dto.Stock, dto.Low, dto.Mid, dto.High, dto.Warehouses)).Map(it => it.AsEnumerable());
 

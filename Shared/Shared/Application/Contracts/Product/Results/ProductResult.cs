@@ -135,6 +135,8 @@ public record ReviewResult
     public Guid Id { get; init; }
     public string Comment { get; init; } = null!;
     public double Rating { get; init; }
+    public string UserName { get; init; } = null!;
+    public string AvatarUrl { get; init; } = null!;
     public string RatingDescription { get; init; } = null!;
     public Guid UserId { get; init; }
     public DateTime CreatedAt { get; init; }

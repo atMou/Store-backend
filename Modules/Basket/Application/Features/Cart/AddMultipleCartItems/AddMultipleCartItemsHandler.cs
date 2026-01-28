@@ -28,7 +28,11 @@ internal class AddMultipleLineItemsCommandHandler(
     {
         var productIds = command.Items.Select(request => request.ProductId);
 
-        var loadCart = from paginatedResults in Db<BasketDbContext>.liftIO(async (_, e) =>
+        var loadCoupons =
+            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == command.CartId);
+
+        var loadCart = from coupons in loadCoupons
+                       from paginatedResults in Db<BasketDbContext>.liftIO(async (_, e) =>
                 await sender.Send(new GetProductsByIdsQuery { ProductIds = productIds, Include = $"{Variants}" },
                     e.Token))
                        from cart in GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
@@ -43,11 +47,8 @@ internal class AddMultipleLineItemsCommandHandler(
                            cart => paginatedResults.Bind(p => p.Items.AsIterable().Traverse(result =>
                                    command.Items.AsIterable().Traverse(request => CreateLineItem(result, cart,
                                        request.ColorVariantId, request.Quantity, request.SizeVariantId))))
-                               .Map(iterable => cart.AddLineItems([.. iterable.Flatten()])))
+                               .Map(iterable => cart.LoadDiscountsFromCoupons(coupons).AddLineItems([.. iterable.Flatten()])))
                        select cart;
-
-        var loadCoupons =
-            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == command.CartId);
 
         var db = (loadCoupons, loadCart).Apply((coupons, cart) => cart.ToResult(coupons));
 

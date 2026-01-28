@@ -80,6 +80,7 @@ public record Permission
         new(20, nameof(ManageCoupons), "Can Manage coupons");
 
 
+
     public static readonly Permission ManageCarts =
         new(21, nameof(ManageCarts), "Can Manage carts");
 
@@ -88,6 +89,10 @@ public record Permission
 
     public static readonly Permission MakeRefund =
         new(23, nameof(MakeRefund), "Can Make Refund");
+
+    public static readonly Permission ViewDashboard =
+        new(24, nameof(ViewDashboard), "Can view Dashboard");
+
     public static Fin<Permission> FromCode(byte code) =>
         Optional(_all.FirstOrDefault(p => p.Code == code))
             .ToFin(Error.New($"Invalid permission code: {code}"));
@@ -96,6 +101,10 @@ public record Permission
         Optional(_all.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.CurrentCultureIgnoreCase)))
             .ToFin(Error.New($"Invalid permission name: {name}"));
 
-    public static Permission FromUnsafe(string name) =>
-        Optional(_all.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.CurrentCultureIgnoreCase))).IfNone(() => BrowseProducts);
+    public static Permission FromUnsafe(string name)
+    {
+        var result =
+            Optional(_all.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.CurrentCultureIgnoreCase))).IfNone(() => BrowseProducts);
+        return result;
+    }
 }

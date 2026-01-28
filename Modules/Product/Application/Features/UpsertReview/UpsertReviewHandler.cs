@@ -1,47 +1,48 @@
 using Product.Domain.Models;
-using Product.Persistence;
 
 using Shared.Infrastructure.Images;
 
 namespace Product.Application.Features.UpsertReview;
 
-public record UpsertReviewCommand(UserId UserId, ProductId ProductId, string Comment, double Rating)
+public record UpsertReviewCommand(ProductId ProductId, string Comment, double Rating)
     : ICommand<Fin<Unit>>
 {
-
 }
 
 internal class DeleteImagesCommandHandler(
     ProductDBContext dbContext,
-    IImageService imageService)
+    IUserContext userContext)
     : ICommandHandler<UpsertReviewCommand, Fin<Unit>>
 {
     public async Task<Fin<Unit>> Handle(UpsertReviewCommand command,
         CancellationToken cancellationToken)
     {
-
         var db =
-            from product in Db<ProductDBContext>.liftIO((ctx, e) =>
-                ctx.Products.Include(p => p.Reviews)
-                    .FirstOrDefaultAsync(p => p.Id == command.ProductId, e.Token))
-
-            let er = product?.Reviews.FirstOrDefault(r => r.UserId == command.UserId)
-
-            from updatedProduct in iff(er is null,
-                Review.Create(command.UserId, command.ProductId, command.Comment, command.Rating)
-                    .Map(product.AddReview),
-                er.Update(command.Comment, command.Rating)
-                    .Map(product.UpdateReview)).As()
-
-            from x in Db<ProductDBContext>.lift(ctx =>
+            from user in userContext.GetCurrentUser<IO>().As()
+            from a in GetUpdateEntity<ProductDBContext, Domain.Models.Product>(
+                p => p.Id == command.ProductId,
+                NotFoundError.New($"Product with ID {command.ProductId} not found"),
+                opt =>
                 {
-                    ctx.Products.Entry(product).CurrentValues.SetValues(updatedProduct);
-                    return unit;
-                })
-
+                    opt.AsSplitQuery = true;
+                    opt = opt.AddInclude(p => p.Reviews);
+                    return opt;
+                },
+                p => Optional(p.Reviews.FirstOrDefault(r =>
+                        r.UserId.Value == user.Id && r.ProductId.Value == command.ProductId.Value)).ToFin()
+                    .BiBind(
+                        review => review.Update(command.Comment, command.Rating).Map(_ => p),
+                        _ =>
+                            Review.Create(UserId.From(user.Id), command.ProductId, command.Comment, command.Rating, user.Name, user.AvatarUrl)
+                                .Map(r =>
+                                {
+                                    p.AddReview(r);
+                                    return p;
+                                })
+                    )
+            )
             select unit;
 
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken));
     }
 }
-

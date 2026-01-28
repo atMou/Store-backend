@@ -42,7 +42,8 @@ public class ReviewEntityConfiguration : IEntityTypeConfiguration<Review>
             c.Property(co => co.Value).HasColumnName("comment").IsRequired();
         });
 
-
+        builder.Property(r => r.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
+        builder.Property(r => r.UserName).HasColumnName("user_name").HasMaxLength(100);
         builder.Property(r => r.Rating)
             .HasConversion(r => r.Value, b => Rating.FromUnsafe(b))
             .HasPrecision(3, 2)

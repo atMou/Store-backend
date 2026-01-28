@@ -4,5 +4,6 @@ public static class Claims
 {
     public const string Permissions = "permissions";
     public const string Roles = "roles";
+    public const string AvatarUrl = "avatar_url";
     public const string HasPendingOrders = "has_pending_orders";
 }

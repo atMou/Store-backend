@@ -1,6 +1,5 @@
 using Inventory.Application.Contracts;
-
-using Shared.Domain.Errors;
+using Shared.Domain.Enums;
 
 namespace Inventory.Application.Features.UpdateInventory;
 
@@ -49,23 +48,31 @@ internal class UpdateInventoryCommandHandler(InventoryDbContext dbContext, IPubl
         return await db.RunSaveAsync(dbContext, EnvIO.New(null, cancellationToken))
             .RaiseOnSuccess(async i =>
             {
-                await endpoint.Publish(new InventoryUpdatedIntegrationEvent(i.ProductId.Value, i.ColorVariants.Select(variant =>
-                    new UpdateColorVariantDto()
-                    {
-                        ColorVariantId = variant.ColorVariantId.Value, SizeVariants =
-                            variant.SizeVariants.Select(sizeVariant =>
-                                new UpdateSizeVariantDto()
+                var inventoryEvent = new InventoryUpdatedIntegrationEvent(
+                    i.ProductId.Value,
+                    i.Brand,
+                    i.Slug,
+                    i.ColorVariants.Select(variant =>
+                        new InventoryColorVariantDto()
+                        {
+                            ColorVariantId = variant.ColorVariantId.Value,
+                            Color = variant.Color,
+                            SizeVariants = variant.SizeVariants.Select(sizeVariant =>
+                                new InventorySizeVariantDto()
                                 {
                                     SizeVariantId = sizeVariant.Id,
                                     Stock = sizeVariant.Stock.Value,
                                     Size = sizeVariant.Size.Code.ToString(),
-                                    Level = sizeVariant.StockLevel
+                                    Level = sizeVariant.StockLevel,
                                 })
-                    })), cancellationToken);
+                        }));
+                await endpoint.Publish(inventoryEvent, cancellationToken);
                 return unit;
+
             });
 
     }
+  
 
 
 

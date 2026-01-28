@@ -116,7 +116,7 @@ public record Color
             c => c, () => Color.None);
     public static IEnumerable<Color> Like(IEnumerable<string> repr)
     {
-        return _all.Where(color => repr.Any(s => color.Name.Contains(s)));
+        return _all.Where(color => repr.Any(s => color.Name.ToLowerInvariant().Contains(s)));
     }
 
     public static Fin<IEnumerable<Color>> From(IEnumerable<string> colors)

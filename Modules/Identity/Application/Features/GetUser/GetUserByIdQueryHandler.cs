@@ -12,7 +12,7 @@ public class GetUserByIdQueryHandler(IdentityDbContext dbContext, ISender sender
             NotFoundError.New($"User with id: '{query.UserId}' does not exist"),
             opt =>
             {
-                opt.AddInclude(u => u.LikedProductIds);
+                opt.AddInclude(u => u.LikedProducts);
                 return opt;
             }
         ).Map(u => u.ToResult());

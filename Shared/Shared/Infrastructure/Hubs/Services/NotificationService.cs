@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
 namespace Shared.Infrastructure.Hubs.Services;
@@ -25,13 +25,16 @@ public class NotificationService : INotificationService
 {
     private readonly IHubContext<NotificationHub, INotification> _hubContext;
     private readonly ILogger<NotificationService> _logger;
+    private readonly ISignalRSubscriptionStore _subscriptionStore;
 
     public NotificationService(
         IHubContext<NotificationHub, INotification> hubContext,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        ISignalRSubscriptionStore subscriptionStore)
     {
         _hubContext = hubContext;
         _logger = logger;
+        _subscriptionStore = subscriptionStore;
     }
 
     public async Task NotifyShipmentStatusChanged(Guid userId, ShipmentStatusNotification notification)
@@ -42,12 +45,17 @@ public class NotificationService : INotificationService
                 .Group($"user_{userId}")
                 .ReceiveShipmentStatusUpdate(notification);
 
+            var shipmentGroupName = $"shipment_{notification.ShipmentId}";
+
             // Also notify shipment-specific subscribers
             await _hubContext.Clients
-                .Group($"shipment_{notification.ShipmentId}")
+                .Group(shipmentGroupName)
                 .ReceiveShipmentStatusUpdate(notification);
 
             _logger.LogInformation($"Shipment status notification sent to user {userId}");
+
+            // Auto-cleanup: Remove subscriptions after notification is sent
+            await CleanupGroupSubscriptionsAsync(shipmentGroupName);
         }
         catch (Exception ex)
         {
@@ -63,12 +71,17 @@ public class NotificationService : INotificationService
                 .Group($"user_{userId}")
                 .ReceiveOrderStatusUpdate(notification);
 
+            var orderGroupName = $"order_{notification.OrderId}";
+
             // Also notify order-specific subscribers
             await _hubContext.Clients
-                .Group($"order_{notification.OrderId}")
+                .Group(orderGroupName)
                 .ReceiveOrderStatusUpdate(notification);
 
             _logger.LogInformation($"Order status notification sent to user {userId}");
+
+            // Auto-cleanup: Remove subscriptions after notification is sent
+            await CleanupGroupSubscriptionsAsync(orderGroupName);
         }
         catch (Exception ex)
         {
@@ -100,14 +113,36 @@ public class NotificationService : INotificationService
 
     public async Task NotifyStockAlert(StockAlertNotification notification)
     {
+        var groupName = $"product_{notification.ProductId}_{notification.Color}_{notification.Size}";
+
+        _logger.LogInformation(
+            "📢 Attempting to send stock alert to group: {GroupName} | Product: {ProductId}, Color: {Color}, Size: {Size}",
+            groupName,
+            notification.ProductId,
+            notification.Color,
+            notification.Size);
+
         try
         {
-            await _hubContext.Clients.Group($"product_{notification.ProductId}_{notification.Size}")
+            await _hubContext.Clients.Group(groupName)
                 .ReceiveStockAlert(notification);
+
+            _logger.LogInformation(
+                "✅ Stock alert sent for product {ProductId} with color {Color} and size {Size}",
+                notification.ProductId,
+                notification.Color,
+                notification.Size);
+
+            await CleanupGroupSubscriptionsAsync(groupName);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, $"Error sending stock alert for product {notification.ProductId} with size {notification.Size}");
+            _logger.LogError(
+                e,
+                "❌ Error sending stock alert for product {ProductId} with color {Color} and size {Size}",
+                notification.ProductId,
+                notification.Color,
+                notification.Size);
             throw;
         }
     }
@@ -206,4 +241,34 @@ public class NotificationService : INotificationService
         }
     }
 
+
+    private async Task CleanupGroupSubscriptionsAsync(string groupName)
+    {
+        try
+        {
+            var subscribedUserIds = await _subscriptionStore.GetSubscribedUserIdsAsync(groupName);
+
+            var userIdsList = subscribedUserIds.ToList();
+
+            if (!userIdsList.Any())
+            {
+                _logger.LogDebug("🧹 No subscriptions to cleanup for group {GroupName}", groupName);
+                return;
+            }
+
+            foreach (var userId in userIdsList)
+            {
+                await _subscriptionStore.UnsubscribeAsync(userId, groupName);
+            }
+
+            _logger.LogInformation(
+                "🧹 Cleaned up {Count} subscription(s) for group {GroupName} after notification delivery",
+                userIdsList.Count,
+                groupName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to cleanup subscriptions for group {GroupName}", groupName);
+        }
+    }
 }

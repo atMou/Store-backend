@@ -47,7 +47,8 @@ public class Cart : Aggregate<CartId>
         Tax.From(tax).Map(tx => new Cart(userId, tx, deliveryAddress));
     private Money RecalculateTotalDiscount()
     {
-        return Discounts.Aggregate(TotalSub, (money, discount) => discount.Apply(money));
+        return Discounts.Aggregate(Money.Zero, (totalDiscount, discount) => 
+            totalDiscount + Money.FromDecimal(discount.Apply(TotalSub)));
     }
 
     public Cart SetCartCheckedOut()
@@ -79,16 +80,13 @@ public class Cart : Aggregate<CartId>
 
     public Fin<Cart> RemoveDiscount(Discount discount, CouponId couponId)
     {
-        return DeleteCouponId(couponId).Bind(c =>
+        return DeleteCouponId(couponId).Map(c =>
         {
-            var discountValueToReduce = discount.Apply(c.TotalSub);
-            if (discountValueToReduce > TotalDiscount)
-                return FinFail<Cart>(InvalidOperationError.New("Cannot remove more discount than applied."));
-            TotalDiscount -= discountValueToReduce;
-            ShipmentCost = c.UpdateShippingCost();
+            c.Discounts.Remove(discount);
+            c.TotalDiscount = c.RecalculateTotalDiscount();
+            c.ShipmentCost = c.UpdateShippingCost();
             return c;
         });
-
     }
 
     public Cart ChangeDeliveryAddress(Address newAddress)
@@ -97,6 +95,12 @@ public class Cart : Aggregate<CartId>
         return this;
     }
 
+    public Cart LoadDiscountsFromCoupons(IEnumerable<Coupon> coupons)
+    {
+        Discounts = coupons.Select(c => c.Discount).ToList();
+        TotalDiscount = RecalculateTotalDiscount();
+        return this;
+    }
 
     public Cart AddLineItems(params LineItem[] lineItems)
     {
@@ -105,6 +109,7 @@ public class Cart : Aggregate<CartId>
             LineItems.Add(lineItem);
         }
         TotalSub = GetSubTotal(LineItems);
+        TotalDiscount = RecalculateTotalDiscount();
         ShipmentCost = UpdateShippingCost();
         return this;
     }
@@ -121,6 +126,7 @@ public class Cart : Aggregate<CartId>
                 ? li.UpdateQuantity(quantity)
                 : li).ToList();
         TotalSub = GetSubTotal(LineItems);
+        TotalDiscount = RecalculateTotalDiscount();
         ShipmentCost = UpdateShippingCost();
         return this;
     }
@@ -135,6 +141,7 @@ public class Cart : Aggregate<CartId>
         var lineItems = LineItems.Where(i => i.ColorVariantId.Value != colorVariantId.Value).ToList();
         LineItems = lineItems;
         TotalSub = GetSubTotal(lineItems);
+        TotalDiscount = RecalculateTotalDiscount();
         ShipmentCost = UpdateShippingCost();
         return this;
     }

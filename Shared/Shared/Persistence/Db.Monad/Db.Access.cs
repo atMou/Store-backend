@@ -4,6 +4,95 @@ namespace Shared.Persistence.Db.Monad;
 
 public static partial class Db
 {
+
+    public static Db<Ctx, PaginatedResult<B>> GetEntitiesWithPagination<Ctx, A, B, TQuery>
+    (
+        Expression<Func<A, bool>>? predicate,
+        Func<QueryOptions<A>, QueryOptions<A>>? fn,
+        TQuery query,
+        Func<A, B> map
+        )
+        where Ctx : DbContext
+        where A : class, IAggregate
+        where TQuery : IPagination
+
+    {
+        return from result in Db<Ctx>.liftIO(async (ctx, e) =>
+            {
+                var totalCount = await ctx.Set<A>().CountAsync(e.Token);
+                var items = predicate switch
+                {
+                    null => await ctx.Set<A>()
+                        .WithQueryOptions(fn).ToListAsync(e.Token),
+
+                    _ => await ctx.Set<A>()
+                        .Where(predicate)
+                        .WithQueryOptions(fn).ToListAsync(e.Token)
+                };
+                return (Items: items, TotalCount: totalCount);
+            })
+               select new PaginatedResult<B>
+               {
+                   Items = result.Items.Select(map),
+                   TotalCount = result.TotalCount,
+                   PageSize = query.PageSize,
+                   PageNumber = query.PageNumber
+               };
+    }
+    
+       public static Db<Ctx, A> GetEntity<Ctx, A>(
+        Expression<Func<A, bool>> predicate,
+        NotFoundError error,
+        Func<QueryOptions<A>, QueryOptions<A>>? fn = null
+    )
+        where Ctx : DbContext where A : class, IAggregate
+    {
+
+        return from a in Db<Ctx>.liftIO(async (ctx, e) =>
+                await ctx.Set<A>().WithQueryOptions(fn)
+                    .FirstOrDefaultAsync(predicate, e.Token))
+               from _ in when(a.IsNull(),
+                   IO.fail<Unit>(error))
+               select a;
+    }
+
+    public static Db<Ctx, List<A>> GetEntities<Ctx, A>(
+        Expression<Func<A, bool>> predicate,
+        Func<QueryOptions<A>, QueryOptions<A>>? fn = null)
+        where Ctx : DbContext
+        where A : class, IAggregate
+
+    {
+        return from lstA in Db<Ctx>.liftIO(async (ctx, e) =>
+                await ctx.Set<A>().Where(predicate).WithQueryOptions(fn)
+                    .ToListAsync(e.Token))
+               select lstA;
+    }
+
+    public static Db<Ctx, Unit> GetUpdateEntities<Ctx, A>(
+        Expression<Func<A, bool>> predicate,
+        Func<QueryOptions<A>, QueryOptions<A>>? queryOptions,
+        params Func<A, Fin<A>>[] updates)
+        where Ctx : DbContext
+        where A : class, IAggregate
+
+    {
+        var db = from lstA in Db<Ctx>.liftIO(async (ctx, e) =>
+                await ctx.Set<A>().WithQueryOptions(queryOptions).Where(predicate)
+                    .ToListAsync(e.Token))
+                 from x in lstA.AsIterable()
+                     .Traverse(a => updates.Aggregate(FinSucc(a),
+                         (current, func) => current.Bind(func))).As()
+                 let entities = x.AsEnumerable()
+                 from __ in Db<Ctx>.lift(ctx =>
+                 {
+                     ctx.Set<A>().UpdateRange(entities);
+                     return unit;
+                 })
+                 select unit;
+        return db;
+    }
+
     public static Db<Ctx, A> AddEntityIfNotExists<Ctx, A, B>(
         Expression<Func<A, bool>> predicate,
         ConflictError error,
@@ -139,6 +228,8 @@ public static partial class Db
             from __ in Db<Ctx>.lift(ctx =>
             {
                 ctx.Set<A>().Update(updatedA);
+                ctx.ChangeTracker.DetectChanges();
+                var entry = ctx.Entry(updatedA);
                 return unit;
             })
             select updatedA;
@@ -249,92 +340,5 @@ public static partial class Db
     }
 
 
-    public static Db<Ctx, A> GetEntity<Ctx, A>(
-        Expression<Func<A, bool>> predicate,
-        NotFoundError error,
-        Func<QueryOptions<A>, QueryOptions<A>>? fn = null
-    )
-        where Ctx : DbContext where A : class, IAggregate
-    {
-
-        return from a in Db<Ctx>.liftIO(async (ctx, e) =>
-                await ctx.Set<A>().WithQueryOptions(fn)
-                    .FirstOrDefaultAsync(predicate, e.Token))
-               from _ in when(a.IsNull(),
-                   IO.fail<Unit>(error))
-               select a;
-    }
-
-    public static Db<Ctx, List<A>> GetEntities<Ctx, A>(
-        Expression<Func<A, bool>> predicate,
-        Func<QueryOptions<A>, QueryOptions<A>>? fn = null)
-        where Ctx : DbContext
-        where A : class, IAggregate
-
-    {
-        return from lstA in Db<Ctx>.liftIO(async (ctx, e) =>
-                await ctx.Set<A>().Where(predicate).WithQueryOptions(fn)
-                    .ToListAsync(e.Token))
-               select lstA;
-    }
-
-    public static Db<Ctx, Unit> GetUpdateEntities<Ctx, A>(
-        Expression<Func<A, bool>> predicate,
-        Func<QueryOptions<A>, QueryOptions<A>>? queryOptions,
-        params Func<A, Fin<A>>[] updates)
-        where Ctx : DbContext
-        where A : class, IAggregate
-
-    {
-        var db = from lstA in Db<Ctx>.liftIO(async (ctx, e) =>
-                await ctx.Set<A>().WithQueryOptions(queryOptions).Where(predicate)
-                    .ToListAsync(e.Token))
-                 from x in lstA.AsIterable()
-                     .Traverse(a => updates.Aggregate(FinSucc(a),
-                         (current, func) => current.Bind(func))).As()
-                 let entities = x.AsEnumerable()
-                 from __ in Db<Ctx>.lift(ctx =>
-                 {
-                     ctx.Set<A>().UpdateRange(entities);
-                     return unit;
-                 })
-                 select unit;
-        return db;
-    }
-
-
-    public static Db<Ctx, PaginatedResult<B>> GetEntitiesWithPagination<Ctx, A, B, TQuery>
-    (
-        Expression<Func<A, bool>>? predicate,
-        Func<QueryOptions<A>, QueryOptions<A>>? fn,
-        TQuery query,
-        Func<A, B> map
-        )
-        where Ctx : DbContext
-        where A : class, IAggregate
-        where TQuery : IPagination
-
-    {
-        return from result in Db<Ctx>.liftIO(async (ctx, e) =>
-            {
-                var totalCount = await ctx.Set<A>().CountAsync(e.Token);
-                var items = predicate switch
-                {
-                    null => await ctx.Set<A>()
-                        .WithQueryOptions(fn).ToListAsync(e.Token),
-
-                    _ => await ctx.Set<A>()
-                        .Where(predicate)
-                        .WithQueryOptions(fn).ToListAsync(e.Token)
-                };
-                return (Items: items, TotalCount: totalCount);
-            })
-               select new PaginatedResult<B>
-               {
-                   Items = result.Items.Select(map),
-                   TotalCount = result.TotalCount,
-                   PageSize = query.PageSize,
-                   PageNumber = query.PageNumber
-               };
-    }
+ 
 }

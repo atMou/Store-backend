@@ -10,8 +10,11 @@ internal class DeleteLineItemHandler(
     public async Task<Fin<Unit>> Handle(DeleteLineItemCommand command,
         CancellationToken cancellationToken)
     {
-        var db =
+        var loadCoupons =
+            GetEntities<BasketDbContext, Domain.Models.Coupon>(coupon => coupon.CartId == command.CartId);
 
+        var db =
+            from coupons in loadCoupons
             from c in GetUpdateEntity<BasketDbContext, Domain.Models.Cart>(
                 cart => cart.Id == command.CartId,
                 NotFoundError.New($"Cart with Id {command.CartId.Value} not found."),
@@ -21,7 +24,7 @@ internal class DeleteLineItemHandler(
                     opt = opt.AddInclude(cart => cart.LineItems);
                     return opt;
                 },
-                cart => cart.DeleteLineItem(command.ColorVariantId))
+                cart => cart.LoadDiscountsFromCoupons(coupons).DeleteLineItem(command.ColorVariantId))
             from x in userContext.IsSameUser<IO>(c.UserId,
                           UnAuthorizedError.New("You are not authorized to delete this cart item."))
                       | userContext.HasRole<IO>(Role.Admin,

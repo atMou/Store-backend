@@ -7,7 +7,8 @@ internal sealed class JwtProvider : IJwtProvider
     {
         var claims = new List<Claim>
     {
-        new(JwtRegisteredClaimNames.Sub, user.Id.Value.ToString()),
+        new(ClaimTypes.Name , $"{user.FirstName} {user.LastName}"),
+        new(Claims.AvatarUrl, user.Avatar?.Value ?? ""),
         new(ClaimTypes.NameIdentifier, user.Id.Value.ToString()),
         new(JwtRegisteredClaimNames.Email, user.Email.Value),
         new(Claims.HasPendingOrders, user.HasPendingOrders.ToString())

@@ -14,7 +14,8 @@ internal class ToggleLikedProductsCommandHandler(IUserContext userContext, Ident
                      NotFoundError.New($"User with id '{userId}' does not exist."),
                      opt =>
                      {
-                         opt = opt.AddInclude(u => u.LikedProductIds);
+                         opt = opt.AddInclude(u => u.LikedProducts);
+                         opt = opt.AddAsTracking();
                          return opt;
                      },
                      user => user.ToggleLikedProducts([.. command.ProductIds])

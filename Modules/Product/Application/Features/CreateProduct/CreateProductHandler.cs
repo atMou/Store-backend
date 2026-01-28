@@ -79,7 +79,7 @@ internal class CreateProductHandlerCommandHandler(
                     ColorVariants = p.ColorVariants.Select(cv => new Shared.Application.Features.Product.Events.CreateColorVariantDto
                     {
                         ColorVariantId = cv.Id.Value,
-                        Color = cv.Color.Code.ToString()
+                        Color = cv.Color.Name
                     })
                 },
                 cancellationToken);

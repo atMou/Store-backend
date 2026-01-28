@@ -4,17 +4,20 @@ namespace Shared.Application.Features.Inventory.Events;
 
 public sealed record InventoryUpdatedIntegrationEvent(
     Guid ProductId,
-    IEnumerable<UpdateColorVariantDto> ColorVariants
+    string Brand,
+    string Slug,
+    IEnumerable<InventoryColorVariantDto> ColorVariants
 
 ) : IntegrationEvent;
 
 
-public record UpdateColorVariantDto
+public record InventoryColorVariantDto
 {
     public Guid ColorVariantId { get; init; }
-    public IEnumerable<UpdateSizeVariantDto> SizeVariants { get; init; }
+    public string Color { get; init; }
+    public IEnumerable<InventorySizeVariantDto> SizeVariants { get; init; }
 }
-public record UpdateSizeVariantDto
+public record InventorySizeVariantDto
 {
     public Guid SizeVariantId { get; init; }
     public string Size { get; init; }

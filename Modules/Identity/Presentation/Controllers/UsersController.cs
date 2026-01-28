@@ -42,7 +42,7 @@ public class UsersController(ISender sender) : ControllerBase
     }
 
 
-
+    [Authorize]
     [HttpPost]
     [Route("add-phone")]
     public async Task<ActionResult<Unit>> AddPhone([FromBody] AddPhoneRequest request)
@@ -55,6 +55,8 @@ public class UsersController(ISender sender) : ControllerBase
 
         return result.ToActionResult(_ => Ok(), HttpContext.Request.Path);
     }
+
+
     [Authorize]
     [HttpPost]
     [Route("add-address")]

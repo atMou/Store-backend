@@ -51,8 +51,8 @@ public static class Extensions
                 Id = cv.ColorVariantId.Value,
                 Color = new ColorResult()
                 {
-                    Name = Color.FromCodeUnsafe(cv.Color).Name,
-                    Hex = Color.FromCodeUnsafe(cv.Color).Hex,
+                    Name = Color.FromUnsafe(cv.Color).Name,
+                    Hex = Color.FromUnsafe(cv.Color).Hex,
                 },
                 SizeVariants = cv.SizeVariants.Select(sv => new Shared.Application.Contracts.Inventory.Results.SizeVariantResult
                 {

@@ -26,6 +26,11 @@ public static class QueryableExtensions
             {
                 queryable = queryable.AsNoTracking();
             }
+
+            if (options.AsTracking)
+            {
+                queryable = queryable.AsTracking();
+            }
             if (options.AsSplitQuery)
             {
                 queryable = queryable.AsSplitQuery();
@@ -60,6 +65,7 @@ public record QueryOptions<TAggregate>
     public string[] Includes { get; set; } = [];
     public bool AsSplitQuery { get; set; }
     public bool AsNoTracking { get; set; }
+    public bool AsTracking { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
 
@@ -92,6 +98,10 @@ public record QueryOptions<TAggregate>
     {
         List<Expression<Func<TAggregate, bool>>> filters = [.. FilterExpressions, .. _filters];
         return this with { FilterExpressions = filters };
+    }
+    public QueryOptions<TAggregate> AddAsTracking()
+    {
+        return this with { AsTracking = true };
     }
 
 

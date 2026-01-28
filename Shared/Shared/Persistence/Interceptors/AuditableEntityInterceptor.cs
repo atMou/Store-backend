@@ -23,7 +23,7 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
     {
         var user =
             userContext.GetCurrentUserF<Fin>().As()
-                .IfFail(new CurrentUser(Guid.Empty, "System", "System", false));
+                .IfFail(new CurrentUser(Guid.Empty, "System", "System", false, ""));
 
         return Optional(eventData.Context).Map(cxt =>
 
@@ -54,7 +54,7 @@ public class AuditableEntityInterceptor(IClock clock, IUserContext userContext) 
     {
         var user =
             userContext.GetCurrentUserF<Fin>().As()
-                .IfFail(new CurrentUser(Guid.Empty, "System", "System", false));
+                .IfFail(new CurrentUser(Guid.Empty, "System", "System", false, ""));
 
         return await Task.Run(() =>
         {

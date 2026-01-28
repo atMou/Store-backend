@@ -63,7 +63,7 @@ public class AuthController(ISender sender) : ControllerBase
 
     [HttpPost]
     [Route("resend-code")]
-    public async Task<ActionResult<Unit>> Reswnd([FromBody] ResendVerificationRequest request)
+    public async Task<ActionResult<Unit>> Resend([FromBody] ResendVerificationRequest request)
     {
         var result = await sender.Send(new ResendVerificationCommand(request.Email));
 
@@ -140,9 +140,4 @@ public class AuthController(ISender sender) : ControllerBase
 
         return result.ToActionResult(res => Ok(res), HttpContext.Request.Path);
     }
-}
-
-public record ResendVerificationRequest
-{
-    public string Email { get; set; }
 }

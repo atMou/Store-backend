@@ -8,8 +8,14 @@
 
   <ItemGroup>
     <Compile Remove="Domain\Enums\**" />
+    <Compile Remove="Domain\ValueObjects\**" />
+    <Compile Remove="Infrastructure\**" />
     <EmbeddedResource Remove="Domain\Enums\**" />
+    <EmbeddedResource Remove="Domain\ValueObjects\**" />
+    <EmbeddedResource Remove="Infrastructure\**" />
     <None Remove="Domain\Enums\**" />
+    <None Remove="Domain\ValueObjects\**" />
+    <None Remove="Infrastructure\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,11 +24,6 @@
 
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Domain\ValueObjects\" />
-    <Folder Include="Infrastructure\" />
   </ItemGroup>
 
 </Project>

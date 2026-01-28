@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Shared.Infrastructure.Authentication;
 
-public record CurrentUser(Guid Id, string Email, string Name, bool HasPendingOrders)
+public record CurrentUser(Guid Id, string Email, string Name, bool HasPendingOrders, string AvatarUrl)
 {
 }
 
@@ -28,8 +28,8 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
     {
         return from user in iff(User.IsNull(), M.Fail<ClaimsPrincipal>(UnAuthorizedError.New("You are not authorized")),
                 M.Pure(User)!)
-               let result = (ParseId(user), GetEmail(user), GetName(user), GetHasPendingOrders(user))
-                   .Apply((id, email, name, hasPending) => new CurrentUser(id, email, name, hasPending)).As()
+               let result = (ParseId(user), GetEmail(user), GetName(user), GetHasPendingOrders(user), GetAvatarUrl(user))
+                   .Apply((id, email, name, hasPending, avatarUrl) => new CurrentUser(id, email, name, hasPending, avatarUrl)).As()
                from a in result.Match(M.Pure, M.Fail<CurrentUser>)
                select a;
     }
@@ -37,8 +37,8 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
     {
         return from user in iff(User.IsNull(), M.Fail<ClaimsPrincipal>(UnAuthorizedError.New("You are not authorized")),
                 M.Pure(User)!)
-               let result = (ParseId(user), GetEmail(user), GetName(user), GetHasPendingOrders(user))
-                   .Apply((id, email, name, hasPending) => new CurrentUser(id, email, name, hasPending)).As()
+               let result = (ParseId(user), GetEmail(user), GetName(user), GetHasPendingOrders(user), GetAvatarUrl(user))
+                   .Apply((id, email, name, hasPending, avatarUrl) => new CurrentUser(id, email, name, hasPending, avatarUrl)).As()
                from a in result.Match(M.Pure, M.Fail<CurrentUser>)
                select a;
     }
@@ -95,11 +95,15 @@ public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContex
 
     private static Fin<string> GetName(ClaimsPrincipal p)
     {
-        var nameClaim = p.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var nameClaim = p.FindFirst(ClaimTypes.Name)?.Value;
 
         return Optional(nameClaim).ToFin(UnAuthorizedError.New("User name claim is missing"));
     }
-
+    private static Fin<string> GetAvatarUrl(ClaimsPrincipal p)
+    {
+        var avatarUrlClaim = p.FindFirst(Claims.AvatarUrl)?.Value;
+        return Optional(avatarUrlClaim).ToFin(UnAuthorizedError.New("User avatar URL claim is missing"));
+    }
     private static Fin<string> GetEmail(ClaimsPrincipal p)
     {
         var emailClaim = p.FindFirst(ClaimTypes.Email)?.Value;

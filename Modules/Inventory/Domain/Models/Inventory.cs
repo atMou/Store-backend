@@ -24,6 +24,7 @@ public class Inventory : Aggregate<InventoryId>
         Slug = slug;
         ImageUrl = imageUrl;
         ColorVariants = colorVariants.ToList();
+            
     }
 
     public ProductId ProductId { get; }

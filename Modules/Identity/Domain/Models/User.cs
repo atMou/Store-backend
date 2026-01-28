@@ -49,7 +49,7 @@ public class User : Aggregate<UserId>
     public bool IsEmailVerified { get; private set; }
     public bool IsPhoneVerified { get; private set; }
 
-    public ICollection<ProductId> LikedProductIds { get; private set; } = [];
+    public ICollection<UserLikedProduct> LikedProducts { get; private set; } = [];
 
     public ICollection<ProductSubscription> ProductSubscriptions { get; private set; } = [];
 
@@ -244,18 +244,22 @@ public class User : Aggregate<UserId>
 
     public User ToggleLikedProducts(params ProductId[] productIds)
     {
-        var (existing, nonExisting) = productIds.AsIterable().Partition(pId => LikedProductIds.Contains(pId));
-
-        if (existing.Any())
+        foreach (var productId in productIds)
         {
-            LikedProductIds = LikedProductIds
-                .Where(lpid => !existing.Contains<Iterable, ProductId>(lpid))
-                .ToList();
-        }
-
-        if (nonExisting.Any())
-        {
-            LikedProductIds = [.. LikedProductIds, .. nonExisting];
+            var existingLike = LikedProducts.FirstOrDefault(lp => lp.ProductId.Value == productId.Value);
+            if (existingLike != null)
+            {
+                LikedProducts.Remove(existingLike);
+            }
+            else
+            {
+                LikedProducts.Add(new UserLikedProduct
+                {
+                    UserId = Id,
+                    ProductId = productId,
+                    LikedAt = DateTime.UtcNow
+                });
+            }
         }
 
         return this;

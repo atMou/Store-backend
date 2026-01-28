@@ -1,9 +1,8 @@
 using Product.Domain.Events;
-
+using Shared.Application.Features.Inventory.Events;
 using Shared.Domain.Enums;
 
 using Brand = Shared.Domain.ValueObjects.Brand;
-using UpdateColorVariantDto = Shared.Application.Features.Inventory.Events.UpdateColorVariantDto;
 
 namespace Product.Domain.Models;
 
@@ -154,7 +153,7 @@ public class Product : Aggregate<ProductId>
     }
 
     // internal use only
-    public Fin<Product> UpdateColorVariants(params UpdateColorVariantDto[] colorVariants)
+    public Fin<Product> UpdateColorVariants(params InventoryColorVariantDto[] colorVariants)
     {
 
         return ColorVariants.AsIterable().Fold(FinSucc(this), (current, cv) =>

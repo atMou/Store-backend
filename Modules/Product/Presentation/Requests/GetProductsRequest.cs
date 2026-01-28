@@ -5,10 +5,12 @@ namespace Product.Presentation.Requests;
 public record GetProductsRequest
 {
     public string? Category { get; init; }
+    public string? Sub { get; init; }
+    public string? Type { get; init; }
+    public string? SubType { get; init; }
+
     public string? Brand { get; init; }
     public string? Color { get; init; }
-    public string? Type { get; init; }
-    public string? Sub { get; init; }
     public string? Size { get; init; }
     public decimal? MinPrice { get; init; }
     public decimal? MaxPrice { get; init; }
@@ -30,7 +32,7 @@ public record GetProductsRequest
         Brand = Brand,
         Color = Color,
         Type = Type,
-        Sub = Sub,
+        Sub = SubType,
         Size = Size,
         MinPrice = MinPrice,
         MaxPrice = MaxPrice,
@@ -43,6 +45,8 @@ public record GetProductsRequest
         IsFeatured = IsFeatured,
         IsTrending = IsTrending,
         IsBestSeller = IsBestSeller,
-        IsNew = IsNew
+        IsNew = IsNew,
+        SubCategory = Sub,
+
     };
 }

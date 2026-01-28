@@ -4,6 +4,7 @@ using Identity.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Identity.Persistence.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    partial class IdentityDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260123170550_Fix_LikedProducts_OwnCollection")]
+    partial class Fix_LikedProducts_OwnCollection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -183,27 +186,6 @@ namespace Identity.Persistence.Migrations
                     b.ToTable("users", "identity");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Models.UserLikedProduct", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("user_id");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("product_id");
-
-                    b.Property<DateTime>("LikedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("liked_at");
-
-                    b.HasKey("UserId", "ProductId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("user_liked_products", "identity");
-                });
-
             modelBuilder.Entity("Identity.Domain.Models.RefreshToken", b =>
                 {
                     b.HasOne("Identity.Domain.Models.User", null)
@@ -322,28 +304,36 @@ namespace Identity.Persistence.Migrations
                                 .HasForeignKey("UserId");
                         });
 
+                    b.OwnsMany("Shared.Domain.ValueObjects.ProductId", "LikedProductIds", b1 =>
+                        {
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("user_id");
+
+                            b1.Property<Guid>("Value")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("product_id");
+
+                            b1.HasKey("UserId", "Value");
+
+                            b1.ToTable("user_liked_product_ids", "identity");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
                     b.Navigation("Addresses");
 
                     b.Navigation("Avatar");
 
+                    b.Navigation("LikedProductIds");
+
                     b.Navigation("ProductSubscriptions");
-                });
-
-            modelBuilder.Entity("Identity.Domain.Models.UserLikedProduct", b =>
-                {
-                    b.HasOne("Identity.Domain.Models.User", "User")
-                        .WithMany("LikedProducts")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Identity.Domain.Models.User", b =>
                 {
-                    b.Navigation("LikedProducts");
-
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

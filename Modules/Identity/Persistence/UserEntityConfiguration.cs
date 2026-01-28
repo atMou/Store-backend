@@ -79,22 +79,10 @@ internal class UserEntityConfiguration : IEntityTypeConfiguration<User>
             .HasColumnName("email_confirmation_code");
 
 
-        builder
- .OwnsMany(u => u.LikedProductIds, lp =>
-            {
-                lp.ToTable("user_liked_product_ids");
-
-                lp.WithOwner()
-                    .HasForeignKey("UserId");
-
-                lp.Property<Guid>("UserId")
-                    .HasColumnName("user_id");
-
-                lp.Property(productId => productId.Value)
-                    .HasColumnName("product_id");
-
-                lp.HasKey("UserId", "Value");
-            });
+        builder.HasMany(u => u.LikedProducts)
+            .WithOne(lp => lp.User)
+            .HasForeignKey(lp => lp.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.OwnsMany(u => u.ProductSubscriptions, ps =>
         {
